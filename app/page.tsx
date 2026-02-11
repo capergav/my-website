@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { createClient } from "@supabase/supabase-js";
+import { MenuTabs } from "./components/MenuTabs";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,11 +9,18 @@ const supabase = createClient(
 );
 
 const CATEGORY_ORDER = [
+  "Breakfast",
   "Appetizers",
+  "Salads",
+  "Soups",
+  "Sandwiches",
+  "Burgers",
+  "Pastas",
   "Mains",
   "Sides",
   "Desserts",
   "Drinks",
+  "Other",
 ];
 
 export default async function Home() {
@@ -60,54 +68,8 @@ export default async function Home() {
         </div>
       </div>
 
-      {/* Menu */}
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-        <div className="space-y-14">
-          {sortedCategories.map((category) => (
-            <section key={category}>
-              <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-[var(--foreground)] mb-6 pb-2 border-b border-[var(--card-border)]">
-                {category}
-              </h2>
-
-              <div className="space-y-5">
-                {grouped[category].map((item: any) => (
-                  <article
-                    key={item.id}
-                    className="bg-[var(--card)] rounded-2xl overflow-hidden border border-[var(--card-border)] shadow-sm hover:shadow-md transition-shadow duration-200"
-                  >
-                    {item.image_url && (
-                      <div className="aspect-[3/2] overflow-hidden bg-[var(--card-border)]">
-                        <img
-                          src={item.image_url}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-
-                    <div className="p-5 sm:p-6">
-                      <div className="flex justify-between items-baseline gap-4">
-                        <h3 className="font-serif text-xl font-semibold text-[var(--foreground)]">
-                          {item.name}
-                        </h3>
-                        <span className="font-medium text-[var(--accent)] whitespace-nowrap">
-                          ${Number(item.price).toFixed(2)}
-                        </span>
-                      </div>
-
-                      {item.description && (
-                        <p className="text-[var(--muted)] mt-2 text-sm sm:text-base leading-relaxed">
-                          {item.description}
-                        </p>
-                      )}
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      </div>
+      {/* Tabs + menu content */}
+      <MenuTabs grouped={grouped} sortedCategories={sortedCategories} />
     </main>
   );
 }
