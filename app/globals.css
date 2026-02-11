@@ -38,6 +38,21 @@ body {
   font-family: var(--font-cormorant), Georgia, serif;
 }
 
+/* Long text wraps instead of overflowing (names, descriptions) */
+.text-wrap-balance {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Force long text (e.g. descriptions with no spaces) to wrap and never overflow */
+.text-wrap-force {
+  width: 100%;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
 /* Tab strip horizontal scroll - minimal scrollbar */
 .tabs-scroll {
   scrollbar-width: thin;
@@ -53,4 +68,12 @@ body {
 .tabs-scroll::-webkit-scrollbar-thumb {
   background: var(--card-border);
   border-radius: 4px;
+}
+
+/* Hide scrollbar on tab strip for cleaner mobile look */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
