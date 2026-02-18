@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 export type MenuItem = {
   id: string;
@@ -17,13 +18,14 @@ type MenuTabsProps = {
 };
 
 export function MenuTabs({ grouped, sortedCategories }: MenuTabsProps) {
+  const { t, getCategoryLabel } = useLanguage();
   const [activeCategory, setActiveCategory] = useState(sortedCategories[0] ?? "");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
 
   if (sortedCategories.length === 0) {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-10 text-[var(--muted)] text-center">
-        No menu items yet.
+        {t("ui.noMenuItems")}
       </div>
     );
   }
@@ -42,10 +44,10 @@ export function MenuTabs({ grouped, sortedCategories }: MenuTabsProps) {
               onClick={() => setSelectedItem(null)}
               className="flex items-center gap-2 text-[var(--foreground)] active:text-[var(--accent)] transition-colors font-medium min-h-[48px] py-3 -mx-2 px-2 touch-manipulation"
             >
-              <svg className="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 flex-shrink-0 rtl:scale-x-[-1]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              Back to menu
+              {t("ui.backToMenu")}
             </button>
           </div>
         </div>
@@ -62,7 +64,7 @@ export function MenuTabs({ grouped, sortedCategories }: MenuTabsProps) {
             </div>
           ) : (
             <div className="aspect-[4/3] sm:aspect-[3/2] -mx-4 sm:mx-0 sm:rounded-2xl bg-[var(--card-border)] mt-2 flex items-center justify-center text-[var(--muted)]">
-              No image
+              {t("ui.noImage")}
             </div>
           )}
 
@@ -130,7 +132,7 @@ export function MenuTabs({ grouped, sortedCategories }: MenuTabsProps) {
                       ${isActive ? "text-[var(--accent)]" : "text-[var(--muted)]"}
                     `}
                   >
-                    {category}
+                    {getCategoryLabel(category)}
                   </span>
                 </button>
               );
@@ -142,7 +144,7 @@ export function MenuTabs({ grouped, sortedCategories }: MenuTabsProps) {
       {/* Category content - full-width tap area on mobile */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-12 pb-[env(safe-area-inset-bottom)]">
         <h2 className="font-serif text-xl sm:text-3xl font-semibold text-[var(--foreground)] mb-5 sm:mb-6">
-          {activeCategory}
+          {getCategoryLabel(activeCategory)}
         </h2>
 
         <div className="space-y-4 sm:space-y-5">
@@ -186,7 +188,7 @@ export function MenuTabs({ grouped, sortedCategories }: MenuTabsProps) {
                   </p>
                 )}
                 <p className="text-[var(--accent)] text-sm mt-2 font-medium">
-                  Tap to read more
+                  {t("ui.tapToReadMore")}
                 </p>
               </div>
             </article>
