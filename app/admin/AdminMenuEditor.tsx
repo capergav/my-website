@@ -52,7 +52,8 @@ export function AdminMenuEditor({
     });
     const sorted = [
       ...CATEGORY_ORDER.filter((c) => g[c]),
-      ...Object.keys(g).filter((c) => !CATEGORY_ORDER.includes(c)),
+      ...Object.keys(g).filter(
+        (c) => !(CATEGORY_ORDER as readonly string[]).includes(c)
     ];
     setGrouped(g);
     setSortedCategories(sorted);
