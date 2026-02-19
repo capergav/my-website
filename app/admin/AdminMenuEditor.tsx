@@ -54,6 +54,7 @@ export function AdminMenuEditor({
       ...CATEGORY_ORDER.filter((c) => g[c]),
       ...Object.keys(g).filter(
         (c) => !(CATEGORY_ORDER as readonly string[]).includes(c)
+      ),
     ];
     setGrouped(g);
     setSortedCategories(sorted);
