@@ -1,28 +1,11 @@
 export const dynamic = "force-dynamic";
 
-import { createClient } from "@supabase/supabase-js";
+import { createSupabaseClient } from "./lib/supabase";
+import { CATEGORY_ORDER } from "./lib/constants";
 import { MenuTabs } from "./components/MenuTabs";
 import { HeroWithLang } from "./components/HeroWithLang";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
-const CATEGORY_ORDER = [
-  "Breakfast",
-  "Appetizers",
-  "Salads",
-  "Soups",
-  "Sandwiches",
-  "Burgers",
-  "Pastas",
-  "Mains",
-  "Sides",
-  "Desserts",
-  "Drinks",
-  "Other",
-];
+const supabase = createSupabaseClient();
 
 export default async function Home() {
   const { data: menuItems, error } = await supabase
@@ -48,7 +31,7 @@ export default async function Home() {
   const sortedCategories = [
     ...CATEGORY_ORDER.filter((c) => grouped[c]),
     ...Object.keys(grouped).filter(
-      (c) => !CATEGORY_ORDER.includes(c)
+      (c) => !(CATEGORY_ORDER as readonly string[]).includes(c)
     ),
   ];
 

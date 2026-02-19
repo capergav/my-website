@@ -26,7 +26,7 @@ export function LanguageDropdown() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 min-h-[44px] px-3 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-medium text-sm touch-manipulation border border-white/30"
+        className="flex items-center gap-2 min-h-[44px] px-3 py-2 rounded-xl bg-black text-white font-medium text-sm touch-manipulation border-2 border-amber-400/90 hover:border-amber-300 shadow-lg"
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label="Change language"
