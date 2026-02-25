@@ -415,87 +415,127 @@ function ThemeDropdowns({
     <div className="relative" ref={ref}>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => setOpen(true)}
         className="min-h-[44px] px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-medium text-sm border border-white/40 flex items-center gap-2"
       >
         Theme & branding
-        <svg className={`w-4 h-4 ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
       </button>
       {open && (
-        <div className="absolute top-full end-0 mt-2 w-72 p-4 rounded-xl bg-[var(--card)] border border-[var(--card-border)] shadow-xl z-50">
-          <p className="text-sm font-medium text-[var(--foreground)] mb-2">Primary color</p>
-          <select
-            value={main}
-            onChange={(e) => setMain(e.target.value)}
-            className="w-full mb-4 px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
-          >
-            {MAIN_COLOR_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <p className="text-sm font-medium text-[var(--foreground)] mb-2">Secondary color</p>
-          <select
-            value={accent}
-            onChange={(e) => setAccent(e.target.value)}
-            className="w-full mb-4 px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
-          >
-            {ACCENT_COLOR_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <p className="text-sm font-medium text-[var(--foreground)] mb-2">Font family</p>
-          <select
-            value={fontFamily}
-            onChange={(e) => setFontFamily(e.target.value)}
-            className="w-full mb-4 px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
-          >
-            <option value="sans">Modern Sans (default)</option>
-            <option value="serif">Elegant Serif</option>
-            <option value="mono">Mono</option>
-          </select>
-          <p className="text-sm font-medium text-[var(--foreground)] mb-2">
-            Restaurant name
-          </p>
-          <input
-            type="text"
-            value={restaurantName}
-            onChange={(e) => setRestaurantName(e.target.value)}
-            placeholder="e.g. La Piazza"
-            className="w-full mb-4 px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
-          />
-          <p className="text-sm font-medium text-[var(--foreground)] mb-2">
-            Hero image URL
-          </p>
-          <input
-            type="url"
-            value={heroImageUrl}
-            onChange={(e) => setHeroImageUrl(e.target.value)}
-            placeholder="https://..."
-            className="w-full mb-4 px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              onSave({
-                main_color: main,
-                accent_color: accent,
-                font_family: fontFamily,
-                restaurant_name: restaurantName.trim() || null,
-                hero_image_url: heroImageUrl.trim() || null,
-              });
-              setOpen(false);
-            }}
-            disabled={saving}
-            className="w-full py-2 rounded-lg bg-[var(--accent)] text-white font-medium disabled:opacity-50"
-          >
-            Save theme
-          </button>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setOpen(false);
+          }}
+        >
+          <div className="w-full max-w-md rounded-2xl bg-[var(--card)] border border-[var(--card-border)] shadow-xl p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-[var(--foreground)]">
+                Theme & branding
+              </h2>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-[var(--foreground)] mb-2">
+                  Primary color
+                </p>
+                <select
+                  value={main}
+                  onChange={(e) => setMain(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
+                >
+                  {MAIN_COLOR_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-[var(--foreground)] mb-2">
+                  Secondary color
+                </p>
+                <select
+                  value={accent}
+                  onChange={(e) => setAccent(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
+                >
+                  {ACCENT_COLOR_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-[var(--foreground)] mb-2">
+                  Font family
+                </p>
+                <select
+                  value={fontFamily}
+                  onChange={(e) => setFontFamily(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
+                >
+                  <option value="sans">Modern Sans (default)</option>
+                  <option value="serif">Elegant Serif</option>
+                  <option value="mono">Mono</option>
+                </select>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-[var(--foreground)] mb-2">
+                  Restaurant name
+                </p>
+                <input
+                  type="text"
+                  value={restaurantName}
+                  onChange={(e) => setRestaurantName(e.target.value)}
+                  placeholder="e.g. La Piazza"
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
+                />
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-[var(--foreground)] mb-2">
+                  Hero image URL
+                </p>
+                <input
+                  type="url"
+                  value={heroImageUrl}
+                  onChange={(e) => setHeroImageUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  onSave({
+                    main_color: main,
+                    accent_color: accent,
+                    font_family: fontFamily,
+                    restaurant_name: restaurantName.trim() || null,
+                    hero_image_url: heroImageUrl.trim() || null,
+                  });
+                  setOpen(false);
+                }}
+                disabled={saving}
+                className="w-full py-2 rounded-lg bg-[var(--accent)] text-white font-medium disabled:opacity-50"
+              >
+                Save theme
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
