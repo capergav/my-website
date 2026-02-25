@@ -159,7 +159,7 @@ export function AdminMenuEditor({
             saving={saving}
           />
           <a
-            href="/"
+            href="https://menusnap-lac.vercel.app/"
             className="min-h-[44px] px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-medium text-sm border border-white/40"
           >
             View menu
