@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { createSupabaseClient } from "@/app/lib/supabase";
+import { createSupabaseClient, type SiteSettings } from "@/app/lib/supabase";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
 import type { SiteSettings } from "@/app/lib/supabase";
@@ -43,9 +43,11 @@ export default async function AdminPage() {
   try {
     const { data } = await supabase
       .from("site_settings")
-      .select("id, main_color, accent_color")
+      .select(
+        "id, main_color, accent_color, font_family, restaurant_name, hero_image_url"
+      )
       .limit(1)
-      .maybeSingle();
+      .maybeSingle<SiteSettings>();
     if (data) {
       siteSettings = data as SiteSettings;
     }

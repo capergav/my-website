@@ -1,17 +1,24 @@
 export const dynamic = "force-dynamic";
 
-import { createSupabaseClient } from "./lib/supabase";
+import { createSupabaseClient, type SiteSettings } from "./lib/supabase";
 import { CATEGORY_ORDER } from "./lib/constants";
 import { MenuTabs } from "./components/MenuTabs";
 import { HeroWithLang } from "./components/HeroWithLang";
 
-const supabase = createSupabaseClient();
-
 export default async function Home() {
-  const { data: menuItems, error } = await supabase
-    .from("menu_items")
-    .select("*")
-    .order("name", { ascending: true });
+  const supabase = createSupabaseClient();
+
+  const [{ data: menuItems, error }, { data: siteSettings }] = await Promise.all([
+    supabase
+      .from("menu_items")
+      .select("*")
+      .order("name", { ascending: true }),
+    supabase
+      .from("site_settings")
+      .select("restaurant_name, hero_image_url")
+      .limit(1)
+      .maybeSingle<SiteSettings>(),
+  ]);
 
   if (error) {
     return (
@@ -21,12 +28,17 @@ export default async function Home() {
     );
   }
 
-  const grouped = menuItems?.reduce((acc: any, item: any) => {
-    const category = item.category || "Other";
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(item);
-    return acc;
-  }, {}) ?? {};
+  // Only show items that are available (treat null/undefined as available)
+  const visibleItems =
+    (menuItems ?? []).filter((item: any) => item.available !== false) ?? [];
+
+  const grouped =
+    visibleItems.reduce((acc: any, item: any) => {
+      const category = item.category || "Other";
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(item);
+      return acc;
+    }, {}) ?? {};
 
   const sortedCategories = [
     ...CATEGORY_ORDER.filter((c) => grouped[c]),
@@ -37,7 +49,10 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <HeroWithLang />
+      <HeroWithLang
+        restaurantName={siteSettings?.restaurant_name ?? undefined}
+        heroImageUrl={siteSettings?.hero_image_url ?? undefined}
+      />
 
       {/* Tabs + menu content */}
       <MenuTabs grouped={grouped} sortedCategories={sortedCategories} />

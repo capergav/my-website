@@ -3,14 +3,27 @@
 import { useLanguage } from "@/app/context/LanguageContext";
 import { LanguageDropdown } from "./LanguageDropdown";
 
-export function HeroWithLang() {
+type HeroWithLangProps = {
+  restaurantName?: string;
+  heroImageUrl?: string;
+};
+
+export function HeroWithLang({
+  restaurantName,
+  heroImageUrl,
+}: HeroWithLangProps) {
   const { t } = useLanguage();
+
+  const title = restaurantName || t("hero.title");
+  const imageSrc =
+    heroImageUrl ||
+    "https://images.unsplash.com/photo-1555396273-367ea4eb4db5";
 
   return (
     <div className="relative h-56 sm:h-64 overflow-hidden">
       <img
-        src="https://images.unsplash.com/photo-1555396273-367ea4eb4db5"
-        alt=""
+        src={imageSrc}
+        alt={title}
         className="w-full h-full object-cover"
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
@@ -19,7 +32,7 @@ export function HeroWithLang() {
       </div>
       <div className="absolute inset-0 flex items-center justify-center">
         <h1 className="font-serif text-4xl sm:text-5xl font-semibold text-white tracking-wide drop-shadow-lg px-4 text-center">
-          {t("hero.title")}
+          {title}
         </h1>
       </div>
     </div>

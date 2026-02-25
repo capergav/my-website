@@ -20,4 +20,5 @@ export type MenuItemRow = {
   price: number | string;
   image_url?: string | null;
   category?: string | null;
+  available?: boolean | null;
 };

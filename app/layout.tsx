@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "./context/LanguageContext";
-import { createSupabaseClient } from "./lib/supabase";
+import { createSupabaseClient, type SiteSettings } from "./lib/supabase";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,13 +42,23 @@ export default async function RootLayout({
     const supabase = createSupabaseClient();
     const { data } = await supabase
       .from("site_settings")
-      .select("main_color, accent_color")
+      .select("main_color, accent_color, font_family")
       .limit(1)
-      .maybeSingle();
+      .maybeSingle<SiteSettings>();
     if (data?.main_color && data?.accent_color) {
       const main = data.main_color.replace(/"/g, "&quot;");
       const accent = data.accent_color.replace(/"/g, "&quot;");
-      themeStyle = `:root{--foreground:${main};--accent:${accent};}`;
+
+      let fontVar = "";
+      if (data.font_family === "serif") {
+        fontVar = "--font-body:var(--font-cormorant);";
+      } else if (data.font_family === "mono") {
+        fontVar = "--font-body:var(--font-geist-mono);";
+      } else if (data.font_family === "sans") {
+        fontVar = "--font-body:var(--font-geist-sans);";
+      }
+
+      themeStyle = `:root{--foreground:${main};--accent:${accent};${fontVar}}`;
     }
   } catch {
     // ignore

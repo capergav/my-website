@@ -109,31 +109,37 @@ export function AdminMenuEditor({
     setSaving(false);
   };
 
-  const handleSaveTheme = async (main_color: string, accent_color: string) => {
+  const handleSaveTheme = async (updates: {
+    main_color: string;
+    accent_color: string;
+    font_family?: string | null;
+    restaurant_name?: string | null;
+    hero_image_url?: string | null;
+  }) => {
     setSaving(true);
     const table = "site_settings";
     if (settings?.id) {
       const { error } = await supabase
         .from(table)
-        .update({ main_color, accent_color })
+        .update(updates)
         .eq("id", settings.id);
       if (error) {
         showMessage("err", error.message);
       } else {
-        setSettings({ ...settings, main_color, accent_color });
-        showMessage("ok", "Colors saved. Refresh the menu page to see changes.");
+        setSettings({ ...settings, ...updates });
+        showMessage("ok", "Theme saved. Refresh the menu page to see changes.");
       }
     } else {
       const { data, error } = await supabase
         .from(table)
-        .insert({ main_color, accent_color })
-        .select("id, main_color, accent_color")
+        .insert(updates)
+        .select("id, main_color, accent_color, font_family, restaurant_name, hero_image_url")
         .single();
       if (error) {
         showMessage("err", error.message);
       } else {
         setSettings(data as SiteSettings);
-        showMessage("ok", "Colors saved. Refresh the menu page to see changes.");
+        showMessage("ok", "Theme saved. Refresh the menu page to see changes.");
       }
     }
     setSaving(false);
@@ -227,7 +233,9 @@ export function AdminMenuEditor({
               {items.map((item) => (
                 <div
                   key={item.id}
-                  className="bg-[var(--card)] rounded-2xl border border-[var(--card-border)] overflow-hidden shadow-sm"
+                  className={`bg-[var(--card)] rounded-2xl border border-[var(--card-border)] overflow-hidden shadow-sm ${
+                    item.available === false ? "opacity-60 grayscale" : ""
+                  }`}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-stretch">
                     {item.image_url && (
@@ -240,10 +248,17 @@ export function AdminMenuEditor({
                       </div>
                     )}
                     <div className="p-4 flex-1 min-w-0">
-                      <div className="flex justify-between gap-2 flex-wrap">
-                        <h3 className="font-serif text-lg font-semibold text-wrap-balance">
-                          {item.name}
-                        </h3>
+                      <div className="flex justify-between gap-2 flex-wrap items-baseline">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-serif text-lg font-semibold text-wrap-balance">
+                            {item.name}
+                          </h3>
+                          {item.available === false && (
+                            <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                              Unavailable
+                            </span>
+                          )}
+                        </div>
                         <span className="font-medium text-[var(--accent)]">
                           ${Number(item.price).toFixed(2)}
                         </span>
@@ -253,7 +268,27 @@ export function AdminMenuEditor({
                           {item.description}
                         </p>
                       )}
-                      <div className="flex gap-2 mt-3">
+                      <div className="flex flex-wrap gap-2 mt-3 items-center">
+                        <AvailabilityToggle
+                          available={item.available !== false}
+                          onChange={async (next) => {
+                            setSaving(true);
+                            const { error } = await supabase
+                              .from("menu_items")
+                              .update({ available: next })
+                              .eq("id", item.id);
+                            if (error) {
+                              showMessage("err", error.message);
+                            } else {
+                              showMessage(
+                                "ok",
+                                next ? "Item marked as available." : "Item marked as unavailable."
+                              );
+                              await refreshMenu();
+                            }
+                            setSaving(false);
+                          }}
+                        />
                         <button
                           type="button"
                           onClick={() => {
@@ -299,17 +334,57 @@ export function AdminMenuEditor({
   );
 }
 
+function AvailabilityToggle({
+  available,
+  onChange,
+}: {
+  available: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!available)}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+        available
+          ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+          : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"
+      }`}
+    >
+      <span
+        className={`inline-block w-2 h-2 rounded-full ${
+          available ? "bg-emerald-500" : "bg-gray-400"
+        }`}
+      />
+      {available ? "Available" : "Unavailable"}
+    </button>
+  );
+}
+
 function ThemeDropdowns({
   settings,
   onSave,
   saving,
 }: {
   settings: SiteSettings | null;
-  onSave: (main: string, accent: string) => void;
+  onSave: (updates: {
+    main_color: string;
+    accent_color: string;
+    font_family?: string | null;
+    restaurant_name?: string | null;
+    hero_image_url?: string | null;
+  }) => void;
   saving: boolean;
 }) {
   const [main, setMain] = useState(settings?.main_color ?? MAIN_COLOR_OPTIONS[0].value);
   const [accent, setAccent] = useState(settings?.accent_color ?? ACCENT_COLOR_OPTIONS[0].value);
+  const [fontFamily, setFontFamily] = useState<string>(settings?.font_family ?? "sans");
+  const [restaurantName, setRestaurantName] = useState<string>(
+    settings?.restaurant_name ?? ""
+  );
+  const [heroImageUrl, setHeroImageUrl] = useState<string>(
+    settings?.hero_image_url ?? ""
+  );
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -324,6 +399,15 @@ function ThemeDropdowns({
     if (settings) {
       setMain(settings.main_color);
       setAccent(settings.accent_color);
+      if (settings.font_family) {
+        setFontFamily(settings.font_family);
+      }
+      if (settings.restaurant_name) {
+        setRestaurantName(settings.restaurant_name);
+      }
+      if (settings.hero_image_url) {
+        setHeroImageUrl(settings.hero_image_url);
+      }
     }
   }, [settings]);
 
@@ -334,14 +418,14 @@ function ThemeDropdowns({
         onClick={() => setOpen((o) => !o)}
         className="min-h-[44px] px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-medium text-sm border border-white/40 flex items-center gap-2"
       >
-        Theme colors
+        Theme & branding
         <svg className={`w-4 h-4 ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
       {open && (
-        <div className="absolute top-full end-0 mt-2 w-64 p-4 rounded-xl bg-[var(--card)] border border-[var(--card-border)] shadow-xl z-50">
-          <p className="text-sm font-medium text-[var(--foreground)] mb-2">Main color</p>
+        <div className="absolute top-full end-0 mt-2 w-72 p-4 rounded-xl bg-[var(--card)] border border-[var(--card-border)] shadow-xl z-50">
+          <p className="text-sm font-medium text-[var(--foreground)] mb-2">Primary color</p>
           <select
             value={main}
             onChange={(e) => setMain(e.target.value)}
@@ -353,7 +437,7 @@ function ThemeDropdowns({
               </option>
             ))}
           </select>
-          <p className="text-sm font-medium text-[var(--foreground)] mb-2">Accent color</p>
+          <p className="text-sm font-medium text-[var(--foreground)] mb-2">Secondary color</p>
           <select
             value={accent}
             onChange={(e) => setAccent(e.target.value)}
@@ -365,16 +449,52 @@ function ThemeDropdowns({
               </option>
             ))}
           </select>
+          <p className="text-sm font-medium text-[var(--foreground)] mb-2">Font family</p>
+          <select
+            value={fontFamily}
+            onChange={(e) => setFontFamily(e.target.value)}
+            className="w-full mb-4 px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
+          >
+            <option value="sans">Modern Sans (default)</option>
+            <option value="serif">Elegant Serif</option>
+            <option value="mono">Mono</option>
+          </select>
+          <p className="text-sm font-medium text-[var(--foreground)] mb-2">
+            Restaurant name
+          </p>
+          <input
+            type="text"
+            value={restaurantName}
+            onChange={(e) => setRestaurantName(e.target.value)}
+            placeholder="e.g. La Piazza"
+            className="w-full mb-4 px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
+          />
+          <p className="text-sm font-medium text-[var(--foreground)] mb-2">
+            Hero image URL
+          </p>
+          <input
+            type="url"
+            value={heroImageUrl}
+            onChange={(e) => setHeroImageUrl(e.target.value)}
+            placeholder="https://..."
+            className="w-full mb-4 px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
+          />
           <button
             type="button"
             onClick={() => {
-              onSave(main, accent);
+              onSave({
+                main_color: main,
+                accent_color: accent,
+                font_family: fontFamily,
+                restaurant_name: restaurantName.trim() || null,
+                hero_image_url: heroImageUrl.trim() || null,
+              });
               setOpen(false);
             }}
             disabled={saving}
             className="w-full py-2 rounded-lg bg-[var(--accent)] text-white font-medium disabled:opacity-50"
           >
-            Save colors
+            Save theme
           </button>
         </div>
       )}
@@ -402,6 +522,7 @@ function ItemForm({
   );
   const [image_url, setImageUrl] = useState(item?.image_url ?? "");
   const [category, setCategory] = useState(item?.category ?? "Other");
+  const [available, setAvailable] = useState<boolean>(item?.available ?? true);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -413,6 +534,7 @@ function ItemForm({
       price: p,
       image_url: image_url.trim() || null,
       category: category || "Other",
+      available,
     });
   };
 
@@ -494,6 +616,21 @@ function ItemForm({
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="available"
+                type="checkbox"
+                checked={available}
+                onChange={(e) => setAvailable(e.target.checked)}
+                className="h-4 w-4 rounded border-[var(--card-border)] text-[var(--accent)]"
+              />
+              <label
+                htmlFor="available"
+                className="text-sm font-medium text-[var(--foreground)]"
+              >
+                Available
+              </label>
             </div>
             <div className="flex gap-3 pt-2">
               <button

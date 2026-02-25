@@ -10,6 +10,7 @@ export type MenuItem = {
   price: number | string;
   image_url?: string | null;
   category?: string | null;
+  available?: boolean | null;
 };
 
 type MenuTabsProps = {
