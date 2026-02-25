@@ -3,7 +3,6 @@ export const dynamic = "force-dynamic";
 import { createSupabaseClient, type SiteSettings } from "@/app/lib/supabase";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
-import type { SiteSettings } from "@/app/lib/supabase";
 import { AdminMenuEditor } from "./AdminMenuEditor";
 
 export default async function AdminPage() {
