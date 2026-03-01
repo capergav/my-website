@@ -64,7 +64,7 @@ export default async function RootLayout({
           fontVar = "--font-body:var(--font-geist-sans);";
         }
 
-        themeStyle = `:root{--foreground:${textColor};--accent:${accent};${fontVar}}`;
+        themeStyle = `:root{--foreground:${textColor};--accent:${accent};${fontVar}} body{color:var(--foreground);font-family:var(--font-body,var(--font-geist-sans)),system-ui,sans-serif}`;
       }
     } catch {
       // ignore
