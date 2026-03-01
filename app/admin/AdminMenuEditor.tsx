@@ -5,20 +5,22 @@ import { createSupabaseClient } from "@/app/lib/supabase";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
 import { MAIN_COLOR_OPTIONS, ACCENT_COLOR_OPTIONS } from "@/app/lib/themePresets";
-import type { SiteSettings } from "@/app/lib/supabase";
+import type { Restaurant } from "@/app/lib/supabase";
 
 type Grouped = Record<string, MenuItemRow[]>;
 
 type AdminMenuEditorProps = {
+  restaurantId: string;
   initialGrouped: Grouped;
   initialSortedCategories: string[];
-  initialSettings: SiteSettings | null;
+  initialRestaurant: Restaurant | null;
 };
 
 export function AdminMenuEditor({
+  restaurantId,
   initialGrouped,
   initialSortedCategories,
-  initialSettings,
+  initialRestaurant,
 }: AdminMenuEditorProps) {
   const [grouped, setGrouped] = useState<Grouped>(initialGrouped);
   const [sortedCategories, setSortedCategories] = useState<string[]>(
@@ -29,7 +31,7 @@ export function AdminMenuEditor({
   );
   const [editingItem, setEditingItem] = useState<MenuItemRow | null>(null);
   const [addingNew, setAddingNew] = useState(false);
-  const [settings, setSettings] = useState<SiteSettings | null>(initialSettings);
+  const [restaurant, setRestaurant] = useState<Restaurant | null>(initialRestaurant);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
@@ -113,34 +115,19 @@ export function AdminMenuEditor({
     main_color: string;
     accent_color: string;
     font_family?: string | null;
-    restaurant_name?: string | null;
+    name?: string | null;
     hero_image_url?: string | null;
   }) => {
     setSaving(true);
-    const table = "site_settings";
-    if (settings?.id) {
-      const { error } = await supabase
-        .from(table)
-        .update(updates)
-        .eq("id", settings.id);
-      if (error) {
-        showMessage("err", error.message);
-      } else {
-        setSettings({ ...settings, ...updates });
-        showMessage("ok", "Theme saved. Refresh the menu page to see changes.");
-      }
+    const { error } = await supabase
+      .from("restaurants")
+      .update(updates)
+      .eq("id", restaurantId);
+    if (error) {
+      showMessage("err", error.message);
     } else {
-      const { data, error } = await supabase
-        .from(table)
-        .insert(updates)
-        .select("id, main_color, accent_color, font_family, restaurant_name, hero_image_url")
-        .single();
-      if (error) {
-        showMessage("err", error.message);
-      } else {
-        setSettings(data as SiteSettings);
-        showMessage("ok", "Theme saved. Refresh the menu page to see changes.");
-      }
+      setRestaurant((prev) => (prev ? { ...prev, ...updates } : null));
+      showMessage("ok", "Theme saved. Refresh the menu page to see changes.");
     }
     setSaving(false);
   };
@@ -154,7 +141,7 @@ export function AdminMenuEditor({
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-transparent" />
         <div className="absolute top-4 end-4 flex flex-wrap items-center gap-3">
           <ThemeDropdowns
-            settings={settings}
+            restaurant={restaurant}
             onSave={handleSaveTheme}
             saving={saving}
           />
@@ -362,28 +349,28 @@ function AvailabilityToggle({
 }
 
 function ThemeDropdowns({
-  settings,
+  restaurant,
   onSave,
   saving,
 }: {
-  settings: SiteSettings | null;
+  restaurant: Restaurant | null;
   onSave: (updates: {
     main_color: string;
     accent_color: string;
     font_family?: string | null;
-    restaurant_name?: string | null;
+    name?: string | null;
     hero_image_url?: string | null;
   }) => void;
   saving: boolean;
 }) {
-  const [main, setMain] = useState(settings?.main_color ?? MAIN_COLOR_OPTIONS[0].value);
-  const [accent, setAccent] = useState(settings?.accent_color ?? ACCENT_COLOR_OPTIONS[0].value);
-  const [fontFamily, setFontFamily] = useState<string>(settings?.font_family ?? "sans");
+  const [main, setMain] = useState(restaurant?.main_color ?? MAIN_COLOR_OPTIONS[0].value);
+  const [accent, setAccent] = useState(restaurant?.accent_color ?? ACCENT_COLOR_OPTIONS[0].value);
+  const [fontFamily, setFontFamily] = useState<string>(restaurant?.font_family ?? "sans");
   const [restaurantName, setRestaurantName] = useState<string>(
-    settings?.restaurant_name ?? ""
+    restaurant?.name ?? ""
   );
   const [heroImageUrl, setHeroImageUrl] = useState<string>(
-    settings?.hero_image_url ?? ""
+    restaurant?.hero_image_url ?? ""
   );
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -396,20 +383,14 @@ function ThemeDropdowns({
   }, [open]);
 
   useEffect(() => {
-    if (settings) {
-      setMain(settings.main_color);
-      setAccent(settings.accent_color);
-      if (settings.font_family) {
-        setFontFamily(settings.font_family);
-      }
-      if (settings.restaurant_name) {
-        setRestaurantName(settings.restaurant_name);
-      }
-      if (settings.hero_image_url) {
-        setHeroImageUrl(settings.hero_image_url);
-      }
+    if (restaurant) {
+      if (restaurant.main_color) setMain(restaurant.main_color);
+      if (restaurant.accent_color) setAccent(restaurant.accent_color);
+      if (restaurant.font_family) setFontFamily(restaurant.font_family);
+      if (restaurant.name != null) setRestaurantName(restaurant.name);
+      if (restaurant.hero_image_url != null) setHeroImageUrl(restaurant.hero_image_url);
     }
-  }, [settings]);
+  }, [restaurant]);
 
   return (
     <div className="relative" ref={ref}>
@@ -524,7 +505,7 @@ function ThemeDropdowns({
                     main_color: main,
                     accent_color: accent,
                     font_family: fontFamily,
-                    restaurant_name: restaurantName.trim() || null,
+                    name: restaurantName.trim() || null,
                     hero_image_url: heroImageUrl.trim() || null,
                   });
                   setOpen(false);

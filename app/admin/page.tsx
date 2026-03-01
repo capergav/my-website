@@ -1,12 +1,23 @@
 export const dynamic = "force-dynamic";
 
-import { createSupabaseClient, type SiteSettings } from "@/app/lib/supabase";
+import { createSupabaseClient, type Restaurant } from "@/app/lib/supabase";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
 import { AdminMenuEditor } from "./AdminMenuEditor";
 
 export default async function AdminPage() {
   const supabase = createSupabaseClient();
+  const restaurantId = process.env.NEXT_PUBLIC_RESTAURANT_ID;
+
+  if (!restaurantId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <p className="text-red-600">
+          Set NEXT_PUBLIC_RESTAURANT_ID in your environment to use the admin.
+        </p>
+      </div>
+    );
+  }
 
   const { data: menuItems, error: menuError } = await supabase
     .from("menu_items")
@@ -38,27 +49,18 @@ export default async function AdminPage() {
     ),
   ];
 
-  let siteSettings: SiteSettings | null = null;
-  try {
-    const { data } = await supabase
-      .from("site_settings")
-      .select(
-        "id, main_color, accent_color, font_family, restaurant_name, hero_image_url"
-      )
-      .limit(1)
-      .maybeSingle<SiteSettings>();
-    if (data) {
-      siteSettings = data as SiteSettings;
-    }
-  } catch {
-    // Table may not exist yet
-  }
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("id, name, main_color, accent_color, font_family, hero_image_url")
+    .eq("id", restaurantId)
+    .maybeSingle<Restaurant>();
 
   return (
     <AdminMenuEditor
+      restaurantId={restaurantId}
       initialGrouped={grouped}
       initialSortedCategories={sortedCategories}
-      initialSettings={siteSettings}
+      initialRestaurant={restaurant ?? null}
     />
   );
 }

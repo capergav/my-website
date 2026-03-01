@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Cormorant_Garamond } from "next/font/google";
 import "./globals.css";
 import { LanguageProvider } from "./context/LanguageContext";
-import { createSupabaseClient, type SiteSettings } from "./lib/supabase";
+import { createSupabaseClient, type Restaurant } from "./lib/supabase";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,30 +38,33 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   let themeStyle: string | null = null;
-  try {
-    const supabase = createSupabaseClient();
-    const { data } = await supabase
-      .from("site_settings")
-      .select("main_color, accent_color, font_family")
-      .limit(1)
-      .maybeSingle<SiteSettings>();
-    if (data?.main_color && data?.accent_color) {
-      const main = data.main_color.replace(/"/g, "&quot;");
-      const accent = data.accent_color.replace(/"/g, "&quot;");
+  const restaurantId = process.env.NEXT_PUBLIC_RESTAURANT_ID;
+  if (restaurantId) {
+    try {
+      const supabase = createSupabaseClient();
+      const { data } = await supabase
+        .from("restaurants")
+        .select("main_color, accent_color, font_family")
+        .eq("id", restaurantId)
+        .maybeSingle<Restaurant>();
+      if (data?.main_color && data?.accent_color) {
+        const main = data.main_color.replace(/"/g, "&quot;");
+        const accent = data.accent_color.replace(/"/g, "&quot;");
 
-      let fontVar = "";
-      if (data.font_family === "serif") {
-        fontVar = "--font-body:var(--font-cormorant);";
-      } else if (data.font_family === "mono") {
-        fontVar = "--font-body:var(--font-geist-mono);";
-      } else if (data.font_family === "sans") {
-        fontVar = "--font-body:var(--font-geist-sans);";
+        let fontVar = "";
+        if (data.font_family === "serif") {
+          fontVar = "--font-body:var(--font-cormorant);";
+        } else if (data.font_family === "mono") {
+          fontVar = "--font-body:var(--font-geist-mono);";
+        } else if (data.font_family === "sans") {
+          fontVar = "--font-body:var(--font-geist-sans);";
+        }
+
+        themeStyle = `:root{--foreground:${main};--accent:${accent};${fontVar}}`;
       }
-
-      themeStyle = `:root{--foreground:${main};--accent:${accent};${fontVar}}`;
+    } catch {
+      // ignore
     }
-  } catch {
-    // ignore
   }
 
   return (
