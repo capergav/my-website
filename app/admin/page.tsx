@@ -51,7 +51,7 @@ export default async function AdminPage() {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, main_color, accent_color, font_family, hero_image_url")
+    .select("id, name, main_color, accent_color, font_family, font_color, hero_image_url")
     .eq("id", restaurantId)
     .maybeSingle<Restaurant>();
 

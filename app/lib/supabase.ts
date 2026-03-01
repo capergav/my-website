@@ -13,5 +13,6 @@ export type Restaurant = {
   main_color?: string | null;
   accent_color?: string | null;
   font_family?: string | null;
+  font_color?: string | null;
   hero_image_url?: string | null;
 };

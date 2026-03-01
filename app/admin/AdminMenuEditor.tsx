@@ -115,6 +115,7 @@ export function AdminMenuEditor({
     main_color: string;
     accent_color: string;
     font_family?: string | null;
+    font_color?: string | null;
     name?: string | null;
     hero_image_url?: string | null;
   }) => {
@@ -138,8 +139,8 @@ export function AdminMenuEditor({
     <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
       {/* Hero-style header */}
       <div className="relative h-40 sm:h-48 overflow-hidden bg-[var(--foreground)]">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-transparent" />
-        <div className="absolute top-4 end-4 flex flex-wrap items-center gap-3">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-transparent pointer-events-none" />
+        <div className="absolute top-4 end-4 flex flex-wrap items-center gap-3 z-20">
           <ThemeDropdowns
             restaurant={restaurant}
             onSave={handleSaveTheme}
@@ -147,12 +148,14 @@ export function AdminMenuEditor({
           />
           <a
             href="https://menusnap-lac.vercel.app/"
-            className="min-h-[44px] px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-medium text-sm border border-white/40"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="min-h-[44px] px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-medium text-sm border border-white/40 inline-flex items-center justify-center"
           >
             View menu
           </a>
         </div>
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-white drop-shadow-lg">
             Admin – Edit menu
           </h1>
@@ -358,6 +361,7 @@ function ThemeDropdowns({
     main_color: string;
     accent_color: string;
     font_family?: string | null;
+    font_color?: string | null;
     name?: string | null;
     hero_image_url?: string | null;
   }) => void;
@@ -366,6 +370,7 @@ function ThemeDropdowns({
   const [main, setMain] = useState(restaurant?.main_color ?? MAIN_COLOR_OPTIONS[0].value);
   const [accent, setAccent] = useState(restaurant?.accent_color ?? ACCENT_COLOR_OPTIONS[0].value);
   const [fontFamily, setFontFamily] = useState<string>(restaurant?.font_family ?? "sans");
+  const [fontColor, setFontColor] = useState<string>(restaurant?.font_color ?? "#2c2a26");
   const [restaurantName, setRestaurantName] = useState<string>(
     restaurant?.name ?? ""
   );
@@ -387,17 +392,35 @@ function ThemeDropdowns({
       if (restaurant.main_color) setMain(restaurant.main_color);
       if (restaurant.accent_color) setAccent(restaurant.accent_color);
       if (restaurant.font_family) setFontFamily(restaurant.font_family);
+      if (restaurant.font_color) setFontColor(restaurant.font_color);
       if (restaurant.name != null) setRestaurantName(restaurant.name);
       if (restaurant.hero_image_url != null) setHeroImageUrl(restaurant.hero_image_url);
     }
   }, [restaurant]);
 
+  const handleSaveClick = () => {
+    console.log("saving theme");
+    onSave({
+      main_color: main,
+      accent_color: accent,
+      font_family: fontFamily,
+      font_color: fontColor.trim() || null,
+      name: restaurantName.trim() || null,
+      hero_image_url: heroImageUrl.trim() || null,
+    });
+    setOpen(false);
+  };
+
   return (
     <div className="relative" ref={ref}>
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className="min-h-[44px] px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-medium text-sm border border-white/40 flex items-center gap-2"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen(true);
+        }}
+        className="min-h-[44px] px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-medium text-sm border border-white/40 flex items-center gap-2 cursor-pointer"
       >
         Theme & branding
       </button>
@@ -474,6 +497,21 @@ function ThemeDropdowns({
 
               <div>
                 <p className="text-sm font-medium text-[var(--foreground)] mb-2">
+                  Font color (menu text)
+                </p>
+                <input
+                  type="color"
+                  value={fontColor}
+                  onChange={(e) => setFontColor(e.target.value)}
+                  className="w-full h-10 rounded-lg border border-[var(--card-border)] bg-[var(--background)] cursor-pointer"
+                />
+                <p className="text-xs text-[var(--muted)] mt-1">
+                  Applied to text on the public menu
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-[var(--foreground)] mb-2">
                   Restaurant name
                 </p>
                 <input
@@ -500,18 +538,9 @@ function ThemeDropdowns({
 
               <button
                 type="button"
-                onClick={() => {
-                  onSave({
-                    main_color: main,
-                    accent_color: accent,
-                    font_family: fontFamily,
-                    name: restaurantName.trim() || null,
-                    hero_image_url: heroImageUrl.trim() || null,
-                  });
-                  setOpen(false);
-                }}
+                onClick={handleSaveClick}
                 disabled={saving}
-                className="w-full py-2 rounded-lg bg-[var(--accent)] text-white font-medium disabled:opacity-50"
+                className="w-full py-2 rounded-lg bg-[var(--accent)] text-white font-medium disabled:opacity-50 cursor-pointer"
               >
                 Save theme
               </button>

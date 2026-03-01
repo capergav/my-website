@@ -44,12 +44,16 @@ export default async function RootLayout({
       const supabase = createSupabaseClient();
       const { data } = await supabase
         .from("restaurants")
-        .select("main_color, accent_color, font_family")
+        .select("main_color, accent_color, font_family, font_color")
         .eq("id", restaurantId)
         .maybeSingle<Restaurant>();
       if (data?.main_color && data?.accent_color) {
         const main = data.main_color.replace(/"/g, "&quot;");
         const accent = data.accent_color.replace(/"/g, "&quot;");
+        const textColor =
+          data.font_color != null && data.font_color !== ""
+            ? data.font_color.replace(/"/g, "&quot;")
+            : main;
 
         let fontVar = "";
         if (data.font_family === "serif") {
@@ -60,7 +64,7 @@ export default async function RootLayout({
           fontVar = "--font-body:var(--font-geist-sans);";
         }
 
-        themeStyle = `:root{--foreground:${main};--accent:${accent};${fontVar}}`;
+        themeStyle = `:root{--foreground:${textColor};--accent:${accent};${fontVar}}`;
       }
     } catch {
       // ignore
