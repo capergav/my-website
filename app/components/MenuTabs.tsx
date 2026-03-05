@@ -1,7 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useLanguage } from "@/app/context/LanguageContext";
+import { DietaryIcons } from "./DietaryIcons";
+import { TranslatedText } from "./TranslatedText";
 
 export type MenuItem = {
   id: string;
@@ -11,17 +13,37 @@ export type MenuItem = {
   image_url?: string | null;
   category?: string | null;
   available?: boolean | null;
+  chefs_favorite?: boolean | null;
+  gluten_free?: boolean | null;
+  nut_free?: boolean | null;
+  vegan?: boolean | null;
+  vegetarian?: boolean | null;
+  dairy_free?: boolean | null;
+  spicy?: boolean | null;
 };
 
-type MenuTabsProps = {
+export const DIET_FILTER_OPTIONS = [
+  { value: "all", labelKey: "filter.all" },
+  { value: "nut_free", labelKey: "filter.nutFree" },
+  { value: "vegetarian", labelKey: "filter.vegetarian" },
+  { value: "vegan", labelKey: "filter.vegan" },
+  { value: "gluten_free", labelKey: "filter.glutenFree" },
+  { value: "dairy_free", labelKey: "filter.dairyFree" },
+  { value: "chefs_favorite", labelKey: "filter.chefsFavorite" },
+  { value: "spicy", labelKey: "filter.spicy" },
+] as const;
+
+export type MenuTabsProps = {
   grouped: Record<string, MenuItem[]>;
   sortedCategories: string[];
+  categoryNotes?: Record<string, string>;
 };
 
-export function MenuTabs({ grouped, sortedCategories }: MenuTabsProps) {
+export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: MenuTabsProps) {
   const { t, getCategoryLabel } = useLanguage();
   const [activeCategory, setActiveCategory] = useState(sortedCategories[0] ?? "");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [dietFilter, setDietFilter] = useState<string>("all");
 
   if (sortedCategories.length === 0) {
     return (
@@ -31,7 +53,11 @@ export function MenuTabs({ grouped, sortedCategories }: MenuTabsProps) {
     );
   }
 
-  const items = grouped[activeCategory] ?? [];
+  const rawItems = grouped[activeCategory] ?? [];
+  const items = useMemo(() => {
+    if (dietFilter === "all") return rawItems;
+    return rawItems.filter((item) => Boolean((item as Record<string, unknown>)[dietFilter]));
+  }, [rawItems, dietFilter]);
 
   // Detail view when a menu item is selected
   if (selectedItem) {
@@ -72,16 +98,16 @@ export function MenuTabs({ grouped, sortedCategories }: MenuTabsProps) {
           <div className="mt-6 sm:mt-8 min-w-0 overflow-hidden">
             <div className="flex justify-between items-baseline gap-4 flex-wrap">
               <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[var(--foreground)] min-w-0 text-wrap-balance">
-                {selectedItem.name}
+                <TranslatedText text={selectedItem.name} />
               </h1>
               <span className="font-medium text-[var(--accent)] text-xl flex-shrink-0">
                 ${Number(selectedItem.price).toFixed(2)}
               </span>
             </div>
-
+            <DietaryIcons item={selectedItem} />
             {selectedItem.description && (
               <p className="text-[var(--muted)] mt-3 text-base sm:text-lg leading-relaxed text-wrap-force">
-                {selectedItem.description}
+                <TranslatedText text={selectedItem.description} as="span" />
               </p>
             )}
           </div>
@@ -144,9 +170,32 @@ export function MenuTabs({ grouped, sortedCategories }: MenuTabsProps) {
 
       {/* Category content - full-width tap area on mobile */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-12 pb-[env(safe-area-inset-bottom)]">
-        <h2 className="font-serif text-xl sm:text-3xl font-semibold text-[var(--foreground)] mb-5 sm:mb-6">
-          {getCategoryLabel(activeCategory)}
-        </h2>
+        <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="mb-5 sm:mb-6 flex-1 min-w-0">
+            <h2 className="font-serif text-xl sm:text-3xl font-semibold text-[var(--foreground)] mb-1">
+              {getCategoryLabel(activeCategory)}
+            </h2>
+          {categoryNotes[activeCategory] ? (
+            <p className="text-sm text-[var(--muted)] mt-0">
+              <TranslatedText text={categoryNotes[activeCategory]} as="span" />
+            </p>
+          ) : null}
+          </div>
+          <div className="flex-shrink-0">
+            <select
+              value={dietFilter}
+              onChange={(e) => setDietFilter(e.target.value)}
+              className="w-full sm:w-auto min-w-[160px] px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              aria-label={t("filter.all")}
+            >
+              {DIET_FILTER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {t(opt.labelKey)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
 
         <div className="space-y-4 sm:space-y-5">
           {items.map((item) => (
@@ -176,16 +225,16 @@ export function MenuTabs({ grouped, sortedCategories }: MenuTabsProps) {
               <div className="p-4 sm:p-6 min-w-0">
                 <div className="flex justify-between items-baseline gap-3">
                   <h3 className="font-serif text-lg sm:text-xl font-semibold text-[var(--foreground)] min-w-0 text-wrap-balance">
-                    {item.name}
+                    <TranslatedText text={item.name} />
                   </h3>
                   <span className="font-medium text-[var(--accent)] whitespace-nowrap text-base flex-shrink-0">
                     ${Number(item.price).toFixed(2)}
                   </span>
                 </div>
-
+                <DietaryIcons item={item} />
                 {item.description && (
                   <p className="text-[var(--muted)] mt-1.5 text-sm sm:text-base leading-relaxed line-clamp-2 text-wrap-force">
-                    {item.description}
+                    <TranslatedText text={item.description} as="span" />
                   </p>
                 )}
                 <p className="text-[var(--accent)] text-sm mt-2 font-medium">

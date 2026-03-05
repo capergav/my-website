@@ -9,7 +9,7 @@ export default async function Home() {
   const supabase = createSupabaseClient();
   const restaurantId = process.env.NEXT_PUBLIC_RESTAURANT_ID;
 
-  const [menuQuery, restaurantQuery] = await Promise.all([
+  const [menuQuery, restaurantQuery, categoryNotesQuery] = await Promise.all([
     supabase
       .from("menu_items")
       .select("*")
@@ -21,10 +21,21 @@ export default async function Home() {
           .eq("id", restaurantId)
           .maybeSingle<Restaurant>()
       : Promise.resolve({ data: null }),
+    restaurantId
+      ? supabase
+          .from("category_notes")
+          .select("category, note")
+          .eq("restaurant_id", restaurantId)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const { data: menuItems, error } = menuQuery;
   const restaurant = restaurantQuery.data;
+  const categoryNotesRows = categoryNotesQuery.data ?? [];
+  const categoryNotes: Record<string, string> = {};
+  for (const row of categoryNotesRows as { category: string; note: string | null }[]) {
+    if (row.note?.trim()) categoryNotes[row.category] = row.note.trim();
+  }
 
   if (error) {
     return (
@@ -61,7 +72,11 @@ export default async function Home() {
       />
 
       {/* Tabs + menu content */}
-      <MenuTabs grouped={grouped} sortedCategories={sortedCategories} />
+      <MenuTabs
+        grouped={grouped}
+        sortedCategories={sortedCategories}
+        categoryNotes={categoryNotes}
+      />
     </main>
   );
 }

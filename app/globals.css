@@ -40,6 +40,16 @@ body {
   font-family: var(--font-cormorant), Georgia, serif;
 }
 
+.font-poppins { font-family: var(--font-poppins), sans-serif; }
+.font-playfair { font-family: var(--font-playfair), serif; }
+.font-bebas { font-family: var(--font-bebas), sans-serif; }
+.font-pacifico { font-family: var(--font-pacifico), cursive; }
+.font-orbitron { font-family: var(--font-orbitron), sans-serif; }
+.font-cinzel { font-family: var(--font-cinzel), serif; }
+.font-geist-sans { font-family: var(--font-geist-sans), system-ui, sans-serif; }
+.font-geist-mono { font-family: var(--font-geist-mono), monospace; }
+.font-cormorant { font-family: var(--font-cormorant), Georgia, serif; }
+
 /* Long text wraps instead of overflowing (names, descriptions) */
 .text-wrap-balance {
   overflow-wrap: break-word;

@@ -34,8 +34,7 @@ export type CategoryNote = {
  *   restaurant_id uuid not null references restaurants(id) on delete cascade on update cascade,
  *   category text not null,
  *   note text,
- *   created_at timestamptz default now()
+ *   created_at timestamptz default now(),
+ *   unique(restaurant_id, category)
  * );
- * create unique index if not exists category_notes_restaurant_category_key
- *   on category_notes(restaurant_id, category);
  */

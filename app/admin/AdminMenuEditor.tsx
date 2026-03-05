@@ -13,6 +13,18 @@ const DEFAULT_ACCENT = "#8b6914";
 const DEFAULT_BACKGROUND = "#faf8f5";
 const DEFAULT_FONT_COLOR = "#2c2a26";
 
+const FONT_OPTIONS: { value: string; label: string; fontClass: string }[] = [
+  { value: "sans", label: "Geist Sans (default)", fontClass: "font-geist-sans" },
+  { value: "serif", label: "Cormorant Garamond", fontClass: "font-cormorant" },
+  { value: "mono", label: "Geist Mono", fontClass: "font-geist-mono" },
+  { value: "poppins", label: "Poppins", fontClass: "font-poppins" },
+  { value: "playfair", label: "Playfair Display", fontClass: "font-playfair" },
+  { value: "bebas", label: "Bebas Neue", fontClass: "font-bebas" },
+  { value: "pacifico", label: "Pacifico", fontClass: "font-pacifico" },
+  { value: "orbitron", label: "Orbitron", fontClass: "font-orbitron" },
+  { value: "cinzel", label: "Cinzel", fontClass: "font-cinzel" },
+];
+
 type AdminMenuEditorProps = {
   restaurantId: string;
   initialGrouped: Grouped;
@@ -412,8 +424,8 @@ function CategoryNoteEditor({
       <textarea
         value={note}
         onChange={(e) => setNote(e.target.value)}
-        placeholder="e.g. Available from 9:00–11:00"
-        rows={2}
+        placeholder={"Example: All pizzas are 12 inches.\nExample: All burgers come with a side of fries or a salad."}
+        rows={3}
         className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] resize-y"
       />
       <button
@@ -453,6 +465,7 @@ function ThemeDropdowns({
   const [restaurantName, setRestaurantName] = useState<string>("");
   const [heroImageUrl, setHeroImageUrl] = useState<string>("");
   const [open, setOpen] = useState(false);
+  const [fontDropdownOpen, setFontDropdownOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -473,6 +486,7 @@ function ThemeDropdowns({
       setFontColor(restaurant.font_color ?? DEFAULT_FONT_COLOR);
       setRestaurantName(restaurant.name ?? "");
       setHeroImageUrl(restaurant.hero_image_url ?? "");
+      setFontDropdownOpen(false);
     }
   }, [open, restaurant]);
 
@@ -576,15 +590,43 @@ function ThemeDropdowns({
                 <p className="text-sm font-medium text-[var(--foreground)] mb-2">
                   Font family
                 </p>
-                <select
-                  value={fontFamily}
-                  onChange={(e) => setFontFamily(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
-                >
-                  <option value="sans">Modern Sans (default)</option>
-                  <option value="serif">Elegant Serif</option>
-                  <option value="mono">Mono</option>
-                </select>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setFontDropdownOpen((o) => !o)}
+                    className="w-full px-4 py-2.5 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] font-medium text-left flex items-center justify-between"
+                  >
+                    <span
+                      className={
+                        FONT_OPTIONS.find((o) => o.value === fontFamily)?.fontClass ?? "font-geist-sans"
+                      }
+                    >
+                      {FONT_OPTIONS.find((o) => o.value === fontFamily)?.label ?? "Geist Sans"}
+                    </span>
+                    <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {fontDropdownOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 py-1 rounded-lg border border-[var(--card-border)] bg-[var(--card)] shadow-lg z-10 max-h-56 overflow-y-auto">
+                      {FONT_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setFontFamily(opt.value);
+                            setFontDropdownOpen(false);
+                          }}
+                          className={`w-full px-4 py-2.5 text-left hover:bg-[var(--card-border)]/50 ${opt.fontClass} ${
+                            fontFamily === opt.value ? "bg-[var(--accent)]/10 text-[var(--accent)]" : ""
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -650,6 +692,13 @@ function ItemForm({
   const [image_url, setImageUrl] = useState(item?.image_url ?? "");
   const [category, setCategory] = useState(item?.category ?? "Other");
   const [available, setAvailable] = useState<boolean>(item?.available ?? true);
+  const [chefs_favorite, setChefsFavorite] = useState<boolean>(item?.chefs_favorite ?? false);
+  const [gluten_free, setGlutenFree] = useState<boolean>(item?.gluten_free ?? false);
+  const [nut_free, setNutFree] = useState<boolean>(item?.nut_free ?? false);
+  const [vegan, setVegan] = useState<boolean>(item?.vegan ?? false);
+  const [vegetarian, setVegetarian] = useState<boolean>(item?.vegetarian ?? false);
+  const [dairy_free, setDairyFree] = useState<boolean>(item?.dairy_free ?? false);
+  const [spicy, setSpicy] = useState<boolean>(item?.spicy ?? false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -662,8 +711,46 @@ function ItemForm({
       image_url: image_url.trim() || null,
       category: category || "Other",
       available,
+      chefs_favorite,
+      gluten_free,
+      nut_free,
+      vegan,
+      vegetarian,
+      dairy_free,
+      spicy,
     });
   };
+
+  const Toggle = ({
+    checked,
+    onChange,
+    label,
+  }: {
+    checked: boolean;
+    onChange: (v: boolean) => void;
+    label: string;
+  }) => (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-sm font-medium text-[var(--foreground)]">{label}</span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 ${
+          checked
+            ? "bg-[var(--accent)] border-[var(--accent)]"
+            : "bg-[var(--card-border)] border-[var(--card-border)]"
+        }`}
+      >
+        <span
+          className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform mt-0.5 ml-0.5 ${
+            checked ? "translate-x-5" : "translate-x-0"
+          }`}
+        />
+      </button>
+    </div>
+  );
 
   return (
     <div
@@ -758,6 +845,15 @@ function ItemForm({
               >
                 Available
               </label>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+              <Toggle label="Chef's favorite" checked={chefs_favorite} onChange={setChefsFavorite} />
+              <Toggle label="Gluten free" checked={gluten_free} onChange={setGlutenFree} />
+              <Toggle label="Nut free" checked={nut_free} onChange={setNutFree} />
+              <Toggle label="Vegan" checked={vegan} onChange={setVegan} />
+              <Toggle label="Vegetarian" checked={vegetarian} onChange={setVegetarian} />
+              <Toggle label="Dairy free" checked={dairy_free} onChange={setDairyFree} />
+              <Toggle label="Spicy" checked={spicy} onChange={setSpicy} />
             </div>
             <div className="flex gap-3 pt-2">
               <button

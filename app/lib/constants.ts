@@ -21,4 +21,11 @@ export type MenuItemRow = {
   image_url?: string | null;
   category?: string | null;
   available?: boolean | null;
+  chefs_favorite?: boolean | null;
+  gluten_free?: boolean | null;
+  nut_free?: boolean | null;
+  vegan?: boolean | null;
+  vegetarian?: boolean | null;
+  dairy_free?: boolean | null;
+  spicy?: boolean | null;
 };
