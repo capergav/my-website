@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { createSupabaseClient, type Restaurant } from "@/app/lib/supabase";
+import { createSupabaseClient, type Restaurant, type CategoryNote } from "@/app/lib/supabase";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
 import { AdminMenuEditor } from "./AdminMenuEditor";
@@ -49,11 +49,25 @@ export default async function AdminPage() {
     ),
   ];
 
-  const { data: restaurant } = await supabase
-    .from("restaurants")
-    .select("id, name, main_color, accent_color, font_family, font_color, hero_image_url")
-    .eq("id", restaurantId)
-    .maybeSingle<Restaurant>();
+  const [{ data: restaurant }, { data: categoryNotesRows }] = await Promise.all([
+    supabase
+      .from("restaurants")
+      .select("id, name, main_color, accent_color, background_color, font_family, font_color, hero_image_url")
+      .eq("id", restaurantId)
+      .maybeSingle<Restaurant>(),
+    supabase
+      .from("category_notes")
+      .select("category, note")
+      .eq("restaurant_id", restaurantId)
+      .then((r) => r),
+  ]);
+
+  const initialCategoryNotes: Record<string, string> = {};
+  if (categoryNotesRows) {
+    for (const row of categoryNotesRows as Pick<CategoryNote, "category" | "note">[]) {
+      initialCategoryNotes[row.category] = row.note ?? "";
+    }
+  }
 
   return (
     <AdminMenuEditor
@@ -61,6 +75,7 @@ export default async function AdminPage() {
       initialGrouped={grouped}
       initialSortedCategories={sortedCategories}
       initialRestaurant={restaurant ?? null}
+      initialCategoryNotes={initialCategoryNotes}
     />
   );
 }

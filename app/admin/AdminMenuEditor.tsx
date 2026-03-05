@@ -4,16 +4,21 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { createSupabaseClient } from "@/app/lib/supabase";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
-import { MAIN_COLOR_OPTIONS, ACCENT_COLOR_OPTIONS } from "@/app/lib/themePresets";
 import type { Restaurant } from "@/app/lib/supabase";
 
 type Grouped = Record<string, MenuItemRow[]>;
+
+const DEFAULT_MAIN = "#2c2a26";
+const DEFAULT_ACCENT = "#8b6914";
+const DEFAULT_BACKGROUND = "#faf8f5";
+const DEFAULT_FONT_COLOR = "#2c2a26";
 
 type AdminMenuEditorProps = {
   restaurantId: string;
   initialGrouped: Grouped;
   initialSortedCategories: string[];
   initialRestaurant: Restaurant | null;
+  initialCategoryNotes: Record<string, string>;
 };
 
 export function AdminMenuEditor({
@@ -21,6 +26,7 @@ export function AdminMenuEditor({
   initialGrouped,
   initialSortedCategories,
   initialRestaurant,
+  initialCategoryNotes,
 }: AdminMenuEditorProps) {
   const [grouped, setGrouped] = useState<Grouped>(initialGrouped);
   const [sortedCategories, setSortedCategories] = useState<string[]>(
@@ -32,7 +38,9 @@ export function AdminMenuEditor({
   const [editingItem, setEditingItem] = useState<MenuItemRow | null>(null);
   const [addingNew, setAddingNew] = useState(false);
   const [restaurant, setRestaurant] = useState<Restaurant | null>(initialRestaurant);
+  const [categoryNotes, setCategoryNotes] = useState<Record<string, string>>(initialCategoryNotes);
   const [saving, setSaving] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   const supabase = createSupabaseClient();
@@ -114,6 +122,7 @@ export function AdminMenuEditor({
   const handleSaveTheme = async (updates: {
     main_color: string;
     accent_color: string;
+    background_color?: string | null;
     font_family?: string | null;
     font_color?: string | null;
     name?: string | null;
@@ -131,6 +140,27 @@ export function AdminMenuEditor({
       showMessage("ok", "Theme saved. Refresh the menu page to see changes.");
     }
     setSaving(false);
+  };
+
+  const handleSaveCategoryNote = async (category: string, note: string) => {
+    setSavingNote(true);
+    const { error } = await supabase
+      .from("category_notes")
+      .upsert(
+        {
+          restaurant_id: restaurantId,
+          category,
+          note: note.trim() || null,
+        },
+        { onConflict: "restaurant_id,category" }
+      );
+    if (error) {
+      showMessage("err", error.message);
+    } else {
+      setCategoryNotes((prev) => ({ ...prev, [category]: note.trim() }));
+      showMessage("ok", "Category note saved.");
+    }
+    setSavingNote(false);
   };
 
   const items = grouped[activeCategory] ?? [];
@@ -219,7 +249,14 @@ export function AdminMenuEditor({
               </button>
             </div>
 
-            <div className="space-y-4">
+            <CategoryNoteEditor
+              category={activeCategory}
+              initialNote={categoryNotes[activeCategory] ?? ""}
+              onSave={handleSaveCategoryNote}
+              saving={savingNote}
+            />
+
+            <div className="space-y-4 mt-6">
               {items.map((item) => (
                 <div
                   key={item.id}
@@ -351,6 +388,46 @@ function AvailabilityToggle({
   );
 }
 
+function CategoryNoteEditor({
+  category,
+  initialNote,
+  onSave,
+  saving,
+}: {
+  category: string;
+  initialNote: string;
+  onSave: (category: string, note: string) => void;
+  saving: boolean;
+}) {
+  const [note, setNote] = useState(initialNote);
+  useEffect(() => {
+    setNote(initialNote);
+  }, [initialNote]);
+
+  return (
+    <div className="mb-6 p-4 rounded-xl border border-[var(--card-border)] bg-[var(--card)]">
+      <label className="block text-sm font-medium text-[var(--foreground)] mb-2">
+        Category note for “{category}”
+      </label>
+      <textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="e.g. Available from 9:00–11:00"
+        rows={2}
+        className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] resize-y"
+      />
+      <button
+        type="button"
+        onClick={() => onSave(category, note)}
+        disabled={saving}
+        className="mt-2 px-3 py-1.5 rounded-lg bg-[var(--accent)] text-white text-sm font-medium disabled:opacity-50"
+      >
+        {saving ? "Saving…" : "Save note"}
+      </button>
+    </div>
+  );
+}
+
 function ThemeDropdowns({
   restaurant,
   onSave,
@@ -360,6 +437,7 @@ function ThemeDropdowns({
   onSave: (updates: {
     main_color: string;
     accent_color: string;
+    background_color?: string | null;
     font_family?: string | null;
     font_color?: string | null;
     name?: string | null;
@@ -367,18 +445,16 @@ function ThemeDropdowns({
   }) => void;
   saving: boolean;
 }) {
-  const [main, setMain] = useState(restaurant?.main_color ?? MAIN_COLOR_OPTIONS[0].value);
-  const [accent, setAccent] = useState(restaurant?.accent_color ?? ACCENT_COLOR_OPTIONS[0].value);
-  const [fontFamily, setFontFamily] = useState<string>(restaurant?.font_family ?? "sans");
-  const [fontColor, setFontColor] = useState<string>(restaurant?.font_color ?? "#2c2a26");
-  const [restaurantName, setRestaurantName] = useState<string>(
-    restaurant?.name ?? ""
-  );
-  const [heroImageUrl, setHeroImageUrl] = useState<string>(
-    restaurant?.hero_image_url ?? ""
-  );
+  const [main, setMain] = useState(DEFAULT_MAIN);
+  const [accent, setAccent] = useState(DEFAULT_ACCENT);
+  const [backgroundColor, setBackgroundColor] = useState(DEFAULT_BACKGROUND);
+  const [fontFamily, setFontFamily] = useState<string>("sans");
+  const [fontColor, setFontColor] = useState<string>(DEFAULT_FONT_COLOR);
+  const [restaurantName, setRestaurantName] = useState<string>("");
+  const [heroImageUrl, setHeroImageUrl] = useState<string>("");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -387,22 +463,24 @@ function ThemeDropdowns({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
+  // Initialize form from database only when modal opens; do not persist unsaved state
   useEffect(() => {
-    if (restaurant) {
-      if (restaurant.main_color) setMain(restaurant.main_color);
-      if (restaurant.accent_color) setAccent(restaurant.accent_color);
-      if (restaurant.font_family) setFontFamily(restaurant.font_family);
-      if (restaurant.font_color) setFontColor(restaurant.font_color);
-      if (restaurant.name != null) setRestaurantName(restaurant.name);
-      if (restaurant.hero_image_url != null) setHeroImageUrl(restaurant.hero_image_url);
+    if (open && restaurant) {
+      setMain(restaurant.main_color ?? DEFAULT_MAIN);
+      setAccent(restaurant.accent_color ?? DEFAULT_ACCENT);
+      setBackgroundColor(restaurant.background_color ?? DEFAULT_BACKGROUND);
+      setFontFamily(restaurant.font_family ?? "sans");
+      setFontColor(restaurant.font_color ?? DEFAULT_FONT_COLOR);
+      setRestaurantName(restaurant.name ?? "");
+      setHeroImageUrl(restaurant.hero_image_url ?? "");
     }
-  }, [restaurant]);
+  }, [open, restaurant]);
 
   const handleSaveClick = () => {
-    console.log("saving theme");
     onSave({
       main_color: main,
       accent_color: accent,
+      background_color: backgroundColor.trim() || null,
       font_family: fontFamily,
       font_color: fontColor.trim() || null,
       name: restaurantName.trim() || null,
@@ -448,36 +526,50 @@ function ThemeDropdowns({
             <div className="space-y-4">
               <div>
                 <p className="text-sm font-medium text-[var(--foreground)] mb-2">
-                  Primary color
+                  Primary color (main_color)
                 </p>
-                <select
+                <input
+                  type="color"
                   value={main}
                   onChange={(e) => setMain(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
-                >
-                  {MAIN_COLOR_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  className="w-full h-10 rounded-lg border border-[var(--card-border)] bg-[var(--background)] cursor-pointer"
+                />
               </div>
 
               <div>
                 <p className="text-sm font-medium text-[var(--foreground)] mb-2">
-                  Secondary color
+                  Secondary color (accent_color)
                 </p>
-                <select
+                <input
+                  type="color"
                   value={accent}
                   onChange={(e) => setAccent(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)]"
-                >
-                  {ACCENT_COLOR_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
+                  className="w-full h-10 rounded-lg border border-[var(--card-border)] bg-[var(--background)] cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-[var(--foreground)] mb-2">
+                  Background color
+                </p>
+                <input
+                  type="color"
+                  value={backgroundColor}
+                  onChange={(e) => setBackgroundColor(e.target.value)}
+                  className="w-full h-10 rounded-lg border border-[var(--card-border)] bg-[var(--background)] cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-[var(--foreground)] mb-2">
+                  Font color (menu text)
+                </p>
+                <input
+                  type="color"
+                  value={fontColor}
+                  onChange={(e) => setFontColor(e.target.value)}
+                  className="w-full h-10 rounded-lg border border-[var(--card-border)] bg-[var(--background)] cursor-pointer"
+                />
               </div>
 
               <div>
@@ -493,21 +585,6 @@ function ThemeDropdowns({
                   <option value="serif">Elegant Serif</option>
                   <option value="mono">Mono</option>
                 </select>
-              </div>
-
-              <div>
-                <p className="text-sm font-medium text-[var(--foreground)] mb-2">
-                  Font color (menu text)
-                </p>
-                <input
-                  type="color"
-                  value={fontColor}
-                  onChange={(e) => setFontColor(e.target.value)}
-                  className="w-full h-10 rounded-lg border border-[var(--card-border)] bg-[var(--background)] cursor-pointer"
-                />
-                <p className="text-xs text-[var(--muted)] mt-1">
-                  Applied to text on the public menu
-                </p>
               </div>
 
               <div>
