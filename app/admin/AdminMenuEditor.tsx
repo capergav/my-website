@@ -105,7 +105,10 @@ export function AdminMenuEditor({
         await refreshMenu();
       }
     } else {
-      const { error } = await supabase.from("menu_items").insert(payload);
+      const { error } = await supabase.from("menu_items").insert({
+        ...payload,
+        restaurant_id: restaurantId,
+      });
       if (error) {
         showMessage("err", error.message);
       } else {
