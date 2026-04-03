@@ -1,82 +1,20 @@
-export const dynamic = "force-dynamic";
+import Link from "next/link";
 
-import { createSupabaseClient, type Restaurant } from "./lib/supabase";
-import { CATEGORY_ORDER } from "./lib/constants";
-import { MenuTabs } from "./components/MenuTabs";
-import { HeroWithLang } from "./components/HeroWithLang";
-
-export default async function Home() {
-  const supabase = createSupabaseClient();
-  const restaurantId = process.env.NEXT_PUBLIC_RESTAURANT_ID;
-
-  const [menuQuery, restaurantQuery, categoryNotesQuery] = await Promise.all([
-    supabase
-      .from("menu_items")
-      .select("*")
-      .order("name", { ascending: true }),
-    restaurantId
-      ? supabase
-          .from("restaurants")
-          .select("name, hero_image_url")
-          .eq("id", restaurantId)
-          .maybeSingle<Restaurant>()
-      : Promise.resolve({ data: null }),
-    restaurantId
-      ? supabase
-          .from("category_notes")
-          .select("category, note")
-          .eq("restaurant_id", restaurantId)
-      : Promise.resolve({ data: [] }),
-  ]);
-
-  const { data: menuItems, error } = menuQuery;
-  const restaurant = restaurantQuery.data;
-  const categoryNotesRows = categoryNotesQuery.data ?? [];
-  const categoryNotes: Record<string, string> = {};
-  for (const row of categoryNotesRows as { category: string; note: string | null }[]) {
-    if (row.note?.trim()) categoryNotes[row.category] = row.note.trim();
-  }
-
-  if (error) {
-    return (
-      <div className="p-10 text-red-600">
-        Error loading menu: {error.message}
-      </div>
-    );
-  }
-
-  // Only show items that are available (treat null/undefined as available)
-  const visibleItems =
-    (menuItems ?? []).filter((item: any) => item.available !== false) ?? [];
-
-  const grouped =
-    visibleItems.reduce((acc: any, item: any) => {
-      const category = item.category || "Other";
-      if (!acc[category]) acc[category] = [];
-      acc[category].push(item);
-      return acc;
-    }, {}) ?? {};
-
-  const sortedCategories = [
-    ...CATEGORY_ORDER.filter((c) => grouped[c]),
-    ...Object.keys(grouped).filter(
-      (c) => !(CATEGORY_ORDER as readonly string[]).includes(c)
-    ),
-  ];
-
+export default function HomePage() {
   return (
-    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-      <HeroWithLang
-        restaurantName={restaurant?.name ?? undefined}
-        heroImageUrl={restaurant?.hero_image_url ?? undefined}
-      />
-
-      {/* Tabs + menu content */}
-      <MenuTabs
-        grouped={grouped}
-        sortedCategories={sortedCategories}
-        categoryNotes={categoryNotes}
-      />
+    <main className="min-h-screen bg-[#faf8f5] flex flex-col items-center justify-center px-6 text-center">
+      <h1 className="font-serif text-5xl sm:text-6xl font-semibold text-[#2c2a26] mb-4">MenuSnap</h1>
+      <p className="text-lg text-[#6b6560] max-w-md mb-10">
+        Beautiful digital menus for restaurants. Set up in minutes, update in seconds.
+      </p>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <Link href="/signup" className="px-8 py-3 rounded-xl bg-[#8b6914] text-white font-medium text-lg hover:opacity-90 transition-opacity">
+          Get started free
+        </Link>
+        <Link href="/login" className="px-8 py-3 rounded-xl border border-[#2c2a26]/20 text-[#2c2a26] font-medium text-lg hover:bg-[#2c2a26]/5 transition-colors">
+          Sign in
+        </Link>
+      </div>
     </main>
   );
 }

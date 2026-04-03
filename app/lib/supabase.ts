@@ -1,15 +1,42 @@
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient, createServerClient } from "@supabase/ssr";
 
 export function createSupabaseClient() {
-  return createClient(
+  return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 }
 
+export async function createSupabaseServerClient() {
+  const { cookies } = await import("next/headers");
+  const cookieStore = await cookies();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // Server Component — middleware handles session refresh
+          }
+        },
+      },
+    }
+  );
+}
+
 export type Restaurant = {
   id: string;
+  slug: string;
   name?: string | null;
+  owner_id?: string | null;
   main_color?: string | null;
   accent_color?: string | null;
   background_color?: string | null;
@@ -23,18 +50,4 @@ export type CategoryNote = {
   restaurant_id: string;
   category: string;
   note: string | null;
-  created_at?: string;
 };
-
-/**
- * Create category_notes table in Supabase (SQL Editor):
- *
- * create table if not exists category_notes (
- *   id uuid primary key default gen_random_uuid(),
- *   restaurant_id uuid not null references restaurants(id) on delete cascade on update cascade,
- *   category text not null,
- *   note text,
- *   created_at timestamptz default now(),
- *   unique(restaurant_id, category)
- * );
- */
