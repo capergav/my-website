@@ -5,6 +5,7 @@ import { createSupabaseClient } from "@/app/lib/supabase";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
 import type { Restaurant } from "@/app/lib/supabase";
+import { OnboardingTour } from "./OnboardingTour";
 
 type Grouped = Record<string, MenuItemRow[]>;
 
@@ -53,6 +54,8 @@ export function AdminMenuEditor({
   const [saving, setSaving] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+  // tourKey increments to restart the tour
+  const [tourKey, setTourKey] = useState(0);
 
   const supabase = createSupabaseClient();
 
@@ -82,6 +85,33 @@ export function AdminMenuEditor({
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 3000);
   };
+
+  useEffect(() => {
+    if (!restaurant) return;
+    const main = restaurant.main_color ?? "#2c2a26";
+    const accent = restaurant.accent_color ?? "#8b6914";
+    const bg = restaurant.background_color ?? "#faf8f5";
+    const fontColor = restaurant.font_color ?? main;
+    let fontVar = "--font-body:var(--font-geist-sans);";
+    switch (restaurant.font_family) {
+      case "serif":    fontVar = "--font-body:var(--font-cormorant);";  break;
+      case "mono":     fontVar = "--font-body:var(--font-geist-mono);"; break;
+      case "poppins":  fontVar = "--font-body:var(--font-poppins);";    break;
+      case "playfair": fontVar = "--font-body:var(--font-playfair);";   break;
+      case "bebas":    fontVar = "--font-body:var(--font-bebas);";      break;
+      case "pacifico": fontVar = "--font-body:var(--font-pacifico);";   break;
+      case "orbitron": fontVar = "--font-body:var(--font-orbitron);";   break;
+      case "cinzel":   fontVar = "--font-body:var(--font-cinzel);";     break;
+    }
+    const css = `:root{--foreground:${fontColor};--accent:${accent};--background:${bg};${fontVar}}body{color:var(--foreground);font-family:var(--font-body,var(--font-geist-sans)),system-ui,sans-serif}`;
+    let el = document.getElementById("menusnap-theme") as HTMLStyleElement | null;
+    if (!el) {
+      el = document.createElement("style");
+      el.id = "menusnap-theme";
+      document.head.appendChild(el);
+    }
+    el.textContent = css;
+  }, [restaurant]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -136,17 +166,23 @@ export function AdminMenuEditor({
   };
 
   const items = grouped[activeCategory] ?? [];
+  const isEmpty = sortedCategories.length === 0;
 
   return (
     <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+      {/* Header */}
       <div className="relative h-40 sm:h-48 overflow-hidden bg-[var(--foreground)]">
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/50 to-transparent pointer-events-none" />
-        <div className="absolute top-4 end-4 flex flex-wrap items-center gap-3 z-20">
-          <ThemeDropdowns restaurant={restaurant} onSave={handleSaveTheme} saving={saving} />
+        <div className="absolute top-4 end-4 flex flex-wrap items-center gap-2 z-20">
+          {/* data-tour attributes let the onboarding tour spotlight these elements */}
+          <div data-tour="tour-theme">
+            <ThemeDropdowns restaurant={restaurant} onSave={handleSaveTheme} saving={saving} />
+          </div>
           <a
             href={`/menu/${restaurantSlug}`}
             target="_blank"
             rel="noopener noreferrer"
+            data-tour="tour-view-menu"
             className="min-h-[44px] px-4 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-medium text-sm border border-white/40 inline-flex items-center justify-center"
           >
             View menu ↗
@@ -154,30 +190,61 @@ export function AdminMenuEditor({
           <button
             type="button"
             onClick={handleSignOut}
+            data-tour="tour-signout"
             className="min-h-[44px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white font-medium text-sm border border-white/30 inline-flex items-center justify-center"
           >
             Sign out
           </button>
+          {/* Tour restart button */}
+          <button
+            type="button"
+            title="Restart tour"
+            onClick={() => {
+              localStorage.removeItem("menusnap_tour_v1_done");
+              setTourKey((k) => k + 1);
+            }}
+            className="min-h-[44px] w-11 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-semibold border border-white/30 inline-flex items-center justify-center"
+          >
+            ?
+          </button>
         </div>
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-white drop-shadow-lg">
+          <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-white drop-shadow-lg text-center px-4">
             {restaurant?.name ?? "Admin"} – Edit menu
           </h1>
         </div>
       </div>
 
+      {/* Toast */}
       {message && (
         <div className={`sticky top-0 z-30 py-2 px-4 text-center text-sm font-medium ${message.type === "ok" ? "bg-green-600/90 text-white" : "bg-red-600/90 text-white"}`}>
           {message.text}
         </div>
       )}
 
-      {sortedCategories.length === 0 ? (
-        <div className="max-w-2xl mx-auto px-4 py-10 text-center text-[var(--muted)]">
-          No categories yet. Add an item below.
+      {/* Empty state — shown when no items exist yet */}
+      {isEmpty && (
+        <div className="max-w-2xl mx-auto px-4 py-16 flex flex-col items-center gap-6 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[var(--accent)]/10 flex items-center justify-center text-3xl">🍽️</div>
+          <div>
+            <h2 className="font-serif text-2xl font-semibold text-[var(--foreground)] mb-2">Your menu is empty</h2>
+            <p className="text-[var(--muted)] text-sm max-w-xs mx-auto">Add your first dish and it will appear here, organised by category automatically.</p>
+          </div>
+          <button
+            type="button"
+            data-tour="tour-add-item"
+            onClick={() => { setAddingNew(true); setEditingItem(null); }}
+            className="px-6 py-3 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 shadow-sm"
+          >
+            + Add your first item
+          </button>
         </div>
-      ) : (
+      )}
+
+      {/* Menu content — shown when items exist */}
+      {!isEmpty && (
         <>
+          {/* Category tabs */}
           <div className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
             <div className="max-w-4xl mx-auto px-3 sm:px-6">
               <div className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none">
@@ -194,8 +261,12 @@ export function AdminMenuEditor({
           <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
             <div className="flex justify-between items-center mb-5">
               <h2 className="font-serif text-xl sm:text-3xl font-semibold">{activeCategory}</h2>
-              <button type="button" onClick={() => { setAddingNew(true); setEditingItem(null); }}
-                className="px-4 py-2 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90">
+              <button
+                type="button"
+                data-tour="tour-add-item"
+                onClick={() => { setAddingNew(true); setEditingItem(null); }}
+                className="px-4 py-2 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90"
+              >
                 + Add item
               </button>
             </div>
@@ -256,6 +327,7 @@ export function AdminMenuEditor({
         </>
       )}
 
+      {/* Item add/edit modal */}
       {(editingItem || addingNew) && (
         <ItemForm
           item={editingItem ?? undefined}
@@ -265,6 +337,9 @@ export function AdminMenuEditor({
           saving={saving}
         />
       )}
+
+      {/* Onboarding tour — auto-shows on first visit, restartable via ? button */}
+      <OnboardingTour tourKey={tourKey} />
     </main>
   );
 }
@@ -344,7 +419,7 @@ function ThemeDropdowns({ restaurant, onSave, saving }: {
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>
-          <div className="w-full max-w-md rounded-2xl bg-[var(--card)] border border-[var(--card-border)] shadow-xl p-5">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-[var(--card)] border border-[var(--card-border)] shadow-xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-[var(--foreground)]">Theme & branding</h2>
               <button type="button" onClick={() => setOpen(false)} className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]">Close</button>
@@ -355,7 +430,7 @@ function ThemeDropdowns({ restaurant, onSave, saving }: {
                 <input type="color" value={main} onChange={(e) => setMain(e.target.value)} className="w-full h-10 rounded-lg border border-[var(--card-border)] bg-[var(--background)] cursor-pointer" />
               </div>
               <div>
-                <p className="text-sm font-medium text-[var(--foreground)] mb-2">Secondary color</p>
+                <p className="text-sm font-medium text-[var(--foreground)] mb-2">Secondary / accent color</p>
                 <input type="color" value={accent} onChange={(e) => setAccent(e.target.value)} className="w-full h-10 rounded-lg border border-[var(--card-border)] bg-[var(--background)] cursor-pointer" />
               </div>
               <div>
@@ -403,7 +478,7 @@ function ThemeDropdowns({ restaurant, onSave, saving }: {
               </div>
               <button type="button"
                 onClick={() => { onSave({ main_color: main, accent_color: accent, background_color: backgroundColor.trim() || null, font_family: fontFamily, font_color: fontColor.trim() || null, name: restaurantName.trim() || null, hero_image_url: heroImageUrl.trim() || null }); setOpen(false); }}
-                disabled={saving} className="w-full py-2 rounded-lg bg-[var(--accent)] text-white font-medium disabled:opacity-50 cursor-pointer">
+                disabled={saving} className="w-full py-2.5 rounded-lg bg-[var(--accent)] text-white font-medium disabled:opacity-50 cursor-pointer hover:opacity-90">
                 Save theme
               </button>
             </div>
@@ -478,7 +553,8 @@ function ItemForm({ item, categories, onSave, onCancel, saving }: { item?: MenuI
               <input id="available" type="checkbox" checked={available} onChange={(e) => setAvailable(e.target.checked)} className="h-4 w-4 rounded border-[var(--card-border)] text-[var(--accent)]" />
               <label htmlFor="available" className="text-sm font-medium text-[var(--foreground)]">Available</label>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-[var(--card-border)]">
+              <p className="col-span-full text-xs text-[var(--muted)] pt-1">Dietary & highlights</p>
               <Toggle label="Chef's favorite" checked={chefs_favorite} onChange={setChefsFavorite} />
               <Toggle label="Gluten free" checked={gluten_free} onChange={setGlutenFree} />
               <Toggle label="Nut free" checked={nut_free} onChange={setNutFree} />
@@ -488,8 +564,8 @@ function ItemForm({ item, categories, onSave, onCancel, saving }: { item?: MenuI
               <Toggle label="Spicy" checked={spicy} onChange={setSpicy} />
             </div>
             <div className="flex gap-3 pt-2">
-              <button type="button" onClick={onCancel} className="flex-1 py-2 rounded-lg border border-[var(--card-border)] font-medium">Cancel</button>
-              <button type="submit" disabled={saving} className="flex-1 py-2 rounded-lg bg-[var(--accent)] text-white font-medium disabled:opacity-50">
+              <button type="button" onClick={onCancel} className="flex-1 py-2 rounded-lg border border-[var(--card-border)] font-medium hover:bg-[var(--card-border)]/30">Cancel</button>
+              <button type="submit" disabled={saving} className="flex-1 py-2 rounded-lg bg-[var(--accent)] text-white font-medium disabled:opacity-50 hover:opacity-90">
                 {saving ? "Saving…" : item ? "Update" : "Add"}
               </button>
             </div>

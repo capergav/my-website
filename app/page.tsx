@@ -9,7 +9,7 @@ export default function HomePage() {
       </p>
       <div className="flex flex-col sm:flex-row gap-4">
         <Link href="/signup" className="px-8 py-3 rounded-xl bg-[#8b6914] text-white font-medium text-lg hover:opacity-90 transition-opacity">
-          Get started free
+          Get started
         </Link>
         <Link href="/login" className="px-8 py-3 rounded-xl border border-[#2c2a26]/20 text-[#2c2a26] font-medium text-lg hover:bg-[#2c2a26]/5 transition-colors">
           Sign in
