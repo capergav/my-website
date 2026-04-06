@@ -6,6 +6,7 @@ import { createSupabaseClient } from "@/app/lib/supabase";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
 import type { Restaurant } from "@/app/lib/supabase";
+import { ImageUploader } from "./ImageUploader";
 
 type Grouped = Record<string, MenuItemRow[]>;
 
@@ -457,6 +458,7 @@ export function AdminMenuEditor({
         <ItemForm
           item={editingItem ?? undefined}
           categories={CATEGORY_ORDER.slice()}
+          restaurantSlug={restaurantSlug}
           onSave={handleSaveItem}
           onCancel={() => { setEditingItem(null); setAddingNew(false); }}
           saving={saving}
@@ -612,14 +614,29 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose }: ThemeMod
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Logo URL</label>
-                    <p className="text-xs text-gray-400 mb-1.5">Use a PNG with a transparent background.</p>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Logo</label>
+                    <p className="text-xs text-gray-400 mb-2">Upload a PNG with a transparent background, or paste a URL below.</p>
+                    <ImageUploader
+                      currentUrl={logoUrl}
+                      onUploaded={(url) => setLogoUrl(url)}
+                      folder="logos"
+                      aspectRatio="square"
+                    />
+                    <label className="block text-xs font-medium text-gray-500 mt-3 mb-1">Logo image URL (optional)</label>
                     <input type="url" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)}
                       placeholder="https://..."
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Hero / banner image URL</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Hero / banner image</label>
+                    <p className="text-xs text-gray-400 mb-2">Upload from your device or paste an image URL.</p>
+                    <ImageUploader
+                      currentUrl={heroUrl}
+                      onUploaded={(url) => setHeroUrl(url)}
+                      folder="hero"
+                      aspectRatio="video"
+                    />
+                    <label className="block text-xs font-medium text-gray-500 mt-3 mb-1">Hero image URL (optional)</label>
                     <input type="url" value={heroUrl} onChange={(e) => setHeroUrl(e.target.value)}
                       placeholder="https://..."
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
@@ -695,9 +712,9 @@ function SheetThemeButton(props: Omit<ThemeModalProps, "sheetMode">) {
 }
 
 function ItemForm({
-  item, categories, onSave, onCancel, saving,
+  item, categories, restaurantSlug, onSave, onCancel, saving,
 }: {
-  item?: MenuItemRow; categories: readonly string[];
+  item?: MenuItemRow; categories: readonly string[]; restaurantSlug: string;
   onSave: (p: Partial<MenuItemRow>) => void; onCancel: () => void; saving: boolean;
 }) {
   const [name, setName]           = useState(item?.name ?? "");
@@ -777,7 +794,14 @@ function ItemForm({
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1.5">Image URL</label>
+              <label className="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Photo</label>
+              <ImageUploader
+                currentUrl={imgUrl}
+                onUploaded={(url) => setImgUrl(url)}
+                folder={`items/${restaurantSlug}`}
+                aspectRatio="video"
+              />
+              <label className="block text-xs font-medium text-gray-500 mt-3 mb-1">Or paste image URL</label>
               <input type="url" value={imgUrl} onChange={(e) => setImgUrl(e.target.value)}
                 placeholder="https://..."
                 className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
