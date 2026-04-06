@@ -11,9 +11,7 @@ export function LanguageDropdown() {
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -26,35 +24,24 @@ export function LanguageDropdown() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 min-h-[44px] px-3 py-2 rounded-xl bg-black text-white font-medium text-sm touch-manipulation border-2 border-amber-400/90 hover:border-amber-300 shadow-lg"
+        className="flex items-center gap-2 min-h-[44px] px-3 py-2 rounded-xl font-medium text-sm touch-manipulation border shadow-sm transition-opacity hover:opacity-80"
+        style={{ background: "var(--foreground)", color: "var(--background)", borderColor: "var(--accent)" }}
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label="Change language"
       >
         <span>{current.label}</span>
-        <svg
-          className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
-
       {open && (
-        <ul
-          role="listbox"
-          className="absolute top-full end-0 mt-2 min-w-[10rem] py-1 rounded-xl bg-[var(--card)] border border-[var(--card-border)] shadow-lg z-50"
-        >
+        <ul role="listbox" className="absolute top-full end-0 mt-2 min-w-[10rem] py-1 rounded-xl bg-[var(--card)] border border-[var(--card-border)] shadow-lg z-50">
           {locales.map((opt) => (
             <li key={opt.value} role="option" aria-selected={locale === opt.value}>
               <button
                 type="button"
-                onClick={() => {
-                  setLocale(opt.value as Locale);
-                  setOpen(false);
-                }}
+                onClick={() => { setLocale(opt.value as Locale); setOpen(false); }}
                 className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors touch-manipulation ${
                   locale === opt.value
                     ? "bg-[var(--accent)]/15 text-[var(--accent)]"

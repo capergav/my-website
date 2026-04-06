@@ -1,4 +1,5 @@
 export const dynamic = "force-dynamic";
+
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/app/lib/supabase";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
@@ -42,22 +43,24 @@ export default async function PublicMenuPage({ params }: Props) {
     ...Object.keys(grouped).filter((c) => !(CATEGORY_ORDER as readonly string[]).includes(c)),
   ];
 
-  const main = restaurant.main_color ?? "#2c2a26";
-  const accent = restaurant.accent_color ?? "#8b6914";
-  const bg = restaurant.background_color ?? "#faf8f5";
-  const fontColor = restaurant.font_color ?? main;
-  let fontVar = "--font-body:var(--font-geist-sans);";
+  const fontColor = restaurant.font_color ?? "#2c2a26";
+  const accent    = restaurant.accent_color ?? "#8b6914";
+  const bg        = restaurant.background_color ?? "#faf8f5";
+  const card      = restaurant.main_color ?? "#ffffff";
+
+  let fontFamily = "var(--font-geist-sans), system-ui, sans-serif";
   switch (restaurant.font_family) {
-    case "serif": fontVar = "--font-body:var(--font-cormorant);"; break;
-    case "mono": fontVar = "--font-body:var(--font-geist-mono);"; break;
-    case "poppins": fontVar = "--font-body:var(--font-poppins);"; break;
-    case "playfair": fontVar = "--font-body:var(--font-playfair);"; break;
-    case "bebas": fontVar = "--font-body:var(--font-bebas);"; break;
-    case "pacifico": fontVar = "--font-body:var(--font-pacifico);"; break;
-    case "orbitron": fontVar = "--font-body:var(--font-orbitron);"; break;
-    case "cinzel": fontVar = "--font-body:var(--font-cinzel);"; break;
+    case "serif":    fontFamily = "var(--font-cormorant), Georgia, serif"; break;
+    case "mono":     fontFamily = "var(--font-geist-mono), monospace"; break;
+    case "poppins":  fontFamily = "var(--font-poppins), sans-serif"; break;
+    case "playfair": fontFamily = "var(--font-playfair), serif"; break;
+    case "bebas":    fontFamily = "var(--font-bebas), sans-serif"; break;
+    case "pacifico": fontFamily = "var(--font-pacifico), cursive"; break;
+    case "orbitron": fontFamily = "var(--font-orbitron), sans-serif"; break;
+    case "cinzel":   fontFamily = "var(--font-cinzel), serif"; break;
   }
-  const themeStyle = `:root{--foreground:${fontColor};--accent:${accent};--background:${bg};${fontVar}}body{color:var(--foreground);font-family:var(--font-body,var(--font-geist-sans)),system-ui,sans-serif}`;
+
+  const themeStyle = `:root{--foreground:${fontColor};--accent:${accent};--background:${bg};--card:${card};}body{color:var(--foreground);font-family:${fontFamily};}`;
 
   return (
     <>
