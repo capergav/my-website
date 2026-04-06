@@ -615,31 +615,23 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose }: ThemeMod
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Logo</label>
-                    <p className="text-xs text-gray-400 mb-2">Upload a PNG with a transparent background, or paste a URL below.</p>
+                    <p className="text-xs text-gray-400 mb-2">PNG with a transparent background works best.</p>
                     <ImageUploader
                       currentUrl={logoUrl}
                       onUploaded={(url) => setLogoUrl(url)}
                       folder="logos"
                       aspectRatio="square"
                     />
-                    <label className="block text-xs font-medium text-gray-500 mt-3 mb-1">Logo image URL (optional)</label>
-                    <input type="url" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">Hero / banner image</label>
-                    <p className="text-xs text-gray-400 mb-2">Upload from your device or paste an image URL.</p>
+                    <p className="text-xs text-gray-400 mb-2">Shown across the top of your public menu.</p>
                     <ImageUploader
                       currentUrl={heroUrl}
                       onUploaded={(url) => setHeroUrl(url)}
                       folder="hero"
                       aspectRatio="video"
                     />
-                    <label className="block text-xs font-medium text-gray-500 mt-3 mb-1">Hero image URL (optional)</label>
-                    <input type="url" value={heroUrl} onChange={(e) => setHeroUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
                   </div>
                 </div>
               </section>
