@@ -112,7 +112,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
     <>
       <div className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
         <div className="max-w-4xl mx-auto px-3 sm:px-6">
-          <div className="tabs-scroll flex gap-3 overflow-x-auto py-4 scrollbar-none">
+          <div className="tabs-scroll flex gap-3 overflow-x-auto py-4 scrollbar-none px-1">
             {sortedCategories.map((category) => {
               const firstImg = (grouped[category] ?? [])[0]?.image_url ?? null;
               const isActive = activeCategory === category;

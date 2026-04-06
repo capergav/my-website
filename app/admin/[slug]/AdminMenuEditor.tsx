@@ -11,6 +11,8 @@ import { ImageUploader } from "./ImageUploader";
 
 type Grouped = Record<string, MenuItemRow[]>;
 
+type MenuItemWithSort = MenuItemRow & { sort_order?: number | null };
+
 const DEFAULT_ACCENT    = "#8b6914";
 const DEFAULT_BG        = "#faf8f5";
 const DEFAULT_FONT_COLOR = "#2c2a26";
@@ -96,6 +98,7 @@ export function AdminMenuEditor({
       .from("menu_items")
       .select("*")
       .eq("restaurant_id", restaurantId)
+      .order("sort_order", { ascending: true })
       .order("name", { ascending: true });
     if (error) { setMessage({ type: "err", text: error.message }); return; }
     const g: Grouped = {};
@@ -151,6 +154,7 @@ export function AdminMenuEditor({
     main_color: string; accent_color: string;
     background_color?: string | null; font_family?: string | null;
     font_color?: string | null; name?: string | null; hero_image_url?: string | null;
+    logo_url?: string | null;
   }) => {
     setSaving(true);
     const { error } = await supabase.from("restaurants").update(updates).eq("id", restaurantId);
@@ -227,12 +231,24 @@ export function AdminMenuEditor({
           </button>
         </div>
 
-        {/* Restaurant name */}
-        <div className="absolute bottom-0 left-0 right-0 px-6 pb-5">
-          <p className="text-white/50 text-xs font-medium uppercase tracking-widest mb-0.5">Admin Panel</p>
-          <h1 className="font-serif text-2xl sm:text-3xl font-semibold text-white drop-shadow-md">
-            {restaurant?.name ?? "Your Restaurant"}
-          </h1>
+        {/* Logo + restaurant name — top left, mobile-friendly */}
+        <div className="absolute top-4 start-4 flex items-center gap-3 z-20">
+          {restaurant?.logo_url && (
+            <img
+              src={restaurant.logo_url}
+              alt="Logo"
+              className="h-10 w-10 sm:h-12 sm:w-12 object-contain drop-shadow-md flex-shrink-0"
+              style={{ background: "transparent" }}
+            />
+          )}
+          <div>
+            <p className="text-white/50 text-[10px] font-medium uppercase tracking-widest leading-none mb-0.5">
+              Admin Panel
+            </p>
+            <h1 className="font-serif text-lg sm:text-xl font-semibold text-white drop-shadow-md leading-tight">
+              {restaurant?.name ?? "Your Restaurant"}
+            </h1>
+          </div>
         </div>
       </div>
 
@@ -272,7 +288,7 @@ export function AdminMenuEditor({
           {/* Category tabs */}
           <div className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
             <div className="max-w-4xl mx-auto px-4 sm:px-6">
-              <div className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none">
+              <div className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1">
                 {sortedCategories.map((cat) => (
                   <button
                     key={cat}
@@ -312,7 +328,9 @@ export function AdminMenuEditor({
             />
 
             <div className="space-y-3 mt-6">
-              {items.map((item) => (
+              {items.map((item) => {
+                const row = item as MenuItemWithSort;
+                return (
                 <div
                   key={item.id}
                   className={`bg-[var(--card)] rounded-2xl border border-[var(--card-border)] overflow-hidden shadow-sm transition-opacity ${
@@ -353,6 +371,54 @@ export function AdminMenuEditor({
                             setSaving(false);
                           }}
                         />
+                        {/* Sort order buttons */}
+                        <div className="inline-flex rounded-lg border border-[var(--card-border)] overflow-hidden">
+                          <button
+                            type="button"
+                            title="Move up"
+                            disabled={saving || items.indexOf(item) === 0}
+                            onClick={async () => {
+                              const idx = items.indexOf(item);
+                              if (idx <= 0) return;
+                              const prev = items[idx - 1] as MenuItemWithSort;
+                              setSaving(true);
+                              await Promise.all([
+                                supabase.from("menu_items").update({ sort_order: (prev.sort_order ?? idx) }).eq("id", item.id),
+                                supabase.from("menu_items").update({ sort_order: (row.sort_order ?? idx - 1) + 1 }).eq("id", prev.id),
+                              ]);
+                              await refreshMenu();
+                              setSaving(false);
+                            }}
+                            className="px-2 py-1.5 text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card-border)] disabled:opacity-30 transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                            </svg>
+                          </button>
+                          <div className="w-px bg-[var(--card-border)]" />
+                          <button
+                            type="button"
+                            title="Move down"
+                            disabled={saving || items.indexOf(item) === items.length - 1}
+                            onClick={async () => {
+                              const idx = items.indexOf(item);
+                              if (idx >= items.length - 1) return;
+                              const nextItem = items[idx + 1] as MenuItemWithSort;
+                              setSaving(true);
+                              await Promise.all([
+                                supabase.from("menu_items").update({ sort_order: (nextItem.sort_order ?? idx + 1) }).eq("id", item.id),
+                                supabase.from("menu_items").update({ sort_order: (row.sort_order ?? idx) }).eq("id", nextItem.id),
+                              ]);
+                              await refreshMenu();
+                              setSaving(false);
+                            }}
+                            className="px-2 py-1.5 text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card-border)] disabled:opacity-30 transition-colors"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                            </svg>
+                          </button>
+                        </div>
                         <button
                           type="button"
                           onClick={() => { setEditingItem(item); setAddingNew(false); }}
@@ -372,7 +438,8 @@ export function AdminMenuEditor({
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </>
@@ -455,6 +522,7 @@ function ThemeDropdowns({
     main_color: string; accent_color: string;
     background_color?: string | null; font_family?: string | null;
     font_color?: string | null; name?: string | null; hero_image_url?: string | null;
+    logo_url?: string | null;
   }) => void;
   saving: boolean;
 }) {
@@ -465,6 +533,7 @@ function ThemeDropdowns({
   const [fontFamily, setFont]   = useState("sans");
   const [name, setName]         = useState("");
   const [heroUrl, setHeroUrl]   = useState("");
+  const [logoUrl, setLogoUrl]   = useState("");
   const [open, setOpen]         = useState(false);
   const [fontOpen, setFontOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -486,6 +555,7 @@ function ThemeDropdowns({
       setFont(restaurant.font_family ?? "sans");
       setName(restaurant.name ?? "");
       setHeroUrl(restaurant.hero_image_url ?? "");
+      setLogoUrl(restaurant.logo_url ?? "");
       setFontOpen(false);
     }
   }, [open, restaurant]);
@@ -543,6 +613,16 @@ function ThemeDropdowns({
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. La Piazza"
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914] transition-shadow"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Logo</label>
+                    <p className="text-xs text-gray-400 mb-2">Use a PNG with a transparent background for best results. Shown top-left on the admin header.</p>
+                    <ImageUploader
+                      currentUrl={logoUrl}
+                      onUploaded={(url) => setLogoUrl(url)}
+                      folder="logos"
+                      aspectRatio="square"
                     />
                   </div>
                   <div>
@@ -630,6 +710,7 @@ function ThemeDropdowns({
                     font_color:       fontColor || null,
                     name:             name.trim() || null,
                     hero_image_url:   heroUrl.trim() || null,
+                    logo_url:         logoUrl.trim() || null,
                   });
                   setOpen(false);
                 }}

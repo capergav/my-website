@@ -22,7 +22,7 @@ export default async function PublicMenuPage({ params }: Props) {
   if (!restaurant) notFound();
 
   const [{ data: menuItems }, { data: categoryNotesRows }] = await Promise.all([
-    supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).eq("available", true).order("name", { ascending: true }),
+    supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).eq("available", true).order("sort_order", { ascending: true }).order("name", { ascending: true }),
     supabase.from("category_notes").select("category, note").eq("restaurant_id", restaurant.id),
   ]);
 

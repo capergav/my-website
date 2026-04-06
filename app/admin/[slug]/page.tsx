@@ -17,7 +17,7 @@ export default async function AdminSlugPage({ params }: Props) {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, slug, name, main_color, accent_color, background_color, font_family, font_color, hero_image_url, owner_id")
+    .select("id, slug, name, main_color, accent_color, background_color, font_family, font_color, hero_image_url, logo_url, owner_id")
     .eq("slug", slug)
     .eq("owner_id", user.id)
     .maybeSingle<Restaurant>();
@@ -25,7 +25,7 @@ export default async function AdminSlugPage({ params }: Props) {
   if (!restaurant) notFound();
 
   const [{ data: menuItems, error: menuError }, { data: categoryNotesRows }] = await Promise.all([
-    supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).order("name", { ascending: true }),
+    supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }).order("name", { ascending: true }),
     supabase.from("category_notes").select("category, note").eq("restaurant_id", restaurant.id),
   ]);
 
