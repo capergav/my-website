@@ -577,8 +577,8 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 
   const trigger = sheetMode ? (
     <button type="button" onClick={() => setOpen(true)}
-      className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
-      <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-[var(--background)] text-[var(--foreground)] text-sm font-medium">
+      <svg className="w-4 h-4 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
           d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
       </svg>
@@ -600,13 +600,13 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       {trigger}
       {open && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
-            <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-[var(--card)] shadow-2xl">
+            <div className="sticky top-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
               <div>
-                <h2 className="text-base font-semibold text-gray-900">Theme & branding</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Changes apply instantly after saving</p>
+                <h2 className="text-base font-semibold text-[var(--foreground)]">Theme & branding</h2>
+                <p className="text-xs text-[var(--muted)] mt-0.5">Changes apply instantly after saving</p>
               </div>
-              <button type="button" onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 p-1">
+              <button type="button" onClick={() => setOpen(false)} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -616,17 +616,17 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
             <div className="px-6 py-6 space-y-7">
               {/* Details */}
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Restaurant details</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-4">Restaurant details</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Restaurant name</label>
+                    <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Restaurant name</label>
                     <input type="text" value={name} onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. La Piazza"
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                      className="w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Logo</label>
-                    <p className="text-xs text-gray-400 mb-2">PNG with a transparent background works best.</p>
+                    <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Logo</label>
+                    <p className="text-xs text-[var(--muted)] mb-2">PNG with a transparent background works best.</p>
                     <ImageUploader
                       currentUrl={logoUrl}
                       onUploaded={(url) => setLogoUrl(url)}
@@ -635,8 +635,8 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Hero / banner image</label>
-                    <p className="text-xs text-gray-400 mb-2">Shown across the top of your public menu.</p>
+                    <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Hero / banner image</label>
+                    <p className="text-xs text-[var(--muted)] mb-2">Shown across the top of your public menu.</p>
                     <ImageUploader
                       currentUrl={heroUrl}
                       onUploaded={(url) => setHeroUrl(url)}
@@ -649,11 +649,11 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 
               {/* Colours — each in its own card */}
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Colours</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-4">Colours</h3>
                 <div className="grid grid-cols-2 gap-4">
                   {colors.map(({ label, value, set }) => (
-                    <div key={label} className="rounded-2xl border border-gray-100 bg-gray-50 p-4 flex flex-col gap-3">
-                      <label className="block text-xs font-semibold text-gray-500">{label}</label>
+                    <div key={label} className="rounded-2xl border border-[var(--card-border)] bg-[var(--background)] p-4 flex flex-col gap-3">
+                      <label className="block text-xs font-semibold text-[var(--muted)]">{label}</label>
                       <div className="flex items-center gap-3">
                         <div className="relative flex-shrink-0">
                           <input type="color" value={value}
@@ -662,7 +662,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                           <div className="w-12 h-12 rounded-xl border-2 border-white shadow-md"
                             style={{ background: value }} />
                         </div>
-                        <span className="text-xs font-mono text-gray-400 uppercase tracking-wide">{value}</span>
+                        <span className="text-xs font-mono text-[var(--muted)] uppercase tracking-wide">{value}</span>
                       </div>
                     </div>
                   ))}
@@ -671,24 +671,24 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 
               {/* Font */}
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-4">Font</h3>
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-4">Font</h3>
                 <div className="relative">
                   <button type="button" onClick={() => setFontOpen((o) => !o)}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#8b6914]">
+                    className="w-full px-4 py-3 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#8b6914]">
                     <span className={FONT_OPTIONS.find((o) => o.value === font)?.cls}>
                       {FONT_OPTIONS.find((o) => o.value === font)?.label ?? "Geist Sans"}
                     </span>
-                    <svg className={`w-4 h-4 text-gray-400 transition-transform ${fontOpen ? "rotate-180" : ""}`}
+                    <svg className={`w-4 h-4 text-[var(--muted)] transition-transform ${fontOpen ? "rotate-180" : ""}`}
                       fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
                   {fontOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-1 py-1 rounded-xl border border-gray-200 bg-white shadow-xl z-10 max-h-52 overflow-y-auto">
+                    <div className="absolute top-full left-0 right-0 mt-1 py-1 rounded-xl border border-[var(--card-border)] bg-[var(--card)] shadow-xl z-10 max-h-52 overflow-y-auto">
                       {FONT_OPTIONS.map((opt) => (
                         <button key={opt.value} type="button"
                           onClick={() => { setFont(opt.value); setFontOpen(false); }}
-                          className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-50 transition-colors ${opt.cls} ${font === opt.value ? "text-[#8b6914] font-medium" : "text-gray-700"}`}>
+                          className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--card-border)]/40 transition-colors ${opt.cls} ${font === opt.value ? "text-[#8b6914] font-medium" : "text-[var(--foreground)]"}`}>
                           {opt.label}
                         </button>
                       ))}
@@ -748,7 +748,7 @@ function ItemForm({
 
   const Toggle = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) => (
     <div className="flex items-center justify-between gap-3 py-1">
-      <span className="text-sm text-gray-700">{label}</span>
+      <span className="text-sm text-[var(--foreground)]">{label}</span>
       <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
         className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#8b6914] focus:ring-offset-2 ${checked ? "bg-[#8b6914]" : "bg-gray-200"}`}>
         <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform mt-0.5 ml-0.5 ${checked ? "translate-x-5" : "translate-x-0"}`} />
@@ -758,10 +758,10 @@ function ItemForm({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 rounded-t-2xl flex items-center justify-between">
-          <h3 className="font-serif text-lg font-semibold text-gray-900">{item ? "Edit item" : "Add item"}</h3>
-          <button type="button" onClick={onCancel} className="text-gray-400 hover:text-gray-600 p-1">
+      <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
+          <h3 className="font-serif text-lg font-semibold text-[var(--foreground)]">{item ? "Edit item" : "Add item"}</h3>
+          <button type="button" onClick={onCancel} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -770,31 +770,31 @@ function ItemForm({
         <div className="p-6">
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1.5">Name *</label>
+              <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Name *</label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                className="w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1.5">Description</label>
+              <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Description</label>
               <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                className="w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1.5">Price *</label>
+                <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Price *</label>
                 <input type="number" step="0.01" min="0" value={price}
                   onChange={(e) => setPrice(e.target.value)} required
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                  className="w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1.5">Category</label>
+                <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Category</label>
                 <input
                   type="text"
                   list="category-suggestions"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   placeholder="e.g. Mains"
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
+                  className="w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
                 />
                 <datalist id="category-suggestions">
                   {categories.map((c) => <option key={c} value={c} />)}
@@ -802,26 +802,26 @@ function ItemForm({
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Photo</label>
+              <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-2">Photo</label>
               <ImageUploader
                 currentUrl={imgUrl}
                 onUploaded={(url) => setImgUrl(url)}
                 folder={`items/${restaurantSlug}`}
                 aspectRatio="video"
               />
-              <label className="block text-xs font-medium text-gray-500 mt-3 mb-1">Or paste image URL</label>
+              <label className="block text-xs font-medium text-[var(--muted)] mt-3 mb-1">Or paste image URL</label>
               <input type="url" value={imgUrl} onChange={(e) => setImgUrl(e.target.value)}
                 placeholder="https://..."
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                className="w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
             </div>
             <div className="flex items-center gap-3">
               <input id="avail" type="checkbox" checked={available}
                 onChange={(e) => setAvailable(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-[#8b6914] focus:ring-[#8b6914]" />
-              <label htmlFor="avail" className="text-sm font-medium text-gray-700">Listed as available</label>
+                className="h-4 w-4 rounded border-[var(--card-border)] text-[#8b6914] focus:ring-[#8b6914]" />
+              <label htmlFor="avail" className="text-sm font-medium text-[var(--foreground)]">Listed as available</label>
             </div>
-            <div className="border-t border-gray-100 pt-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Dietary & highlights</p>
+            <div className="border-t border-[var(--card-border)] pt-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-3">Dietary & highlights</p>
               <div className="space-y-0.5">
                 <Toggle label="Chef's favourite"  checked={chefs}  onChange={setChefs}  />
                 <Toggle label="Gluten free"        checked={gluten} onChange={setGluten} />
@@ -834,7 +834,7 @@ function ItemForm({
             </div>
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={onCancel}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors">
+                className="flex-1 py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
                 Cancel
               </button>
               <button type="submit" disabled={saving}

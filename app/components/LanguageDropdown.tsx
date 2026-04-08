@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback, type CSSProperties } from "react";
+import ReactDOM from "react-dom";
 import { useLanguage } from "@/app/context/LanguageContext";
 import { locales, type Locale } from "@/app/lib/translations";
 
@@ -41,7 +42,7 @@ export function LanguageDropdown() {
         top:      rect.bottom + 8,
         left:     Math.min(rect.left, W - minWidth - 8),
         minWidth,
-        zIndex:   9999,
+        zIndex:   99999,
       });
     } else {
       // Anchor to the right edge of the button, clamp so it doesn't overflow the left side
@@ -50,7 +51,7 @@ export function LanguageDropdown() {
         top:      rect.bottom + 8,
         right:    Math.max(8, W - rect.right),
         minWidth,
-        zIndex:   9999,
+        zIndex:   99999,
       });
     }
   }, []);
@@ -87,7 +88,7 @@ export function LanguageDropdown() {
         </svg>
       </button>
 
-      {open && (
+      {open && ReactDOM.createPortal(
         <ul
           ref={popupRef}
           role="listbox"
@@ -109,7 +110,8 @@ export function LanguageDropdown() {
               </button>
             </li>
           ))}
-        </ul>
+        </ul>,
+        document.body
       )}
     </>
   );

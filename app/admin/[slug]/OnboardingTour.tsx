@@ -116,7 +116,7 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
 
   return (
     <>
-      <div className="fixed inset-0 z-[100] pointer-events-none" style={{ background: "rgba(0,0,0,0.55)" }} />
+      <div className="fixed inset-0 z-[100] pointer-events-none" />
       {rect && (
         <div className="fixed z-[101] pointer-events-none transition-all duration-200" style={{
           top: rect.top - 5, left: rect.left - 5,
