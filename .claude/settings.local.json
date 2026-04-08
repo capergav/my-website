@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const l = require\\('lucide-react'\\); ['IceCream','Beer','Soup','Egg','Sandwich','UtensilsCrossed','Coffee','Fish','Wine','Leaf','Utensils','Sparkles'].forEach\\(n => console.log\\(n, !!l[n]\\)\\)\")",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}

@@ -48,9 +48,9 @@ export function DietaryLegend({ items }: { items: DietaryFlags[] }) {
   const visible = DIETARY_META.filter(({ key }) => usedKeys.has(key));
   if (visible.length === 0) return null;
   return (
-    <div className="mt-10 pt-6 border-t border-[var(--card-border)]">
-      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-3">Key</p>
-      <div className="flex flex-wrap gap-x-5 gap-y-2">
+    <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3 mb-2">
+      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-2">Key</p>
+      <div className="flex flex-wrap gap-x-5 gap-y-1.5">
         {visible.map(({ key, Icon, label }) => (
           <div key={key} className="flex items-center gap-1.5">
             <Icon size={13} className="text-[var(--muted)] shrink-0" aria-hidden />

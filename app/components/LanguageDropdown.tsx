@@ -26,18 +26,35 @@ export function LanguageDropdown() {
     return () => document.removeEventListener("mousedown", handle);
   }, [open]);
 
-  // Position popup using fixed coords so sticky headers never clip it
+  // Position popup using fixed coords so sticky headers never clip it.
+  // For RTL (Arabic), anchor to left edge of button; otherwise anchor to right.
   const calculatePosition = useCallback(() => {
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
     const W = window.innerWidth;
-    setPopupStyle({
-      position:  "fixed",
-      top:       rect.bottom + 8,
-      right:     W - rect.right,
-      minWidth:  Math.max(rect.width, 160),
-      zIndex:    9999,
-    });
+    const isRtl = document.documentElement.dir === "rtl";
+    const popupWidth = Math.max(rect.width, 160);
+    if (isRtl) {
+      // Anchor to left edge; clamp so it doesn't overflow right
+      const leftPos = Math.min(rect.left, W - popupWidth - 8);
+      setPopupStyle({
+        position: "fixed",
+        top:      rect.bottom + 8,
+        left:     Math.max(8, leftPos),
+        minWidth: popupWidth,
+        zIndex:   9999,
+      });
+    } else {
+      // Anchor to right edge; clamp so it doesn't overflow left
+      const rightPos = W - rect.right;
+      setPopupStyle({
+        position: "fixed",
+        top:      rect.bottom + 8,
+        right:    Math.max(8, rightPos),
+        minWidth: popupWidth,
+        zIndex:   9999,
+      });
+    }
   }, []);
 
   const handleToggle = () => {

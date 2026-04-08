@@ -7,6 +7,7 @@ import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
 import type { Restaurant } from "@/app/lib/supabase";
 import { ImageUploader } from "./ImageUploader";
+import { OnboardingTour } from "./OnboardingTour";
 
 type Grouped = Record<string, MenuItemRow[]>;
 
@@ -72,6 +73,7 @@ export function AdminMenuEditor({
   const [savingNote, setSavingNote]             = useState(false);
   const [message, setMessage]                   = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [mobileOpen, setMobileOpen]             = useState(false);
+  const [tourKey, setTourKey]                   = useState(0);
 
   // ── Live theme — no reload needed ────────────────────────────────────────
   useEffect(() => {
@@ -219,8 +221,17 @@ export function AdminMenuEditor({
 
         {/* Desktop action row */}
         <div className="hidden sm:flex absolute top-4 end-4 items-center gap-2 z-20">
-          <ThemeModal restaurant={restaurant} onSave={handleSaveTheme} saving={saving} />
+          <button
+            type="button"
+            onClick={() => setTourKey((k) => k + 1)}
+            title="Reopen tour"
+            className="min-h-[40px] w-10 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-bold border border-white/20 flex items-center justify-center transition-colors"
+          >
+            ?
+          </button>
+          <ThemeModal restaurant={restaurant} onSave={handleSaveTheme} saving={saving} tourTarget="tour-theme" />
           <a
+            data-tour="tour-view-menu"
             href={`/menu/${restaurantSlug}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -253,19 +264,17 @@ export function AdminMenuEditor({
           </h1>
         </div>
 
-        {/* Desktop: left-aligned, larger */}
-        <div className="hidden sm:flex absolute bottom-0 left-0 right-0 items-end gap-4 px-6 pb-5 z-10">
+        {/* Desktop: left-aligned, logo above name */}
+        <div className="hidden sm:flex absolute bottom-0 left-0 right-0 flex-col items-start px-6 pb-5 z-10">
           {restaurant?.logo_url && (
             <img src={restaurant.logo_url} alt="Logo"
-              className="h-14 w-14 object-contain drop-shadow-lg flex-shrink-0"
+              className="h-14 w-14 object-contain drop-shadow-lg mb-2"
               style={{ background: "transparent" }} />
           )}
-          <div>
-            <p className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-0.5">Admin Panel</p>
-            <h1 className="font-serif text-3xl font-semibold text-white drop-shadow-md">
-              {restaurant?.name ?? "Your Restaurant"}
-            </h1>
-          </div>
+          <p className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-0.5">Admin Panel</p>
+          <h1 className="font-serif text-3xl font-semibold text-white drop-shadow-md">
+            {restaurant?.name ?? "Your Restaurant"}
+          </h1>
         </div>
       </div>
 
@@ -352,7 +361,7 @@ export function AdminMenuEditor({
           <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
             <div className="flex justify-between items-center mb-5">
               <h2 className="font-serif text-xl sm:text-2xl font-semibold">{activeCategory}</h2>
-              <button type="button"
+              <button data-tour="tour-add-item" type="button"
                 onClick={() => { setAddingNew(true); setEditingItem(null); }}
                 className="px-4 py-2 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity shadow-sm">
                 + Add item
@@ -457,13 +466,15 @@ export function AdminMenuEditor({
       {(editingItem || addingNew) && (
         <ItemForm
           item={editingItem ?? undefined}
-          categories={CATEGORY_ORDER.slice()}
+          categories={sortedCategories.length > 0 ? sortedCategories : CATEGORY_ORDER.slice()}
           restaurantSlug={restaurantSlug}
           onSave={handleSaveItem}
           onCancel={() => { setEditingItem(null); setAddingNew(false); }}
           saving={saving}
         />
       )}
+
+      <OnboardingTour tourKey={tourKey} />
     </main>
   );
 }
@@ -513,9 +524,10 @@ type ThemeModalProps = {
   saving: boolean;
   sheetMode?: boolean;
   onClose?: () => void;
+  tourTarget?: string;
 };
 
-function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose }: ThemeModalProps) {
+function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget }: ThemeModalProps) {
   const [open, setOpen]           = useState(false);
   const [card, setCard]           = useState(D_CARD);
   const [accent, setAccent]       = useState(D_ACCENT);
@@ -573,7 +585,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose }: ThemeMod
       Theme & branding
     </button>
   ) : (
-    <button type="button" onClick={() => setOpen(true)}
+    <button data-tour={tourTarget} type="button" onClick={() => setOpen(true)}
       className="min-h-[40px] px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-medium border border-white/25 flex items-center gap-2 transition-colors">
       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -587,8 +599,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose }: ThemeMod
     <>
       {trigger}
       {open && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setOpen(false); }}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
             <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 rounded-t-2xl flex items-center justify-between">
               <div>
@@ -746,10 +757,8 @@ function ItemForm({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
-      onClick={(e) => e.target === e.currentTarget && onCancel()}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 rounded-t-2xl flex items-center justify-between">
           <h3 className="font-serif text-lg font-semibold text-gray-900">{item ? "Edit item" : "Add item"}</h3>
           <button type="button" onClick={onCancel} className="text-gray-400 hover:text-gray-600 p-1">
@@ -779,10 +788,17 @@ function ItemForm({
               </div>
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1.5">Category</label>
-                <select value={category} onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]">
-                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <input
+                  type="text"
+                  list="category-suggestions"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="e.g. Mains"
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
+                />
+                <datalist id="category-suggestions">
+                  {categories.map((c) => <option key={c} value={c} />)}
+                </datalist>
               </div>
             </div>
             <div>

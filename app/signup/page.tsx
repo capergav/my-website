@@ -61,10 +61,31 @@ export default function SignupPage() {
   const confirmError = confirmPassword && password !== confirmPassword ? "Passwords do not match." : null;
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#faf8f5] px-4 py-8">
-      <div className="w-full max-w-sm bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
-        <h1 className="text-2xl font-serif font-semibold text-gray-900 mb-1">Create your menu</h1>
-        <p className="text-sm text-gray-500 mb-6">Set up your restaurant account</p>
+    <main className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden">
+      {/* Blurred restaurant background */}
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{
+          backgroundImage:
+            "url(https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80)",
+          filter: "blur(6px)",
+          transform: "scale(1.05)",
+        }}
+      />
+      <div className="absolute inset-0 bg-black/30" />
+
+      {/* Frosted glass card */}
+      <div className="relative z-10 w-full max-w-sm bg-white/90 backdrop-blur-sm rounded-2xl border border-white/60 shadow-xl p-8">
+        {/* Gold book icon */}
+        <div className="flex justify-center mb-5">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#8b6914" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          </svg>
+        </div>
+
+        <h1 className="text-2xl font-serif font-semibold text-gray-900 mb-1 text-center">Create your menu</h1>
+        <p className="text-sm text-gray-500 mb-6 text-center">Set up your restaurant account</p>
 
         <form onSubmit={handleSignup} className="space-y-4">
           <div>
@@ -112,7 +133,6 @@ export default function SignupPage() {
                 <EyeIcon open={showPassword} />
               </button>
             </div>
-            {/* Live password rules */}
             <div className="mt-1.5 space-y-1">
               <Rule met={password.length >= 8} text="At least 8 characters" />
               <Rule met={/[A-Z]/.test(password)} text="At least one uppercase letter" />

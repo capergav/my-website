@@ -4,6 +4,10 @@ import { useState, useMemo } from "react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import { DietaryIcons, DietaryLegend } from "./DietaryIcons";
 import { TranslatedText } from "./TranslatedText";
+import {
+  Sandwich, UtensilsCrossed, Coffee, IceCream, Fish, Wine, Beer,
+  Leaf, Utensils, Sparkles, Egg, Soup,
+} from "lucide-react";
 
 export type MenuItem = {
   id: string;
@@ -39,33 +43,47 @@ export type MenuTabsProps = {
   categoryNotes?: Record<string, string>;
 };
 
-// Emoji fallbacks for categories that have no image
-const CATEGORY_EMOJI: Record<string, string> = {
-  Breakfast:   "🍳",
-  Appetizers:  "🥗",
-  Starters:    "🥗",
-  Salads:      "🥙",
-  Soups:       "🍲",
-  Sandwiches:  "🥪",
-  Burgers:     "🍔",
-  Pizza:       "🍕",
-  Pasta:       "🍝",
-  Pastas:      "🍝",
-  Mains:       "🍽️",
-  Seafood:     "🦞",
-  Steaks:      "🥩",
-  Sides:       "🍟",
-  Desserts:    "🍰",
-  Drinks:      "🥤",
-  Cocktails:   "🍸",
-  Wine:        "🍷",
-  Beer:        "🍺",
-  Coffee:      "☕",
-  Other:       "✨",
+// Lucide icon map for category thumbnails
+type LucideIcon = React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
+
+const CATEGORY_ICON: Record<string, LucideIcon> = {
+  Breakfast:   Egg,
+  Appetizers:  Utensils,
+  Starters:    Utensils,
+  Salads:      Leaf,
+  Soups:       Soup,
+  Sandwiches:  Sandwich,
+  Burgers:     Sandwich,
+  Pizza:       UtensilsCrossed,
+  Pasta:       UtensilsCrossed,
+  Pastas:      UtensilsCrossed,
+  Mains:       UtensilsCrossed,
+  Seafood:     Fish,
+  Steaks:      Utensils,
+  Sides:       Utensils,
+  Desserts:    IceCream,
+  Drinks:      Coffee,
+  Cocktails:   Wine,
+  Wine:        Wine,
+  Beer:        Beer,
+  Coffee:      Coffee,
+  Other:       Sparkles,
 };
 
-function categoryEmoji(name: string): string {
-  return CATEGORY_EMOJI[name] ?? name.slice(0, 1).toUpperCase();
+function CategoryIcon({ name, isActive }: { name: string; isActive: boolean }) {
+  const Icon = CATEGORY_ICON[name] ?? UtensilsCrossed;
+  return (
+    <div
+      className="w-full h-full flex items-center justify-center transition-colors"
+      style={{ background: isActive ? "var(--accent)" : "var(--card-border)" }}
+    >
+      <Icon
+        size={22}
+        strokeWidth={1.5}
+        className={isActive ? "text-white" : "text-[var(--muted)]"}
+      />
+    </div>
+  );
 }
 
 export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: MenuTabsProps) {
@@ -132,7 +150,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
             </div>
             <DietaryIcons item={selectedItem} />
             {selectedItem.description && (
-              <p className="text-[var(--muted)] mt-4 text-base sm:text-lg leading-relaxed text-wrap-force">
+              <p className="text-[var(--muted)] mt-4 text-base sm:text-lg leading-relaxed text-wrap-force whitespace-pre-line">
                 <TranslatedText text={selectedItem.description} as="span" />
               </p>
             )}
@@ -148,7 +166,6 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
       {/* Category tab strip */}
       <div className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
         <div className="max-w-4xl mx-auto px-3 sm:px-6">
-          {/* px-1 prevents the active ring from being clipped on the left edge */}
           <div className="tabs-scroll flex gap-3 overflow-x-auto py-4 scrollbar-none px-1">
             {sortedCategories.map((category) => {
               const firstImg = (grouped[category] ?? [])[0]?.image_url ?? null;
@@ -169,15 +186,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                     {firstImg ? (
                       <img src={firstImg} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      /* Intentional emoji placeholder — looks designed, not broken */
-                      <div
-                        className="w-full h-full flex items-center justify-center text-xl sm:text-2xl transition-colors"
-                        style={{
-                          background: isActive ? "var(--accent)" : "var(--card-border)",
-                        }}
-                      >
-                        {categoryEmoji(category)}
-                      </div>
+                      <CategoryIcon name={category} isActive={isActive} />
                     )}
                   </div>
                   {/* Label */}
@@ -198,7 +207,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
       {/* Category content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-[env(safe-area-inset-bottom)]">
         {/* Header + filter */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
           <div className="min-w-0">
             <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-[var(--foreground)]">
               {getCategoryLabel(activeCategory)}
@@ -223,8 +232,11 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
           </div>
         </div>
 
+        {/* Dietary legend — at the top of the item list */}
+        <DietaryLegend items={rawItems} />
+
         {/* Items */}
-        <div className="space-y-4 sm:space-y-5">
+        <div className="space-y-3 sm:space-y-4 mt-4">
           {items.length === 0 && (
             <p className="text-center text-[var(--muted)] py-12 text-sm">
               No items match this filter.
@@ -242,11 +254,11 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                   setSelectedItem(item);
                 }
               }}
-              className="bg-[var(--card)] rounded-2xl overflow-hidden border border-[var(--card-border)] shadow-sm hover:shadow-md hover:border-[var(--accent)]/20 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 touch-manipulation"
+              className="bg-[var(--card)] rounded-2xl overflow-hidden border border-[var(--card-border)] shadow-sm hover:shadow-md hover:border-[var(--accent)]/20 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 touch-manipulation flex flex-row"
             >
-              {/* Only render image section when there is one */}
+              {/* Image on the left — only when present */}
               {item.image_url && (
-                <div className="aspect-[3/2] overflow-hidden bg-[var(--card-border)]">
+                <div className="w-28 sm:w-36 flex-shrink-0 overflow-hidden bg-[var(--card-border)]">
                   <img
                     src={item.image_url}
                     alt={item.name}
@@ -254,7 +266,9 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                   />
                 </div>
               )}
-              <div className="p-4 sm:p-5 min-w-0">
+
+              {/* Content */}
+              <div className="p-4 sm:p-5 min-w-0 flex-1 flex flex-col justify-center">
                 <div className="flex justify-between items-baseline gap-3">
                   <h3 className="font-serif text-lg sm:text-xl font-semibold text-[var(--foreground)] min-w-0 text-wrap-balance">
                     <TranslatedText text={item.name} />
@@ -265,7 +279,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                 </div>
                 <DietaryIcons item={item} />
                 {item.description && (
-                  <p className="text-[var(--muted)] mt-2 text-sm sm:text-base leading-relaxed line-clamp-2 text-wrap-force">
+                  <p className="text-[var(--muted)] mt-2 text-sm sm:text-base leading-relaxed line-clamp-2 text-wrap-force whitespace-pre-line">
                     <TranslatedText text={item.description} as="span" />
                   </p>
                 )}
@@ -276,9 +290,6 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
             </article>
           ))}
         </div>
-
-        {/* Dietary legend */}
-        <DietaryLegend items={rawItems} />
       </div>
     </>
   );

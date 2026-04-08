@@ -10,6 +10,46 @@ type Props = {
   aspectRatio?: "video" | "square";
 };
 
+const MAX_PX = 1920;
+const WEBP_QUALITY = 0.82;
+
+/** Resize to MAX_PX on the longest side and convert to WebP via canvas. */
+async function toWebP(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+      if (width > MAX_PX || height > MAX_PX) {
+        if (width >= height) {
+          height = Math.round((height / width) * MAX_PX);
+          width = MAX_PX;
+        } else {
+          width = Math.round((width / height) * MAX_PX);
+          height = MAX_PX;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) { reject(new Error("Canvas not available")); return; }
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (blob) resolve(blob);
+          else reject(new Error("Conversion failed"));
+        },
+        "image/webp",
+        WEBP_QUALITY,
+      );
+    };
+    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error("Image load failed")); };
+    img.src = objectUrl;
+  });
+}
+
 export function ImageUploader({
   currentUrl,
   onUploaded,
@@ -25,23 +65,31 @@ export function ImageUploader({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image must be under 5 MB.");
+    if (file.size > 20 * 1024 * 1024) {
+      setError("Image must be under 20 MB.");
       return;
     }
 
     setUploading(true);
     setError(null);
 
+    let blob: Blob;
+    try {
+      blob = await toWebP(file);
+    } catch {
+      setError("Could not process image. Please try a JPEG or PNG.");
+      setUploading(false);
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setError("Not logged in."); setUploading(false); return; }
 
-    const ext = file.name.split(".").pop() ?? "jpg";
-    const path = `${user.id}/${folder}/${Date.now()}.${ext}`;
+    const path = `${user.id}/${folder}/${Date.now()}.webp`;
 
     const { error: uploadError } = await supabase.storage
       .from("menu-images")
-      .upload(path, file, { upsert: true });
+      .upload(path, blob, { upsert: true, contentType: "image/webp" });
 
     if (uploadError) {
       setError(uploadError.message);
@@ -96,7 +144,7 @@ export function ImageUploader({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
             </svg>
-            Uploading…
+            Processing & uploading…
           </>
         ) : (
           <>
@@ -109,7 +157,7 @@ export function ImageUploader({
       </button>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
-      <p className="text-xs text-gray-400 text-center">JPEG, PNG or WebP · Max 5 MB</p>
+      <p className="text-xs text-gray-400 text-center">JPEG, PNG or WebP · Auto-converted to WebP</p>
     </div>
   );
 }
