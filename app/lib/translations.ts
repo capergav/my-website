@@ -1,4 +1,4 @@
-export type Locale = "en" | "fr" | "zh" | "ar" | "es";
+export type Locale = "en" | "fr" | "zh" | "ar" | "es" | "ko";
 
 export const locales: { value: Locale; label: string }[] = [
   { value: "en", label: "English" },
@@ -6,6 +6,7 @@ export const locales: { value: Locale; label: string }[] = [
   { value: "zh", label: "中文" },
   { value: "ar", label: "العربية" },
   { value: "es", label: "Español" },
+  { value: "ko", label: "한국어" },
 ];
 
 const categoryKeys = [
@@ -26,18 +27,18 @@ const categoryKeys = [
 type CategoryKey = (typeof categoryKeys)[number];
 
 const categoryTranslations: Record<CategoryKey, Record<Locale, string>> = {
-  Breakfast: { en: "Breakfast", fr: "Petit-déjeuner", zh: "早餐", ar: "الإفطار", es: "Desayuno" },
-  Appetizers: { en: "Appetizers", fr: "Entrées", zh: "开胃菜", ar: "المقبلات", es: "Entrantes" },
-  Salads: { en: "Salads", fr: "Salades", zh: "沙拉", ar: "السلطات", es: "Ensaladas" },
-  Soups: { en: "Soups", fr: "Soupes", zh: "汤", ar: "الشوربات", es: "Sopas" },
-  Sandwiches: { en: "Sandwiches", fr: "Sandwichs", zh: "三明治", ar: "السندويشات", es: "Bocadillos" },
-  Burgers: { en: "Burgers", fr: "Burgers", zh: "汉堡", ar: "البرغر", es: "Hamburguesas" },
-  Pastas: { en: "Pastas", fr: "Pâtes", zh: "意面", ar: "المعكرونة", es: "Pastas" },
-  Mains: { en: "Mains", fr: "Plats principaux", zh: "主菜", ar: "الأطباق الرئيسية", es: "Platos principales" },
-  Sides: { en: "Sides", fr: "Accompagnements", zh: "配菜", ar: "الأطباق الجانبية", es: "Guarniciones" },
-  Desserts: { en: "Desserts", fr: "Desserts", zh: "甜点", ar: "الحلويات", es: "Postres" },
-  Drinks: { en: "Drinks", fr: "Boissons", zh: "饮品", ar: "المشروبات", es: "Bebidas" },
-  Other: { en: "Other", fr: "Autre", zh: "其他", ar: "أخرى", es: "Otros" },
+  Breakfast:  { en: "Breakfast",  fr: "Petit-déjeuner",    zh: "早餐",   ar: "الإفطار",             es: "Desayuno",          ko: "아침식사" },
+  Appetizers: { en: "Appetizers", fr: "Entrées",           zh: "开胃菜", ar: "المقبلات",             es: "Entrantes",         ko: "에피타이저" },
+  Salads:     { en: "Salads",     fr: "Salades",           zh: "沙拉",   ar: "السلطات",              es: "Ensaladas",         ko: "샐러드" },
+  Soups:      { en: "Soups",      fr: "Soupes",            zh: "汤",     ar: "الشوربات",             es: "Sopas",             ko: "수프" },
+  Sandwiches: { en: "Sandwiches", fr: "Sandwichs",         zh: "三明治", ar: "السندويشات",           es: "Bocadillos",        ko: "샌드위치" },
+  Burgers:    { en: "Burgers",    fr: "Burgers",           zh: "汉堡",   ar: "البرغر",               es: "Hamburguesas",      ko: "버거" },
+  Pastas:     { en: "Pastas",     fr: "Pâtes",             zh: "意面",   ar: "المعكرونة",            es: "Pastas",            ko: "파스타" },
+  Mains:      { en: "Mains",      fr: "Plats principaux",  zh: "主菜",   ar: "الأطباق الرئيسية",     es: "Platos principales", ko: "메인 요리" },
+  Sides:      { en: "Sides",      fr: "Accompagnements",   zh: "配菜",   ar: "الأطباق الجانبية",     es: "Guarniciones",      ko: "사이드" },
+  Desserts:   { en: "Desserts",   fr: "Desserts",          zh: "甜点",   ar: "الحلويات",             es: "Postres",           ko: "디저트" },
+  Drinks:     { en: "Drinks",     fr: "Boissons",          zh: "饮品",   ar: "المشروبات",            es: "Bebidas",           ko: "음료" },
+  Other:      { en: "Other",      fr: "Autre",             zh: "其他",   ar: "أخرى",                es: "Otros",             ko: "기타" },
 };
 
 export function getCategoryLabel(category: string, locale: Locale): string {
@@ -46,6 +47,21 @@ export function getCategoryLabel(category: string, locale: Locale): string {
 }
 
 export const translations: Record<Locale, Record<string, string>> = {
+  ko: {
+    "hero.title": "레스토랑 메뉴",
+    "ui.backToMenu": "메뉴로 돌아가기",
+    "ui.tapToReadMore": "탭하여 더 보기",
+    "ui.noMenuItems": "메뉴 항목이 없습니다.",
+    "ui.noImage": "이미지 없음",
+    "filter.all": "전체",
+    "filter.nutFree": "견과류 없음",
+    "filter.vegetarian": "채식",
+    "filter.vegan": "비건",
+    "filter.glutenFree": "글루텐 프리",
+    "filter.dairyFree": "유제품 없음",
+    "filter.chefsFavorite": "셰프 추천",
+    "filter.spicy": "매운맛",
+  },
   en: {
     "hero.title": "Restaurant Menu",
     "ui.backToMenu": "Back to menu",

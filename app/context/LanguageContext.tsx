@@ -27,7 +27,7 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 function getStoredLocale(): Locale {
   if (typeof window === "undefined") return "en";
   const stored = localStorage.getItem(STORAGE_KEY);
-  const valid: Locale[] = ["en", "fr", "zh", "ar", "es"];
+  const valid: Locale[] = ["en", "fr", "zh", "ar", "es", "ko"];
   return valid.includes(stored as Locale) ? (stored as Locale) : "en";
 }
 
@@ -44,7 +44,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     if (!mounted) return;
     localStorage.setItem(STORAGE_KEY, locale);
     const html = document.documentElement;
-    html.setAttribute("lang", locale === "zh" ? "zh-Hans" : locale);
+    html.setAttribute("lang", locale === "zh" ? "zh-Hans" : locale === "ko" ? "ko" : locale);
     html.setAttribute("dir", locale === "ar" ? "rtl" : "ltr");
   }, [locale, mounted]);
 

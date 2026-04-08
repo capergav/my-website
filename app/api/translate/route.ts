@@ -26,6 +26,7 @@ const MYMEMORY_LANG: Record<Locale, string> = {
   zh: "zh-CN",
   ar: "ar",
   es: "es",
+  ko: "ko",
 };
 
 export async function POST(request: NextRequest) {
