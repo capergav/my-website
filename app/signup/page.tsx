@@ -27,6 +27,17 @@ function validatePassword(pw: string): string | null {
   return null;
 }
 
+function Rule({ met, text }: { met: boolean; text: string }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-xs flex-shrink-0 ${met ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"}`}>
+        {met ? "✓" : "·"}
+      </span>
+      <span className={`text-xs ${met ? "text-green-600" : "text-gray-400"}`}>{text}</span>
+    </div>
+  );
+}
+
 export default function SignupPage() {
   const router = useRouter();
   const [restaurantName, setRestaurantName] = useState("");
@@ -42,11 +53,9 @@ export default function SignupPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
     const pwError = validatePassword(password);
     if (pwError) { setError(pwError); return; }
     if (password !== confirmPassword) { setError("Passwords do not match."); return; }
-
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
@@ -62,135 +71,129 @@ export default function SignupPage() {
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden">
-      {/* Blurred restaurant background */}
+      {/* Blurred background image */}
       <div
-        className="absolute inset-0 bg-cover bg-center"
+        className="absolute inset-0 bg-cover bg-center scale-105"
         style={{
           backgroundImage:
             "url(https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1920&q=80)",
-          filter: "blur(6px)",
-          transform: "scale(1.05)",
+          filter: "blur(8px)",
         }}
       />
-      <div className="absolute inset-0 bg-black/30" />
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-black/40" />
 
-      {/* Frosted glass card */}
-      <div className="relative z-10 w-full max-w-sm bg-white/90 backdrop-blur-sm rounded-2xl border border-white/60 shadow-xl p-8">
-        {/* Gold book icon */}
-        <div className="flex justify-center mb-5">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#8b6914" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      {/* Logo mark + card wrapper */}
+      <div className="relative z-10 flex flex-col items-center w-full max-w-sm">
+        {/* Gold rounded icon above card */}
+        <div className="w-14 h-14 rounded-2xl bg-[#8b6914] flex items-center justify-center shadow-lg mb-3">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
           </svg>
         </div>
+        {/* MenuSnap label */}
+        <p className="text-white text-xs font-semibold uppercase tracking-widest mb-5">MenuSnap</p>
 
-        <h1 className="text-2xl font-serif font-semibold text-gray-900 mb-1 text-center">Create your menu</h1>
-        <p className="text-sm text-gray-500 mb-6 text-center">Set up your restaurant account</p>
+        {/* Frosted glass card */}
+        <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl border border-white/60 shadow-2xl p-8">
+          <h1 className="text-2xl font-serif font-semibold text-gray-900 mb-1 text-center">Create your menu</h1>
+          <p className="text-sm text-gray-500 mb-6 text-center">Set up your restaurant account</p>
 
-        <form onSubmit={handleSignup} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Restaurant name</label>
-            <input
-              type="text"
-              required
-              value={restaurantName}
-              onChange={(e) => setRestaurantName(e.target.value)}
-              placeholder="e.g. Joe's Pizza"
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <div className="relative">
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Restaurant name</label>
               <input
-                type={showPassword ? "text" : "password"}
+                type="text"
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className={`w-full px-3 py-2 pr-10 rounded-lg border bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b6914] ${
-                  passwordError ? "border-red-300" : "border-gray-200"
-                }`}
+                value={restaurantName}
+                onChange={(e) => setRestaurantName(e.target.value)}
+                placeholder="e.g. Joe's Pizza"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((s) => !s)}
-                className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-600"
-                tabIndex={-1}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                <EyeIcon open={showPassword} />
-              </button>
             </div>
-            <div className="mt-1.5 space-y-1">
-              <Rule met={password.length >= 8} text="At least 8 characters" />
-              <Rule met={/[A-Z]/.test(password)} text="At least one uppercase letter" />
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
-            <div className="relative">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
-                type={showConfirm ? "text" : "password"}
+                type="email"
                 required
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className={`w-full px-3 py-2 pr-10 rounded-lg border bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b6914] ${
-                  confirmError ? "border-red-300" : "border-gray-200"
-                }`}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirm((s) => !s)}
-                className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-600"
-                tabIndex={-1}
-                aria-label={showConfirm ? "Hide password" : "Show password"}
-              >
-                <EyeIcon open={showConfirm} />
-              </button>
             </div>
-            {confirmError && <p className="text-xs text-red-600 mt-1">{confirmError}</p>}
-          </div>
 
-          {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={`w-full px-3 py-2 pr-10 rounded-lg border bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b6914] ${
+                    passwordError ? "border-red-300" : "border-gray-200"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-600"
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  <EyeIcon open={showPassword} />
+                </button>
+              </div>
+              <div className="mt-1.5 space-y-1">
+                <Rule met={password.length >= 8} text="At least 8 characters" />
+                <Rule met={/[A-Z]/.test(password)} text="At least one uppercase letter" />
+              </div>
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-[#8b6914] text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
-          >
-            {loading ? "Creating account…" : "Create account"}
-          </button>
-        </form>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm password</label>
+              <div className="relative">
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className={`w-full px-3 py-2 pr-10 rounded-lg border bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b6914] ${
+                    confirmError ? "border-red-300" : "border-gray-200"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((s) => !s)}
+                  className="absolute inset-y-0 right-0 px-3 flex items-center text-gray-400 hover:text-gray-600"
+                  tabIndex={-1}
+                  aria-label={showConfirm ? "Hide password" : "Show password"}
+                >
+                  <EyeIcon open={showConfirm} />
+                </button>
+              </div>
+              {confirmError && <p className="text-xs text-red-600 mt-1">{confirmError}</p>}
+            </div>
 
-        <p className="text-sm text-center text-gray-500 mt-6">
-          Already have an account?{" "}
-          <Link href="/login" className="text-[#8b6914] font-medium hover:underline">Sign in</Link>
-        </p>
+            {error && <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 rounded-lg bg-[#8b6914] text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+            >
+              {loading ? "Creating account…" : "Create account"}
+            </button>
+          </form>
+
+          <p className="text-sm text-center text-gray-500 mt-6">
+            Already have an account?{" "}
+            <Link href="/login" className="text-[#8b6914] font-medium hover:underline">Sign in</Link>
+          </p>
+        </div>
       </div>
     </main>
-  );
-}
-
-function Rule({ met, text }: { met: boolean; text: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className={`inline-flex items-center justify-center w-4 h-4 rounded-full text-xs flex-shrink-0 ${met ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-400"}`}>
-        {met ? "✓" : "·"}
-      </span>
-      <span className={`text-xs ${met ? "text-green-600" : "text-gray-400"}`}>{text}</span>
-    </div>
   );
 }
