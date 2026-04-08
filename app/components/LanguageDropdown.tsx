@@ -26,32 +26,30 @@ export function LanguageDropdown() {
     return () => document.removeEventListener("mousedown", handle);
   }, [open]);
 
-  // Position popup using fixed coords so sticky headers never clip it.
-  // For RTL (Arabic), anchor to left edge of button; otherwise anchor to right.
+  // Position popup with fixed coords so sticky headers never clip it
   const calculatePosition = useCallback(() => {
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
     const W = window.innerWidth;
     const isRtl = document.documentElement.dir === "rtl";
-    const popupWidth = Math.max(rect.width, 160);
+    const minWidth = Math.max(rect.width, 160);
+
     if (isRtl) {
-      // Anchor to left edge; clamp so it doesn't overflow right
-      const leftPos = Math.min(rect.left, W - popupWidth - 8);
+      // Anchor to the left edge of the button, clamp so it doesn't overflow the right side
       setPopupStyle({
         position: "fixed",
         top:      rect.bottom + 8,
-        left:     Math.max(8, leftPos),
-        minWidth: popupWidth,
+        left:     Math.min(rect.left, W - minWidth - 8),
+        minWidth,
         zIndex:   9999,
       });
     } else {
-      // Anchor to right edge; clamp so it doesn't overflow left
-      const rightPos = W - rect.right;
+      // Anchor to the right edge of the button, clamp so it doesn't overflow the left side
       setPopupStyle({
         position: "fixed",
         top:      rect.bottom + 8,
-        right:    Math.max(8, rightPos),
-        minWidth: popupWidth,
+        right:    Math.max(8, W - rect.right),
+        minWidth,
         zIndex:   9999,
       });
     }
@@ -72,9 +70,9 @@ export function LanguageDropdown() {
         onClick={handleToggle}
         className="flex items-center gap-1.5 min-h-[40px] px-3 py-1.5 rounded-xl font-medium text-sm touch-manipulation border shadow-sm transition-opacity hover:opacity-80"
         style={{
-          background:   "var(--foreground)",
-          color:        "var(--background)",
-          borderColor:  "var(--accent)",
+          background:  "var(--foreground)",
+          color:       "var(--background)",
+          borderColor: "var(--accent)",
         }}
         aria-expanded={open}
         aria-haspopup="listbox"
@@ -85,8 +83,7 @@ export function LanguageDropdown() {
           className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
           fill="none" stroke="currentColor" viewBox="0 0 24 24"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-            d="M19 9l-7 7-7-7" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
