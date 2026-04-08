@@ -223,7 +223,7 @@ export function AdminMenuEditor({
         <div className="hidden sm:flex absolute top-4 end-4 items-center gap-2 z-20">
           <button
             type="button"
-            onClick={() => setTourKey((k) => k + 1)}
+            onClick={() => { localStorage.removeItem("menusnap_tour_v2_done"); setTourKey((k) => k + 1); }}
             title="Reopen tour"
             className="min-h-[40px] w-10 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-bold border border-white/20 flex items-center justify-center transition-colors"
           >

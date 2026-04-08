@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-const TOUR_KEY = "menusnap_tour_v1_done";
+const TOUR_KEY = "menusnap_tour_v2_done";
 
 type Step = {
   id: string;
