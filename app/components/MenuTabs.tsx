@@ -6,7 +6,7 @@ import { DietaryIcons, DietaryLegend } from "./DietaryIcons";
 import { TranslatedText } from "./TranslatedText";
 import {
   Sandwich, UtensilsCrossed, Coffee, IceCream, Fish, Wine, Beer,
-  Leaf, Utensils, Sparkles, Egg, Soup,
+  Soup, Pizza, Beef, Croissant, GlassWater, Flame, Salad,
 } from "lucide-react";
 
 export type MenuItem = {
@@ -47,41 +47,51 @@ export type MenuTabsProps = {
 type LucideIcon = React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
 
 const CATEGORY_ICON: Record<string, LucideIcon> = {
-  Breakfast:   Egg,
-  Appetizers:  Utensils,
-  Starters:    Utensils,
-  Salads:      Leaf,
+  Breakfast:   Croissant,
+  Brunch:      Croissant,
+  Appetizers:  Salad,
+  Starters:    Salad,
+  Salads:      Salad,
   Soups:       Soup,
   Sandwiches:  Sandwich,
   Burgers:     Sandwich,
-  Pizza:       UtensilsCrossed,
+  Pizza:       Pizza,
   Pasta:       UtensilsCrossed,
   Pastas:      UtensilsCrossed,
   Mains:       UtensilsCrossed,
   Seafood:     Fish,
-  Steaks:      Utensils,
-  Sides:       Utensils,
+  Fish:        Fish,
+  Steaks:      Beef,
+  Meat:        Beef,
+  Sides:       UtensilsCrossed,
   Desserts:    IceCream,
   Drinks:      Coffee,
-  Cocktails:   Wine,
+  Beverages:   Coffee,
+  Coffee:      Coffee,
+  Cocktails:   GlassWater,
   Wine:        Wine,
   Beer:        Beer,
-  Coffee:      Coffee,
-  Other:       Sparkles,
+  Spicy:       Flame,
 };
 
 function CategoryIcon({ name, isActive }: { name: string; isActive: boolean }) {
-  const Icon = CATEGORY_ICON[name] ?? UtensilsCrossed;
+  const Icon = CATEGORY_ICON[name];
   return (
     <div
       className="w-full h-full flex items-center justify-center transition-colors"
       style={{ background: isActive ? "var(--accent)" : "var(--card-border)" }}
     >
-      <Icon
-        size={22}
-        strokeWidth={1.5}
-        className={isActive ? "text-white" : "text-[var(--muted)]"}
-      />
+      {Icon ? (
+        <Icon
+          size={22}
+          strokeWidth={1.5}
+          className={isActive ? "text-white" : "text-[var(--muted)]"}
+        />
+      ) : (
+        <span className={`text-sm font-bold ${isActive ? "text-white" : "text-[var(--muted)]"}`}>
+          {name.slice(0, 1).toUpperCase()}
+        </span>
+      )}
     </div>
   );
 }
