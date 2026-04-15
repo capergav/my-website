@@ -62,6 +62,12 @@ export function AdminMenuEditor({
   const router = useRouter();
   const supabase = createSupabaseClient();
 
+  const deleteStorageImage = async (url: string) => {
+    if (!url || !url.includes('supabase.co/storage')) return;
+    const path = url.split('/menu-images/')[1];
+    if (path) await supabase.storage.from('menu-images').remove([path]);
+  };
+
   const [grouped, setGrouped]                   = useState<Grouped>(initialGrouped);
   const [sortedCategories, setSortedCategories] = useState(initialSortedCategories);
   const [activeCategory, setActiveCategory]     = useState(initialSortedCategories[0] ?? "");
@@ -89,7 +95,7 @@ export function AdminMenuEditor({
       el.id = "menusnap-theme";
       document.head.appendChild(el);
     }
-    el.textContent = `:root{--foreground:${fc};--accent:${acc};--background:${bg};--card:${cd};}body{color:var(--foreground);font-family:${ff};}`;
+    el.textContent = `:root{--foreground:${fc};--accent:${acc};--background:${bg};--card:${cd};--card-border:${fc}22;--muted:${fc}99;}body{font-family:${ff};}`;
   }, [restaurant]);
 
   const showMsg = useCallback((type: "ok" | "err", text: string) => {
@@ -127,6 +133,9 @@ export function AdminMenuEditor({
   const handleSaveItem = async (payload: Partial<MenuItemRow>) => {
     setSaving(true);
     if (editingItem?.id) {
+      if (editingItem.image_url && editingItem.image_url !== payload.image_url) {
+        await deleteStorageImage(editingItem.image_url);
+      }
       const { error } = await supabase.from("menu_items").update(payload).eq("id", editingItem.id);
       if (error) showMsg("err", error.message);
       else { showMsg("ok", "Item updated."); setEditingItem(null); await refreshMenu(); }
@@ -141,8 +150,9 @@ export function AdminMenuEditor({
     setSaving(false);
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (id: string, imageUrl?: string | null) => {
     if (!confirm("Delete this item? This cannot be undone.")) return;
+    if (imageUrl) await deleteStorageImage(imageUrl);
     setSaving(true);
     const { error } = await supabase.from("menu_items").delete().eq("id", id);
     if (error) showMsg("err", error.message);
@@ -152,9 +162,19 @@ export function AdminMenuEditor({
 
   const handleSaveTheme = async (updates: Partial<Restaurant>) => {
     setSaving(true);
+    const restaurantAny = restaurant as any;
+    const updatesAny = updates as any;
+    if (restaurantAny?.hero_image_url && 'hero_image_url' in updates &&
+        restaurantAny.hero_image_url !== updatesAny.hero_image_url) {
+      await deleteStorageImage(restaurantAny.hero_image_url);
+    }
+    if (restaurantAny?.logo_url && 'logo_url' in updatesAny &&
+        restaurantAny.logo_url !== updatesAny.logo_url) {
+      await deleteStorageImage(restaurantAny.logo_url);
+    }
     const { error } = await supabase.from("restaurants").update(updates).eq("id", restaurantId);
-    if (error) showMsg("err", error.message);
-    else { setRestaurant((p) => p ? { ...p, ...updates } : null); showMsg("ok", "Theme saved."); }
+    if (error) { showMsg("err", error.message); }
+    else { setRestaurant(p => p ? { ...p, ...updates } : null); showMsg("ok", "Theme saved — changes applied instantly."); }
     setSaving(false);
   };
 
@@ -200,10 +220,10 @@ export function AdminMenuEditor({
           <img
             src={restaurant.hero_image_url}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover z-0"
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20 z-[1]" />
 
         {/* Mobile: single hamburger button */}
         <div className="sm:hidden absolute top-3 end-3 z-20">
@@ -448,7 +468,7 @@ export function AdminMenuEditor({
                           Edit
                         </button>
                         <button type="button"
-                          onClick={() => handleDelete(item.id)}
+                          onClick={() => handleDelete(item.id, item.image_url)}
                           disabled={saving}
                           className="px-3 py-1 rounded-lg bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100 disabled:opacity-50 transition-colors">
                           Delete
@@ -471,6 +491,7 @@ export function AdminMenuEditor({
           onSave={handleSaveItem}
           onCancel={() => { setEditingItem(null); setAddingNew(false); }}
           saving={saving}
+          existingImageUrl={editingItem?.image_url ?? undefined}
         />
       )}
 
@@ -715,10 +736,11 @@ function SheetThemeButton(props: Omit<ThemeModalProps, "sheetMode">) {
 }
 
 function ItemForm({
-  item, categories, restaurantSlug, onSave, onCancel, saving,
+  item, categories, restaurantSlug, onSave, onCancel, saving, existingImageUrl,
 }: {
   item?: MenuItemRow; categories: readonly string[]; restaurantSlug: string;
   onSave: (p: Partial<MenuItemRow>) => void; onCancel: () => void; saving: boolean;
+  existingImageUrl?: string;
 }) {
   const [name, setName]           = useState(item?.name ?? "");
   const [desc, setDesc]           = useState(item?.description ?? "");
@@ -808,6 +830,7 @@ function ItemForm({
                 onUploaded={(url) => setImgUrl(url)}
                 folder={`items/${restaurantSlug}`}
                 aspectRatio="video"
+                existingImageUrl={existingImageUrl}
               />
               <label className="block text-xs font-medium text-[var(--muted)] mt-3 mb-1">Or paste image URL</label>
               <input type="url" value={imgUrl} onChange={(e) => setImgUrl(e.target.value)}

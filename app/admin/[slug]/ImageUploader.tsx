@@ -8,10 +8,11 @@ type Props = {
   onUploaded: (url: string) => void;
   folder?: string;
   aspectRatio?: "video" | "square";
+  existingImageUrl?: string;
 };
 
 const MAX_PX = 1920;
-const WEBP_QUALITY = 0.82;
+const WEBP_QUALITY = 0.88;
 
 /** Resize to MAX_PX on the longest side and convert to WebP via canvas. */
 async function toWebP(file: File): Promise<Blob> {
@@ -55,6 +56,7 @@ export function ImageUploader({
   onUploaded,
   folder = "general",
   aspectRatio = "video",
+  existingImageUrl,
 }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +100,10 @@ export function ImageUploader({
     }
 
     const { data } = supabase.storage.from("menu-images").getPublicUrl(path);
+    if (existingImageUrl && existingImageUrl.includes('supabase.co/storage')) {
+      const existingPath = existingImageUrl.split('/menu-images/')[1];
+      if (existingPath) await supabase.storage.from('menu-images').remove([existingPath]);
+    }
     onUploaded(data.publicUrl);
     setUploading(false);
     if (inputRef.current) inputRef.current.value = "";
