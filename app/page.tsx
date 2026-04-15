@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-const HERO_IMAGE_URL = "https://zqhyeyrbqygisephzvoo.supabase.co/storage/v1/object/public/menu-images/281d9812-cb7c-491a-ac8b-9c3c839cce75/hero/1775521666902.png";
-const FRIES_IMAGE_URL = "https://zqhyeyrbqygisephzvoo.supabase.co/storage/v1/object/public/menu-images/281d9812-cb7c-491a-ac8b-9c3c839cce75/items/glenngallant/1775522800088.jpg";
-const BURGER_IMAGE_URL = "https://zqhyeyrbqygisephzvoo.supabase.co/storage/v1/object/public/menu-images/281d9812-cb7c-491a-ac8b-9c3c839cce75/items/glenngallant/1775522515024.jpg";
-const LIVE_DEMO_URL = "https://menusnap-lac.vercel.app/menu/glenngallant";
+const CT_HERO_URL    = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80";
+const CT_STEAK_URL   = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80";
+const CT_SALMON_URL  = "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400&q=80";
+const CT_DESSERT_URL = "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&q=80";
+const EXAMPLE_MENU_URL = "/menu/gavinrgallant-1";
 
 function useScrollAnimation() {
   useEffect(() => {
@@ -34,6 +35,16 @@ function DLLogoDark({ width = 44, height = 40 }: { width?: number; height?: numb
       <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#c9a030" strokeWidth="2.6" strokeLinejoin="round" />
       <line x1="26" y1="3" x2="26" y2="37" stroke="#faf8f5" strokeWidth="2.6" strokeLinecap="round" />
       <line x1="26" y1="37" x2="42" y2="37" stroke="#faf8f5" strokeWidth="2.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DLLogoNav({ scrolled, width = 32, height = 29 }: { scrolled: boolean; width?: number; height?: number }) {
+  return (
+    <svg width={width} height={height} viewBox="0 0 44 40" fill="none">
+      <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke={scrolled ? "#8b6914" : "#c9a030"} strokeWidth="2.6" strokeLinejoin="round" />
+      <line x1="26" y1="3" x2="26" y2="37" stroke={scrolled ? "#2c2a26" : "#ffffff"} strokeWidth="2.6" strokeLinecap="round" />
+      <line x1="26" y1="37" x2="42" y2="37" stroke={scrolled ? "#2c2a26" : "#ffffff"} strokeWidth="2.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -174,10 +185,10 @@ export default function HomePage() {
       }`}>
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2.5">
-            <DLLogoLight width={32} height={29} />
+            <DLLogoNav scrolled={scrolled} width={32} height={29} />
             <span className="text-xl select-none">
-              <span style={{ fontFamily: "Georgia, serif", color: "#2c2a26", fontWeight: 400 }}>Dine</span>
-              <span style={{ fontFamily: "Georgia, serif", color: "#8b6914", fontWeight: 700 }}>Links</span>
+              <span style={{ fontFamily: "Georgia, serif", color: scrolled ? "#2c2a26" : "#ffffff", fontWeight: 400 }}>Dine</span>
+              <span style={{ fontFamily: "Georgia, serif", color: scrolled ? "#8b6914" : "#c9a030", fontWeight: 700 }}>Links</span>
             </span>
           </Link>
 
@@ -192,7 +203,7 @@ export default function HomePage() {
                 key={id}
                 type="button"
                 onClick={() => scrollTo(id)}
-                className="text-sm text-[#2c2a26]/70 hover:text-[#2c2a26] transition-colors"
+                className={`text-sm transition-colors ${scrolled ? "text-[#2c2a26]/70 hover:text-[#2c2a26]" : "text-white/90 hover:text-white"}`}
               >
                 {label}
               </button>
@@ -200,12 +211,15 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-[#2c2a26] text-sm hover:text-[#8b6914] transition-colors">
+            <Link
+              href="/login"
+              className={`text-sm transition-colors ${scrolled ? "text-[#2c2a26] hover:text-[#8b6914]" : "text-white/80 hover:text-white"}`}
+            >
               Sign in
             </Link>
             <Link
               href="/signup"
-              className="bg-[#8b6914] text-white rounded-xl px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity"
+              className={`rounded-xl px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity ${scrolled ? "bg-[#8b6914] text-white" : "bg-white text-[#8b6914]"}`}
             >
               Get started free
             </Link>
@@ -235,14 +249,12 @@ export default function HomePage() {
               >
                 Create your free menu →
               </Link>
-              <a
-                href={LIVE_DEMO_URL}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href={EXAMPLE_MENU_URL}
                 className="rounded-xl px-7 py-3.5 text-base font-medium border-2 border-[#2c2a26]/20 text-[#2c2a26] hover:bg-[#2c2a26]/5 transition-colors"
               >
-                See a live demo
-              </a>
+                See example menu
+              </Link>
             </div>
             <div className="mt-5 flex gap-5 flex-wrap text-sm text-[#6b6560]">
               <span>✓ Free forever</span>
@@ -256,10 +268,10 @@ export default function HomePage() {
             <div className="anim-float rounded-3xl overflow-hidden shadow-2xl border-4 border-[#2c2a26]/10 max-w-sm w-full mx-auto bg-white">
               {/* Hero bar */}
               <div className="relative h-48 overflow-hidden">
-                <img src={HERO_IMAGE_URL} alt="" className="w-full h-full object-cover" />
+                <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
                 <p className="absolute bottom-3 w-full text-center text-white font-serif text-xl font-semibold drop-shadow">
-                  Glenn&apos;s Fries #123
+                  The Copper Table
                 </p>
                 <div className="absolute top-3 right-3 bg-[#2c2a26]/80 text-white text-xs px-2.5 py-1 rounded-lg flex items-center gap-1">
                   EN ▾
@@ -268,34 +280,34 @@ export default function HomePage() {
 
               {/* Category tabs */}
               <div className="bg-white border-b border-gray-100 px-3 py-2 flex gap-2">
-                <span className="bg-[#04bd45]/10 text-[#04bd45] border border-[#04bd45]/30 rounded-xl px-3 py-1 text-xs font-semibold">
-                  🍔 Burgers
-                </span>
+                <span className="text-gray-400 text-xs px-3 py-1">Starters</span>
+                <span className="bg-[#b45309]/10 text-[#b45309] border border-[#b45309]/30 rounded-xl px-3 py-1 text-xs font-semibold">Mains</span>
+                <span className="text-gray-400 text-xs px-3 py-1">Desserts</span>
               </div>
 
               {/* Dietary legend */}
               <div className="mx-3 mt-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 flex gap-3 text-xs text-gray-400">
                 <span>★ Chef&apos;s pick</span>
-                <span>🌾✗ GF</span>
-                <span>🌶 Spicy</span>
+                <span>🌾 GF</span>
+                <span>🌿 Veg</span>
               </div>
 
               {/* Item cards */}
               <div className="space-y-2 mx-3 mt-2 mb-3">
                 <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
-                  <img src={FRIES_IMAGE_URL} alt="Fries" className="w-20 h-20 object-cover flex-shrink-0" />
+                  <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-20 h-20 object-cover flex-shrink-0" />
                   <div className="p-2.5">
-                    <p className="text-sm font-serif font-semibold text-[#2c2a26]">Fries</p>
-                    <p className="text-[#04bd45] text-sm font-bold">$10.00</p>
-                    <span className="text-[10px] text-gray-400">🌾✗ GF</span>
+                    <p className="text-sm font-serif font-semibold text-[#2c2a26]">Seared Duck Confit</p>
+                    <p className="text-[#b45309] text-sm font-bold">$24.00</p>
+                    <span className="text-[10px] text-gray-400">★ Chef&apos;s pick</span>
                   </div>
                 </div>
                 <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
-                  <img src={BURGER_IMAGE_URL} alt="Smash Burger" className="w-20 h-20 object-cover flex-shrink-0" />
+                  <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-20 h-20 object-cover flex-shrink-0" />
                   <div className="p-2.5">
-                    <p className="text-sm font-serif font-semibold text-[#2c2a26]">Smash Burger</p>
-                    <p className="text-[#04bd45] text-sm font-bold">$9.95</p>
-                    <span className="text-[10px] text-gray-400">★ 🌶</span>
+                    <p className="text-sm font-serif font-semibold text-[#2c2a26]">Atlantic Salmon</p>
+                    <p className="text-[#b45309] text-sm font-bold">$22.00</p>
+                    <span className="text-[10px] text-gray-400">🌾 GF</span>
                   </div>
                 </div>
               </div>
@@ -304,7 +316,7 @@ export default function HomePage() {
             </div>
 
             <p className="hidden lg:block mt-4 text-center text-xs text-[#8b6914]/70">
-              ↑ Real menu, live on DineLinks
+              ↑ Example menu built with DineLinks
             </p>
           </div>
         </div>
@@ -384,50 +396,69 @@ export default function HomePage() {
                 <div className="w-3 h-3 rounded-full bg-[#28c840]" />
               </div>
               <div className="flex-1 mx-4 bg-white rounded-md px-3 py-1 text-xs text-gray-500 border border-gray-200 text-left">
-                dinelinks.com/menu/glenns-fries
+                dinelinks.com/menu/the-copper-table
               </div>
             </div>
 
             {/* Menu content */}
-            <div className="bg-[#faf8f5]">
+            <div className="bg-[#fdf8f3]">
               <div className="relative h-36 overflow-hidden">
-                <img src={HERO_IMAGE_URL} alt="" className="w-full h-full object-cover" />
+                <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
                 <p className="absolute bottom-3 w-full text-center text-white font-serif text-lg font-semibold drop-shadow">
-                  Glenn&apos;s Fries #123
+                  The Copper Table
                 </p>
                 <div className="absolute top-3 right-3 bg-[#2c2a26]/80 text-white text-xs px-2.5 py-1 rounded-lg flex items-center gap-1">
                   EN ▾
                 </div>
               </div>
 
-              <div className="bg-[#faf8f5]/95 backdrop-blur-sm border-b border-gray-100 px-4 py-3 flex gap-2">
-                <span className="bg-[#04bd45]/10 text-[#04bd45] border border-[#04bd45]/30 rounded-xl px-3 py-1 text-xs font-semibold">
-                  🍔 Burgers
-                </span>
+              {/* Tab strip */}
+              <div className="bg-[#fdf8f3]/95 backdrop-blur-sm border-b border-[#b45309]/10 px-4 py-3 flex gap-2">
+                <span className="text-gray-400 text-xs px-3 py-1 rounded-xl">Starters</span>
+                <span className="bg-[#b45309]/10 text-[#b45309] border border-[#b45309]/30 rounded-xl px-3 py-1 text-xs font-semibold">Mains</span>
+                <span className="text-gray-400 text-xs px-3 py-1 rounded-xl">Desserts</span>
               </div>
 
-              <div className="mx-3 mt-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 flex gap-3 text-xs text-gray-400">
+              {/* Dietary legend */}
+              <div className="mx-3 mt-2 rounded-xl border border-gray-100 bg-white px-3 py-2 flex gap-3 text-xs text-gray-400">
                 <span>★ Chef&apos;s pick</span>
-                <span>🌾✗ GF</span>
-                <span>🌶 Spicy</span>
+                <span>🌾 GF</span>
+                <span>🌿 Veg</span>
+                <span>🌱 Vegan</span>
               </div>
 
+              {/* Filter row */}
+              <div className="mx-3 mt-1.5 flex gap-2 text-xs">
+                <span className="bg-[#b45309]/8 text-[#b45309] rounded-lg px-2.5 py-1 font-medium border border-[#b45309]/20">All</span>
+                <span className="text-gray-400 rounded-lg px-2.5 py-1 border border-gray-100">🌾 GF only</span>
+                <span className="text-gray-400 rounded-lg px-2.5 py-1 border border-gray-100">🌿 Veg</span>
+              </div>
+
+              {/* Item cards */}
               <div className="space-y-2 mx-3 mt-2 mb-3">
                 <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
-                  <img src={FRIES_IMAGE_URL} alt="Fries" className="w-20 h-20 object-cover flex-shrink-0" />
+                  <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-20 h-20 object-cover flex-shrink-0" />
                   <div className="p-2.5">
-                    <p className="text-sm font-serif font-semibold text-[#2c2a26]">Fries</p>
-                    <p className="text-[#04bd45] text-sm font-bold">$10.00</p>
-                    <span className="text-[10px] text-gray-400">🌾✗ GF</span>
+                    <p className="text-sm font-serif font-semibold text-[#2c2a26]">Seared Duck Confit</p>
+                    <p className="text-[#b45309] text-sm font-bold">$24.00</p>
+                    <span className="text-[10px] text-gray-400">★ Chef&apos;s pick</span>
                   </div>
                 </div>
                 <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
-                  <img src={BURGER_IMAGE_URL} alt="Smash Burger" className="w-20 h-20 object-cover flex-shrink-0" />
+                  <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-20 h-20 object-cover flex-shrink-0" />
                   <div className="p-2.5">
-                    <p className="text-sm font-serif font-semibold text-[#2c2a26]">Smash Burger</p>
-                    <p className="text-[#04bd45] text-sm font-bold">$9.95</p>
-                    <span className="text-[10px] text-gray-400">★ 🌶</span>
+                    <p className="text-sm font-serif font-semibold text-[#2c2a26]">Atlantic Salmon</p>
+                    <p className="text-[#b45309] text-sm font-bold">$22.00</p>
+                    <span className="text-[10px] text-gray-400">🌾 GF</span>
+                  </div>
+                </div>
+                <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
+                  <img src={CT_DESSERT_URL} alt="Warm Chocolate Fondant" className="w-20 h-20 object-cover flex-shrink-0" />
+                  <div className="p-2.5">
+                    <p className="text-sm font-serif font-semibold text-[#2c2a26]">Warm Chocolate Fondant</p>
+                    <p className="text-[#b45309] text-sm font-bold">$12.00</p>
+                    <span className="text-[10px] text-gray-400">🌿 Vegetarian</span>
                   </div>
                 </div>
               </div>
@@ -435,14 +466,9 @@ export default function HomePage() {
           </div>
 
           <div className="mt-6">
-            <a
-              href={LIVE_DEMO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#8b6914] font-medium text-sm hover:underline"
-            >
-              View the live menu →
-            </a>
+            <Link href={EXAMPLE_MENU_URL} className="text-[#8b6914] font-medium text-sm hover:underline">
+              View example menu →
+            </Link>
           </div>
         </div>
       </section>
@@ -531,70 +557,113 @@ export default function HomePage() {
             Your menu should look like your restaurant, not a template. Choose any colors, fonts, and upload your own photos.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-14 max-w-4xl mx-auto">
-            {/* Card 1 — Warm Gold */}
+          <div className="flex flex-col sm:flex-row justify-center gap-6 mt-14 items-start">
+
+            {/* Card 1 — Villa Romana (Italian fine dining, dark wine) */}
             <div
-              className="anim-float bg-[#faf8f5] border border-[#8b6914]/20 rounded-2xl overflow-hidden shadow-lg"
-              style={{ animationDelay: "0s" }}
+              className="anim-float rounded-2xl overflow-hidden shadow-lg border border-[#c9963a]/20 flex-shrink-0 w-full sm:w-48"
+              style={{ background: "#1a0a0a", animationDelay: "0s" }}
             >
-              <div className="h-16 bg-[#2c2a26] flex items-center justify-center text-[#faf8f5] font-serif text-sm">
-                La Piazza
-              </div>
-              <div className="bg-[#faf8f5] border-b border-[#8b6914]/20 px-3 py-2 text-[#8b6914] text-xs font-semibold">
-                Mains
-              </div>
-              <div className="flex p-3 gap-2 bg-white m-2 rounded-xl border border-[#8b6914]/10">
-                <div className="w-10 h-10 bg-[#8b6914]/20 rounded-lg flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-semibold text-[#2c2a26]">Tagliatelle</p>
-                  <p className="text-[#8b6914] text-xs">$18.00</p>
+              <div className="h-20 relative overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300&q=75" alt="" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40" />
+                <div className="absolute top-2 left-2 bg-black/40 rounded-lg p-1">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="11" stroke="#c9963a" strokeWidth="1.2"/>
+                    <text x="12" y="17" textAnchor="middle" fill="#c9963a" fontFamily="Georgia,serif" fontSize="13">V</text>
+                  </svg>
                 </div>
+                <p className="absolute bottom-2 left-0 right-0 text-center text-white text-xs font-semibold drop-shadow">Villa Romana</p>
+              </div>
+              <div className="px-3 py-2 space-y-1.5">
+                <div className="flex gap-1">
+                  <span className="text-[10px] font-semibold rounded-lg px-2 py-0.5" style={{ background: "#c9963a22", color: "#c9963a" }}>Antipasti</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg p-2 border border-[#c9963a]/15" style={{ background: "#2a1a0a" }}>
+                  <div className="w-9 h-9 rounded bg-[#c9963a]/20 flex-shrink-0 overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=100&q=60" alt="" className="w-full h-full object-cover opacity-60" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium text-[#faf8f5]">Burrata &amp; Prosciutto</p>
+                    <p className="text-[10px] font-bold" style={{ color: "#c9963a" }}>$18</p>
+                  </div>
+                </div>
+                <p className="text-[9px] text-center opacity-40 italic text-[#faf8f5]">Playfair Display</p>
               </div>
             </div>
 
-            {/* Card 2 — Deep Navy */}
+            {/* Card 2 — Takumi (modern Japanese, dark + teal) */}
             <div
-              className="anim-float bg-[#0f172a] border border-blue-500/20 rounded-2xl overflow-hidden shadow-lg"
-              style={{ animationDelay: "0.6s" }}
+              className="anim-float rounded-2xl overflow-hidden shadow-lg border border-[#00d4aa]/20 flex-shrink-0 w-full sm:w-48"
+              style={{ background: "#0d0d0d", animationDelay: "0.7s" }}
             >
-              <div className="h-16 bg-[#1e293b] flex items-center justify-center text-white font-serif text-sm">
-                Ocean Blue
-              </div>
-              <div className="bg-[#0f172a] border-b border-blue-500/20 px-3 py-2 text-blue-400 text-xs font-semibold">
-                Seafood
-              </div>
-              <div className="flex p-3 gap-2 bg-[#1e293b] m-2 rounded-xl">
-                <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-semibold text-white">Salmon</p>
-                  <p className="text-blue-400 text-xs">$24.00</p>
+              <div className="h-20 relative overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=300&q=75" alt="" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/40" />
+                <div className="absolute top-2 left-2 bg-black/40 rounded-lg p-1">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <rect x="1" y="1" width="22" height="22" rx="3" stroke="#00d4aa" strokeWidth="1.2"/>
+                    <text x="12" y="17" textAnchor="middle" fill="#00d4aa" fontFamily="system-ui" fontSize="13">匠</text>
+                  </svg>
                 </div>
+                <p className="absolute bottom-2 left-0 right-0 text-center text-white text-xs font-semibold drop-shadow">Takumi</p>
+              </div>
+              <div className="px-3 py-2 space-y-1.5">
+                <div className="flex gap-1">
+                  <span className="text-[10px] font-semibold rounded-lg px-2 py-0.5" style={{ background: "#00d4aa22", color: "#00d4aa" }}>Nigiri</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-lg p-2 border border-[#00d4aa]/15" style={{ background: "#1a1a1a" }}>
+                  <div className="w-9 h-9 rounded bg-[#00d4aa]/15 flex-shrink-0 overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=100&q=60" alt="" className="w-full h-full object-cover opacity-60" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium text-white">Salmon Nigiri ×3</p>
+                    <p className="text-[10px] font-bold" style={{ color: "#00d4aa" }}>$16</p>
+                  </div>
+                </div>
+                <p className="text-[9px] text-center opacity-40 italic text-white">Geist Sans</p>
               </div>
             </div>
 
-            {/* Card 3 — Fresh Green */}
+            {/* Card 3 — Sol Café (beachside, bright orange) */}
             <div
-              className="anim-float bg-[#f0fdf4] border border-green-500/20 rounded-2xl overflow-hidden shadow-lg"
-              style={{ animationDelay: "1.2s" }}
+              className="anim-float rounded-2xl overflow-hidden shadow-lg border border-[#f97316]/20 flex-shrink-0 w-full sm:w-48"
+              style={{ background: "#fff8ed", animationDelay: "1.4s" }}
             >
-              <div className="h-16 bg-[#166534] flex items-center justify-center text-white font-serif text-sm">
-                Garden Café
-              </div>
-              <div className="bg-[#f0fdf4] border-b border-green-500/20 px-3 py-2 text-green-600 text-xs font-semibold">
-                Salads
-              </div>
-              <div className="flex p-3 gap-2 bg-white m-2 rounded-xl border border-green-500/10">
-                <div className="w-10 h-10 bg-green-500/20 rounded-lg flex-shrink-0" />
-                <div>
-                  <p className="text-xs font-semibold text-[#166534]">Caesar</p>
-                  <p className="text-green-600 text-xs">$14.00</p>
+              <div className="h-20 relative overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1559329007-40df8a9345d8?w=300&q=75" alt="" className="w-full h-full object-cover" />
+                <div className="absolute inset-0 bg-black/20" />
+                <div className="absolute top-2 left-2 bg-white/30 backdrop-blur-sm rounded-lg p-1">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="5" fill="#f97316"/>
+                    <line x1="12" y1="2" x2="12" y2="5" stroke="#f97316" strokeWidth="2" strokeLinecap="round"/>
+                    <line x1="12" y1="19" x2="12" y2="22" stroke="#f97316" strokeWidth="2" strokeLinecap="round"/>
+                    <line x1="2" y1="12" x2="5" y2="12" stroke="#f97316" strokeWidth="2" strokeLinecap="round"/>
+                    <line x1="19" y1="12" x2="22" y2="12" stroke="#f97316" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
                 </div>
+                <p className="absolute bottom-2 left-0 right-0 text-center text-white text-xs font-semibold drop-shadow">Sol Café</p>
+              </div>
+              <div className="px-3 py-2 space-y-1.5">
+                <div className="flex gap-1">
+                  <span className="text-[10px] font-semibold rounded-lg px-2 py-0.5" style={{ background: "#f9731622", color: "#f97316" }}>Smoothies</span>
+                </div>
+                <div className="flex items-center gap-2 rounded-2xl p-2 bg-white border border-[#f97316]/15">
+                  <div className="w-9 h-9 rounded bg-orange-100 flex-shrink-0 overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1559329007-40df8a9345d8?w=100&q=60" alt="" className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-medium text-[#2c2a26]">Mango Sunrise Bowl</p>
+                    <p className="text-[10px] font-bold" style={{ color: "#f97316" }}>$13</p>
+                  </div>
+                </div>
+                <p className="text-[9px] text-center opacity-40 italic text-[#2c2a26]">Pacifico</p>
               </div>
             </div>
           </div>
 
           <p className="text-[#faf8f5]/60 text-sm text-center mt-8">
-            Pick from 16 million colors · Choose your font · Upload your hero photo and logo
+            Dark &amp; elegant · Minimalist &amp; modern · Bright &amp; playful — your menu, your personality
           </p>
         </div>
       </section>
