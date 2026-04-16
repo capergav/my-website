@@ -129,9 +129,10 @@ export default function ResetPasswordPage() {
       <div className="relative z-10 w-full max-w-sm">
         <Link href="/" className="flex flex-col items-center no-underline cursor-pointer mb-6">
           <div className="w-12 h-12 rounded-2xl bg-[#8b6914] flex items-center justify-center shadow-lg mb-3">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            <svg width="28" height="25" viewBox="0 0 44 40" fill="none">
+              <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#ffffff" strokeWidth="2.6" strokeLinejoin="round"/>
+              <line x1="26" y1="3" x2="26" y2="37" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="round"/>
+              <line x1="26" y1="37" x2="42" y2="37" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="round"/>
             </svg>
           </div>
           <p className="text-white/80 text-xs font-semibold uppercase tracking-[0.2em]">DineLinks</p>

@@ -15,7 +15,7 @@ export default async function PublicMenuPage({ params }: Props) {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color")
+    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -66,7 +66,7 @@ export default async function PublicMenuPage({ params }: Props) {
     <>
       <style dangerouslySetInnerHTML={{ __html: themeStyle }} />
       <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-        <HeroWithLang restaurantName={restaurant.name ?? undefined} heroImageUrl={restaurant.hero_image_url ?? undefined} />
+        <HeroWithLang restaurantName={restaurant.name ?? undefined} heroImageUrl={restaurant.hero_image_url ?? undefined} logoUrl={(restaurant as { logo_url?: string | null }).logo_url ?? undefined} />
         <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} />
       </main>
     </>

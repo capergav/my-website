@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import QRCode from "qrcode";
 import { createSupabaseClient } from "@/app/lib/supabase";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
@@ -80,6 +81,22 @@ export function AdminMenuEditor({
   const [message, setMessage]                   = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [mobileOpen, setMobileOpen]             = useState(false);
   const [tourKey, setTourKey]                   = useState(0);
+  const [showQR, setShowQR]                     = useState(false);
+  const [qrDataUrl, setQrDataUrl]               = useState('');
+  const [qrFg, setQrFg]                         = useState('#000000');
+  const [qrBg, setQrBg]                         = useState('#ffffff');
+  const [qrSize, setQrSize]                     = useState(500);
+  const [qrIncludeLogo, setQrIncludeLogo]       = useState(true);
+  const [qrTemplate, setQrTemplate]             = useState(1);
+  const [qrTagline, setQrTagline]               = useState('Scan to view our menu');
+
+  // ── QR code generation ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!showQR) return;
+    const url = window.location.origin + '/menu/' + restaurantSlug;
+    QRCode.toDataURL(url, { width: 400, margin: 2, color: { dark: qrFg, light: qrBg } })
+      .then(setQrDataUrl);
+  }, [showQR, qrFg, qrBg, restaurantSlug]);
 
   // ── Live theme — no reload needed ────────────────────────────────────────
   useEffect(() => {
@@ -250,6 +267,19 @@ export function AdminMenuEditor({
             ?
           </button>
           <ThemeModal restaurant={restaurant} onSave={handleSaveTheme} saving={saving} tourTarget="tour-theme" />
+          <button
+            type="button"
+            onClick={() => setShowQR(true)}
+            className="min-h-[40px] px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-medium border border-white/25 flex items-center gap-1.5 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/>
+              <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/>
+              <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 14h3v3m4-3v3m-4 4h7"/>
+            </svg>
+            QR Code
+          </button>
           <a
             data-tour="tour-view-menu"
             href={`/menu/${restaurantSlug}`}
@@ -303,9 +333,9 @@ export function AdminMenuEditor({
         <div className="fixed inset-0 z-50 flex flex-col justify-start sm:hidden bg-black/40"
           onClick={() => setMobileOpen(false)}
           style={{ animation: 'fadeIn 0.15s ease-out' }}>
-          <div className="bg-white rounded-b-2xl shadow-2xl p-5 space-y-2"
+          <div className="bg-white rounded-b-2xl shadow-2xl p-5 space-y-2 max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
-            style={{ animation: 'slideDown 0.2s ease-out' }}>
+            style={{ animation: 'slideDown 0.2s ease-out', transition: 'transform 200ms ease-out' }}>
             <SheetThemeButton restaurant={restaurant} onSave={handleSaveTheme} saving={saving}
               onClose={() => setMobileOpen(false)} />
             <a href={`/menu/${restaurantSlug}`} target="_blank" rel="noopener noreferrer"
@@ -497,6 +527,22 @@ export function AdminMenuEditor({
       )}
 
       <OnboardingTour tourKey={tourKey} />
+
+      {/* QR Code Modal */}
+      {showQR && (
+        <QRModal
+          slug={restaurantSlug}
+          restaurant={restaurant}
+          qrDataUrl={qrDataUrl}
+          qrFg={qrFg} setQrFg={setQrFg}
+          qrBg={qrBg} setQrBg={setQrBg}
+          qrSize={qrSize} setQrSize={setQrSize}
+          qrIncludeLogo={qrIncludeLogo} setQrIncludeLogo={setQrIncludeLogo}
+          qrTemplate={qrTemplate} setQrTemplate={setQrTemplate}
+          qrTagline={qrTagline} setQrTagline={setQrTagline}
+          onClose={() => setShowQR(false)}
+        />
+      )}
     </main>
   );
 }
@@ -623,9 +669,9 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       {open && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
           style={{ animation: 'fadeIn 0.15s ease-out' }}>
-          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-[var(--card)] shadow-2xl"
+          <div className="flex flex-col w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl bg-[var(--card)] shadow-2xl"
             style={{ animation: 'modalIn 0.15s ease-out' }}>
-            <div className="sticky top-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
+            <div className="flex-shrink-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
               <div>
                 <h2 className="text-base font-semibold text-[var(--foreground)]">Theme & branding</h2>
                 <p className="text-xs text-[var(--muted)] mt-0.5">Changes apply instantly after saving</p>
@@ -637,7 +683,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
               </button>
             </div>
 
-            <div className="px-6 py-6 space-y-7">
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-7">
               {/* Details */}
               <section>
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-4">Restaurant details</h3>
@@ -721,6 +767,8 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                 </div>
               </section>
 
+            </div>
+            <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)]">
               <button type="button" onClick={save} disabled={saving}
                 className="w-full py-3.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity shadow-sm">
                 {saving ? "Saving…" : "Save theme"}
@@ -784,9 +832,9 @@ function ItemForm({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
       style={{ animation: 'fadeIn 0.15s ease-out' }}>
-      <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+      <div className="flex flex-col bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden"
         style={{ animation: 'modalIn 0.15s ease-out' }}>
-        <div className="sticky top-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
+        <div className="flex-shrink-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
           <h3 className="font-serif text-lg font-semibold text-[var(--foreground)]">{item ? "Edit item" : "Add item"}</h3>
           <button type="button" onClick={onCancel} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -794,8 +842,8 @@ function ItemForm({
             </svg>
           </button>
         </div>
-        <div className="p-6">
-          <form onSubmit={submit} className="space-y-4">
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          <form id="item-form" onSubmit={submit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Name *</label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
@@ -860,17 +908,204 @@ function ItemForm({
                 <Toggle label="Spicy"              checked={spicy}  onChange={setSpicy}  />
               </div>
             </div>
-            <div className="flex gap-3 pt-2">
-              <button type="button" onClick={onCancel}
-                className="flex-1 py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
-                Cancel
-              </button>
-              <button type="submit" disabled={saving}
-                className="flex-1 py-2.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
-                {saving ? "Saving…" : item ? "Update item" : "Add item"}
+          </form>
+        </div>
+        <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)] flex gap-3">
+          <button type="button" onClick={onCancel}
+            className="flex-1 py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
+            Cancel
+          </button>
+          <button type="submit" form="item-form" disabled={saving}
+            className="flex-1 py-2.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
+            {saving ? "Saving…" : item ? "Update item" : "Add item"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── QR Code Modal ─────────────────────────────────────────────────────────────
+
+type QRModalProps = {
+  slug: string;
+  restaurant: Restaurant | null;
+  qrDataUrl: string;
+  qrFg: string; setQrFg: (v: string) => void;
+  qrBg: string; setQrBg: (v: string) => void;
+  qrSize: number; setQrSize: (v: number) => void;
+  qrIncludeLogo: boolean; setQrIncludeLogo: (v: boolean) => void;
+  qrTemplate: number; setQrTemplate: (v: number) => void;
+  qrTagline: string; setQrTagline: (v: string) => void;
+  onClose: () => void;
+};
+
+const QR_STYLES = [
+  { label: "Classic", fg: "#000000", bg: "#ffffff" },
+  { label: "Brand",   fg: "#2c2a26", bg: "#faf8f5" },
+  { label: "Gold",    fg: "#8b6914", bg: "#ffffff"  },
+  { label: "Dark",    fg: "#faf8f5", bg: "#2c2a26"  },
+];
+
+const QR_SIZES = [
+  { label: "Small (5×5cm)",  px: 300 },
+  { label: "Medium (8×8cm)", px: 500 },
+  { label: "Large (12×12cm)", px: 800 },
+];
+
+function QRModal({
+  slug, restaurant, qrDataUrl,
+  qrFg, setQrFg, qrBg, setQrBg,
+  qrSize, setQrSize,
+  qrIncludeLogo, setQrIncludeLogo,
+  qrTemplate, setQrTemplate,
+  qrTagline, setQrTagline,
+  onClose,
+}: QRModalProps) {
+  const logoUrl = (restaurant as Restaurant & { logo_url?: string | null })?.logo_url ?? null;
+  const restaurantName = restaurant?.name ?? "Your Restaurant";
+  const menuUrl = typeof window !== "undefined" ? window.location.origin + '/menu/' + slug : '/menu/' + slug;
+
+  const downloadPng = async () => {
+    const dataUrl = await QRCode.toDataURL(menuUrl, { width: qrSize, margin: 2, color: { dark: qrFg, light: qrBg } });
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = "dinelinks-qr.png";
+    a.click();
+  };
+
+  const downloadSvg = async () => {
+    const svgStr = await QRCode.toString(menuUrl, { type: 'svg', margin: 2, color: { dark: qrFg, light: qrBg } });
+    const blob = new Blob([svgStr], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "dinelinks-qr.svg";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
+      style={{ animation: 'fadeIn 0.15s ease-out' }}>
+      <div className="flex flex-col w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl bg-[var(--card)] shadow-2xl"
+        style={{ animation: 'modalIn 0.15s ease-out' }}>
+
+        {/* Header */}
+        <div className="flex-shrink-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-[var(--foreground)]">Get your QR code</h2>
+            <p className="text-xs text-[var(--muted)] mt-0.5">Download and print for your tables</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
+
+          {/* QR Preview */}
+          <div className="text-center">
+            <div className="relative inline-block">
+              {qrDataUrl ? (
+                <img src={qrDataUrl} alt="QR code" className="w-48 h-48 mx-auto" style={{ imageRendering: "pixelated" }} />
+              ) : (
+                <div className="w-48 h-48 mx-auto bg-gray-100 rounded-xl flex items-center justify-center">
+                  <div className="w-6 h-6 border-2 border-[#8b6914] border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+              {logoUrl && qrIncludeLogo && qrDataUrl && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <img src={logoUrl} alt="logo" className="w-12 h-12 rounded-lg object-cover border-2 border-white shadow" />
+                </div>
+              )}
+            </div>
+            <p className="text-xs text-[var(--muted)] mt-2">{restaurantName}</p>
+          </div>
+
+          {/* Logo toggle */}
+          {logoUrl && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-[var(--foreground)]">Include logo in QR code</span>
+              <button type="button" role="switch" aria-checked={qrIncludeLogo}
+                onClick={() => setQrIncludeLogo(!qrIncludeLogo)}
+                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#8b6914] focus:ring-offset-2 ${qrIncludeLogo ? "bg-[#8b6914]" : "bg-gray-200"}`}>
+                <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform mt-0.5 ml-0.5 ${qrIncludeLogo ? "translate-x-5" : "translate-x-0"}`} />
               </button>
             </div>
-          </form>
+          )}
+
+          {/* Style */}
+          <div>
+            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Style</p>
+            <div className="flex gap-2 flex-wrap">
+              {QR_STYLES.map(s => (
+                <button key={s.label} type="button"
+                  onClick={() => { setQrFg(s.fg); setQrBg(s.bg); }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${qrFg === s.fg && qrBg === s.bg ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[#8b6914]/50"}`}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Size */}
+          <div>
+            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Size</p>
+            <div className="flex gap-2 flex-wrap">
+              {QR_SIZES.map(s => (
+                <button key={s.label} type="button"
+                  onClick={() => setQrSize(s.px)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${qrSize === s.px ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[#8b6914]/50"}`}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Print template */}
+          <div>
+            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-3">Print template</p>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { id: 1, label: "QR Only" },
+                { id: 2, label: "With tagline" },
+                { id: 3, label: "Table card" },
+              ].map(t => (
+                <div key={t.id}
+                  onClick={() => setQrTemplate(t.id)}
+                  className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all ${qrTemplate === t.id ? "border-[#8b6914]" : "border-[var(--card-border)] hover:border-[#8b6914]/40"}`}>
+                  <div className="bg-white rounded-lg p-2 mb-2 flex flex-col items-center gap-1 min-h-[80px] justify-center border border-gray-100">
+                    {t.id === 3 && <span className="text-[9px] font-bold text-[#2c2a26] truncate w-full text-center">{restaurantName}</span>}
+                    <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-[8px] text-gray-400">QR</div>
+                    {t.id !== 1 && (
+                      <input type="text" value={qrTagline}
+                        onChange={e => setQrTagline(e.target.value)}
+                        onClick={e => e.stopPropagation()}
+                        className="w-full text-center text-[9px] border border-gray-200 rounded px-1 py-0.5 mt-1"
+                      />
+                    )}
+                  </div>
+                  <span className="text-xs text-[var(--muted)]">{t.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer — download buttons */}
+        <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)] flex gap-3">
+          <button type="button" onClick={downloadPng}
+            className="flex-1 py-2.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm hover:opacity-90 transition-opacity">
+            Download PNG
+          </button>
+          <button type="button" onClick={downloadSvg}
+            className="flex-1 py-2.5 rounded-xl border border-[#8b6914] text-[#8b6914] font-medium text-sm hover:bg-[#8b6914]/5 transition-colors">
+            Download SVG
+          </button>
         </div>
       </div>
     </div>

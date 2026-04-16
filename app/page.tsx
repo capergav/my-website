@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { WheatOff, Flame, Leaf } from "lucide-react";
 
 const CT_HERO_URL    = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80";
 const CT_STEAK_URL   = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80";
@@ -240,7 +241,7 @@ export default function HomePage() {
           {/* Left column */}
           <div className="flex-1" data-animate="fade-right">
             <span className="inline-flex items-center gap-2 rounded-full border border-[#8b6914]/40 bg-[#8b6914]/8 px-4 py-1.5 text-sm text-[#8b6914] font-medium">
-              ✦ Free to start — no credit card needed
+              ✦ No setup fee — live in 30 minutes
             </span>
             <h1 style={{ fontFamily: "Georgia, serif" }} className="text-5xl sm:text-6xl lg:text-7xl font-semibold text-[#2c2a26] leading-tight mt-6">
               Your restaurant menu, beautifully digital.
@@ -253,19 +254,19 @@ export default function HomePage() {
                 href="/signup"
                 className="bg-[#8b6914] text-white rounded-xl px-7 py-3.5 text-base font-semibold hover:opacity-90 transition-opacity"
               >
-                Create your free menu →
+                Get started →
               </Link>
               <Link
                 href={EXAMPLE_MENU_URL}
                 className="rounded-xl px-7 py-3.5 text-base font-medium border-2 border-[#2c2a26]/20 text-[#2c2a26] hover:bg-[#2c2a26]/5 transition-colors"
               >
-                See example menu
+                See a real menu →
               </Link>
             </div>
             <div className="mt-5 flex gap-5 flex-wrap text-sm text-[#6b6560]">
-              <span>✓ Free forever</span>
-              <span>✓ Live in 2 minutes</span>
-              <span>✓ 7 languages</span>
+              <span>✓ No setup fee</span>
+              <span>✓ Live in 30 minutes</span>
+              <span>✓ First 2 months free</span>
             </div>
           </div>
 
@@ -292,10 +293,10 @@ export default function HomePage() {
               </div>
 
               {/* Dietary legend */}
-              <div className="mx-3 mt-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 flex gap-3 text-xs text-gray-400">
-                <span>★ Chef&apos;s pick</span>
-                <span>🌾 GF</span>
-                <span>🌿 Veg</span>
+              <div className="mx-3 mt-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 flex gap-3 text-xs text-gray-400 items-center">
+                <span className="flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Chef&apos;s pick</span>
+                <span className="flex items-center gap-1"><WheatOff size={12} /> GF</span>
+                <span className="flex items-center gap-1"><Leaf size={12} /> Veg</span>
               </div>
 
               {/* Item cards */}
@@ -305,7 +306,7 @@ export default function HomePage() {
                   <div className="p-2.5">
                     <p className="text-sm font-serif font-semibold text-[#2c2a26]">Seared Duck Confit</p>
                     <p className="text-[#b45309] text-sm font-bold">$24.00</p>
-                    <span className="text-[10px] text-gray-400">★ Chef&apos;s pick</span>
+                    <span className="text-[10px] text-gray-400 flex items-center gap-0.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Chef&apos;s pick</span>
                   </div>
                 </div>
                 <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -313,7 +314,7 @@ export default function HomePage() {
                   <div className="p-2.5">
                     <p className="text-sm font-serif font-semibold text-[#2c2a26]">Atlantic Salmon</p>
                     <p className="text-[#b45309] text-sm font-bold">$22.00</p>
-                    <span className="text-[10px] text-gray-400">🌾 GF</span>
+                    <span className="text-[10px] text-gray-400 flex items-center gap-0.5"><WheatOff size={12} /> GF</span>
                   </div>
                 </div>
               </div>
@@ -333,10 +334,10 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto px-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8" data-animate>
             {[
-              { num: "2 min", label: "Average setup time" },
+              { num: "30 min", label: "Average setup time" },
               { num: "0", label: "Reprints after going digital" },
               { num: "7", label: "Languages supported" },
-              { num: "∞", label: "Menu updates per month" },
+              { num: "Always", label: "Up-to-date menu" },
             ].map(({ num, label }) => (
               <div key={label} className="text-center">
                 <p style={{ fontFamily: "Georgia, serif" }} className="text-4xl font-semibold text-[#c9a030]">{num}</p>
@@ -427,18 +428,18 @@ export default function HomePage() {
               </div>
 
               {/* Dietary legend */}
-              <div className="mx-3 mt-2 rounded-xl border border-gray-100 bg-white px-3 py-2 flex gap-3 text-xs text-gray-400">
-                <span>★ Chef&apos;s pick</span>
-                <span>🌾 GF</span>
-                <span>🌿 Veg</span>
-                <span>🌱 Vegan</span>
+              <div className="mx-3 mt-2 rounded-xl border border-gray-100 bg-white px-3 py-2 flex gap-3 text-xs text-gray-400 items-center">
+                <span className="flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Chef&apos;s pick</span>
+                <span className="flex items-center gap-1"><WheatOff size={12} /> GF</span>
+                <span className="flex items-center gap-1"><Leaf size={12} /> Veg</span>
+                <span className="flex items-center gap-1"><Leaf size={12} /> Vegan</span>
               </div>
 
               {/* Filter row */}
               <div className="mx-3 mt-1.5 flex gap-2 text-xs">
                 <span className="bg-[#b45309]/8 text-[#b45309] rounded-lg px-2.5 py-1 font-medium border border-[#b45309]/20">All</span>
-                <span className="text-gray-400 rounded-lg px-2.5 py-1 border border-gray-100">🌾 GF only</span>
-                <span className="text-gray-400 rounded-lg px-2.5 py-1 border border-gray-100">🌿 Veg</span>
+                <span className="text-gray-400 rounded-lg px-2.5 py-1 border border-gray-100 flex items-center gap-1"><WheatOff size={11} /> GF only</span>
+                <span className="text-gray-400 rounded-lg px-2.5 py-1 border border-gray-100 flex items-center gap-1"><Leaf size={11} /> Veg</span>
               </div>
 
               {/* Item cards */}
@@ -448,7 +449,7 @@ export default function HomePage() {
                   <div className="p-2.5">
                     <p className="text-sm font-serif font-semibold text-[#2c2a26]">Seared Duck Confit</p>
                     <p className="text-[#b45309] text-sm font-bold">$24.00</p>
-                    <span className="text-[10px] text-gray-400">★ Chef&apos;s pick</span>
+                    <span className="text-[10px] text-gray-400 flex items-center gap-0.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Chef&apos;s pick</span>
                   </div>
                 </div>
                 <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -456,7 +457,7 @@ export default function HomePage() {
                   <div className="p-2.5">
                     <p className="text-sm font-serif font-semibold text-[#2c2a26]">Atlantic Salmon</p>
                     <p className="text-[#b45309] text-sm font-bold">$22.00</p>
-                    <span className="text-[10px] text-gray-400">🌾 GF</span>
+                    <span className="text-[10px] text-gray-400 flex items-center gap-0.5"><WheatOff size={12} /> GF</span>
                   </div>
                 </div>
                 <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -464,7 +465,7 @@ export default function HomePage() {
                   <div className="p-2.5">
                     <p className="text-sm font-serif font-semibold text-[#2c2a26]">Warm Chocolate Fondant</p>
                     <p className="text-[#b45309] text-sm font-bold">$12.00</p>
-                    <span className="text-[10px] text-gray-400">🌿 Vegetarian</span>
+                    <span className="text-[10px] text-gray-400 flex items-center gap-0.5"><Leaf size={12} /> Vegetarian</span>
                   </div>
                 </div>
               </div>
@@ -822,20 +823,22 @@ export default function HomePage() {
             Simple, honest pricing
           </h2>
           <p className="text-lg text-[#6b6560] max-w-md mx-auto mt-4">
-            Start free. No hidden fees, no commissions on orders, no credit card required.
+            One plan. Everything included. No hidden fees, no commissions on orders.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto mt-14">
-            {/* FREE */}
-            <div className="bg-white rounded-3xl border-2 border-[#2c2a26]/10 p-8 text-left" data-animate="fade-right">
-              <span className="inline-flex rounded-full bg-green-100 text-green-700 text-xs font-semibold px-3 py-1">
-                Free forever
+          <div className="max-w-sm mx-auto mt-14">
+            <div className="rounded-2xl bg-[#8b6914]/10 border border-[#8b6914]/30 px-6 py-3 text-center mb-6" data-animate="fade-up">
+              <p className="text-sm font-medium text-[#8b6914]">🎉 Launch offer — first 2 months free when you sign up now</p>
+            </div>
+            <div className="bg-[#2c2a26] rounded-3xl border-2 border-[#8b6914]/50 p-8 text-left" data-animate="fade-up">
+              <span className="inline-flex rounded-full bg-[#8b6914]/20 text-[#c9a030] text-xs font-semibold px-3 py-1">
+                DineLinks
               </span>
-              <p style={{ fontFamily: "Georgia, serif" }} className="text-5xl font-semibold text-[#2c2a26] mt-4">$0</p>
-              <p className="text-sm text-[#6b6560]">/ month, forever</p>
-              <p className="text-sm text-[#6b6560] mt-2">Perfect for getting started</p>
-              <hr className="my-6 border-[#2c2a26]/10" />
-              <ul className="space-y-3 text-sm text-[#2c2a26]">
+              <p style={{ fontFamily: "Georgia, serif" }} className="text-5xl font-semibold text-[#faf8f5] mt-4">$25</p>
+              <p className="text-sm text-[#faf8f5]/60">/ month</p>
+              <p className="text-sm text-[#faf8f5]/60 mt-2">Everything you need to go digital</p>
+              <hr className="my-6 border-[#faf8f5]/10" />
+              <ul className="space-y-3 text-sm text-[#faf8f5]/80">
                 {[
                   "1 digital menu",
                   "Unlimited menu items",
@@ -846,38 +849,7 @@ export default function HomePage() {
                   "Real-time updates",
                   "Custom colors & fonts",
                   "Upload logo & photos",
-                ].map((f) => (
-                  <li key={f} className="flex items-center gap-2">
-                    <span className="text-[#8b6914]">✓</span> {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/signup"
-                className="mt-8 block w-full py-3 rounded-xl border-2 border-[#8b6914] text-[#8b6914] font-semibold text-center hover:bg-[#8b6914] hover:text-white transition-colors"
-              >
-                Get started free
-              </Link>
-            </div>
-
-            {/* PRO */}
-            <div className="bg-[#2c2a26] rounded-3xl border-2 border-[#8b6914]/50 p-8 text-left" data-animate="fade-left">
-              <span className="inline-flex rounded-full bg-[#8b6914]/20 text-[#c9a030] text-xs font-semibold px-3 py-1">
-                Coming soon
-              </span>
-              <p style={{ fontFamily: "Georgia, serif" }} className="text-5xl font-semibold text-[#faf8f5] mt-4">$12</p>
-              <p className="text-sm text-[#faf8f5]/60">/ month</p>
-              <p className="text-sm text-[#faf8f5]/60 mt-2">For growing restaurants</p>
-              <hr className="my-6 border-[#faf8f5]/10" />
-              <ul className="space-y-3 text-sm text-[#faf8f5]/80">
-                {[
-                  "Everything in Free",
-                  "Custom domain name",
-                  "Advanced analytics",
-                  "Multiple menus",
-                  "Remove DineLinks branding",
                   "Priority email support",
-                  "Early access to new features",
                 ].map((f) => (
                   <li key={f} className="flex items-center gap-2">
                     <span className="text-[#c9a030]">✓</span> {f}
@@ -888,9 +860,9 @@ export default function HomePage() {
                 href="/signup"
                 className="mt-8 block w-full py-3 rounded-xl bg-[#8b6914] text-white font-semibold text-center hover:opacity-90 transition-opacity"
               >
-                Join the waitlist
+                Get started →
               </Link>
-              <p className="mt-3 text-[#faf8f5]/40 text-xs text-center">Be first to know when Pro launches</p>
+              <p className="mt-3 text-[#faf8f5]/40 text-xs text-center">No setup fee · Cancel anytime</p>
             </div>
           </div>
         </div>
@@ -903,15 +875,15 @@ export default function HomePage() {
             Ready to go digital?
           </h2>
           <p className="text-xl text-white/80 max-w-md mx-auto mt-5">
-            Join restaurants already using DineLinks. Takes 2 minutes. Free forever.
+            First 2 months free — no credit card required.
           </p>
           <Link
             href="/signup"
             className="mt-10 inline-block bg-white text-[#8b6914] font-semibold text-lg px-10 py-4 rounded-xl hover:bg-[#faf8f5] transition-colors shadow-lg"
           >
-            Create your free menu →
+            Get started →
           </Link>
-          <p className="mt-6 text-white/50 text-sm">Free forever · No credit card · Live in 2 minutes</p>
+          <p className="mt-6 text-white/50 text-sm">No setup fee · Cancel anytime · Live in 30 minutes</p>
         </div>
       </section>
 

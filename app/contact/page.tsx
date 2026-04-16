@@ -1,35 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 
-const SUBJECTS = [
-  "General question",
-  "Feature request",
-  "Bug report",
-  "Early access",
-  "Other",
-];
-
 export default function ContactPage() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [subject, setSubject] = useState(SUBJECTS[0]);
-  const [message, setMessage] = useState("");
-  const [sent, setSent] = useState(false);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const mailtoUrl =
-      `mailto:gavinrgallant@gmail.com` +
-      `?subject=${encodeURIComponent(`[DineLinks] ${subject}`)}` +
-      `&body=${encodeURIComponent(`From: ${name} (${email})\n\n${message}`)}`;
-    window.open(mailtoUrl);
-    setSent(true);
-  };
-
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 py-8 relative overflow-hidden">
+    <main className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden">
       {/* Blurred background */}
       <div
         className="absolute inset-0 bg-cover bg-center scale-105"
@@ -46,9 +21,10 @@ export default function ContactPage() {
         {/* Logo mark — links home */}
         <Link href="/" className="flex flex-col items-center no-underline cursor-pointer mb-5">
           <div className="w-14 h-14 rounded-2xl bg-[#8b6914] flex items-center justify-center shadow-lg mb-3">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            <svg width="32" height="29" viewBox="0 0 44 40" fill="none">
+              <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#ffffff" strokeWidth="2.6" strokeLinejoin="round"/>
+              <line x1="26" y1="3" x2="26" y2="37" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="round"/>
+              <line x1="26" y1="37" x2="42" y2="37" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="round"/>
             </svg>
           </div>
           <p className="text-white text-xs font-semibold uppercase tracking-widest">DineLinks</p>
@@ -56,89 +32,57 @@ export default function ContactPage() {
 
         {/* Frosted glass card */}
         <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl border border-white/60 shadow-2xl p-8">
-          <h1 className="text-2xl font-serif font-semibold text-gray-900 mb-1 text-center">Get in touch</h1>
-          <p className="text-sm text-gray-500 mb-6 text-center">
-            Have a question, feedback, or want to get early access? We&apos;d love to hear from you.
+          <h1 className="text-2xl font-serif font-semibold text-gray-900 text-center">Contact</h1>
+          <p className="text-sm text-gray-500 mt-1 text-center">
+            Questions about DineLinks? Reach out directly.
           </p>
 
-          {sent ? (
-            <div className="text-center py-4">
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          <hr className="mt-6 mb-6 border-gray-100" />
+
+          <div className="space-y-0">
+            {/* Row 1 — Name */}
+            <div className="flex items-center gap-3 py-3 border-b border-gray-100">
+              <div className="w-8 h-8 rounded-lg bg-[#8b6914]/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-[#8b6914]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
               </div>
-              <p className="text-sm font-medium text-gray-800 mb-1">Message sent!</p>
-              <p className="text-sm text-gray-500">We&apos;ll get back to you soon.</p>
-              <button
-                type="button"
-                onClick={() => { setSent(false); setName(""); setEmail(""); setMessage(""); setSubject(SUBJECTS[0]); }}
-                className="mt-5 text-sm text-[#8b6914] hover:underline"
-              >
-                Send another message
-              </button>
+              <span className="text-[#2c2a26] font-medium text-sm">Gavin Gallant</span>
             </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
-                <select
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
-                >
-                  {SUBJECTS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                <textarea
-                  required
-                  rows={4}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b6914] resize-y"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-2.5 rounded-lg bg-[#8b6914] text-white font-medium hover:opacity-90 transition-opacity"
-              >
-                Send message
-              </button>
-            </form>
-          )}
 
-          <p className="text-sm text-center text-gray-500 mt-6">
-            Or email us directly at{" "}
-            <a href="mailto:gavinrgallant@gmail.com" className="text-[#8b6914] font-medium hover:underline">
-              gavinrgallant@gmail.com
-            </a>
-          </p>
-          <div className="text-center mt-4">
-            <Link href="/" className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
+            {/* Row 2 — Email */}
+            <div className="flex items-center gap-3 py-3 border-b border-gray-100">
+              <div className="w-8 h-8 rounded-lg bg-[#8b6914]/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-[#8b6914]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <a
+                href="mailto:gavinrgallant@gmail.com"
+                className="text-[#8b6914] text-sm font-medium hover:underline"
+              >
+                gavinrgallant@gmail.com
+              </a>
+            </div>
+
+            {/* Row 3 — Phone */}
+            <div className="flex items-center gap-3 py-3">
+              <div className="w-8 h-8 rounded-lg bg-[#8b6914]/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4 h-4 text-[#8b6914]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </div>
+              <a
+                href="tel:3432544536"
+                className="text-[#8b6914] text-sm font-medium hover:underline"
+              >
+                343-254-4536
+              </a>
+            </div>
+          </div>
+
+          <div className="text-center mt-6">
+            <Link href="/" className="text-sm text-[#6b6560] hover:text-[#2c2a26] transition-colors">
               ← Back to home
             </Link>
           </div>

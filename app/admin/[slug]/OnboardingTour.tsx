@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 const TOUR_KEY = "dinelinks_tour_v2_done";
 
@@ -47,6 +47,7 @@ const STEPS: Step[] = [
 ];
 
 type Rect = { top: number; left: number; width: number; height: number };
+type TipPos = { x: number; y: number; centered: boolean };
 
 function measure(id: string): Rect | null {
   if (typeof window === "undefined") return null;
@@ -57,16 +58,29 @@ function measure(id: string): Rect | null {
 }
 
 const GAP = 12;
+const TIP_W = 320;
 
-function tipPos(rect: Rect | null, placement?: Step["placement"]): React.CSSProperties {
-  if (!rect || !placement) return { top: "50%", left: "50%", transform: "translate(-50%,-50%)" };
+function calcTipPos(rect: Rect | null, placement?: Step["placement"]): TipPos {
+  if (!rect || !placement) {
+    const W = typeof window !== "undefined" ? window.innerWidth : 800;
+    const H = typeof window !== "undefined" ? window.innerHeight : 600;
+    return { x: W / 2 - TIP_W / 2, y: H / 2 - 100, centered: true };
+  }
   const W = typeof window !== "undefined" ? window.innerWidth : 800;
   switch (placement) {
-    case "bottom-left":  return { top: rect.top + rect.height + GAP, left: Math.min(rect.left, W - 336), transform: "none" };
-    case "bottom-right": return { top: rect.top + rect.height + GAP, right: W - rect.left - rect.width, transform: "none" };
-    case "left":         return { top: Math.max(16, rect.top), right: W - rect.left + GAP, transform: "none" };
-    case "below-center": return { top: rect.top + rect.height + GAP, left: Math.max(16, rect.left + rect.width / 2 - 160), transform: "none" };
-    default:             return { top: "50%", left: "50%", transform: "translate(-50%,-50%)" };
+    case "bottom-left":
+      return { x: Math.min(rect.left, W - TIP_W - 16), y: rect.top + rect.height + GAP, centered: false };
+    case "bottom-right":
+      return { x: Math.max(16, rect.left + rect.width - TIP_W), y: rect.top + rect.height + GAP, centered: false };
+    case "left":
+      return { x: Math.max(16, rect.left - TIP_W - GAP), y: Math.max(16, rect.top), centered: false };
+    case "below-center":
+      return { x: Math.max(16, rect.left + rect.width / 2 - TIP_W / 2), y: rect.top + rect.height + GAP, centered: false };
+    default: {
+      const W2 = typeof window !== "undefined" ? window.innerWidth : 800;
+      const H2 = typeof window !== "undefined" ? window.innerHeight : 600;
+      return { x: W2 / 2 - TIP_W / 2, y: H2 / 2 - 100, centered: true };
+    }
   }
 }
 
@@ -74,6 +88,8 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
   const [step, setStep]       = useState(0);
   const [visible, setVisible] = useState(false);
   const [rect, setRect]       = useState<Rect | null>(null);
+  const [tipPos, setTipPos]   = useState<TipPos>({ x: 0, y: 0, centered: true });
+  const rafRef                = useRef<number | null>(null);
 
   useEffect(() => {
     if (!localStorage.getItem(TOUR_KEY)) setVisible(true);
@@ -85,20 +101,27 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
 
   const current = STEPS[step];
 
-  const updateRect = useCallback(() => {
-    setRect(current.target ? measure(current.target) : null);
-  }, [current.target]);
+  const updatePosition = useCallback(() => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      const r = current.target ? measure(current.target) : null;
+      setRect(r);
+      setTipPos(calcTipPos(r, current.placement));
+      rafRef.current = null;
+    });
+  }, [current.target, current.placement]);
 
   useEffect(() => {
-    const t = setTimeout(updateRect, 80);
-    window.addEventListener("resize", updateRect);
-    window.addEventListener("scroll", updateRect, true);
+    const t = setTimeout(updatePosition, 80);
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
     return () => {
       clearTimeout(t);
-      window.removeEventListener("resize", updateRect);
-      window.removeEventListener("scroll", updateRect, true);
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-  }, [updateRect]);
+  }, [updatePosition]);
 
   const finish = useCallback(() => {
     localStorage.setItem(TOUR_KEY, "1");
@@ -110,25 +133,37 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
 
   if (!visible) return null;
 
-  const isCentered = !current.target;
-  const isFirst    = step === 0;
-  const isLast     = step === STEPS.length - 1;
+  const isFirst = step === 0;
+  const isLast  = step === STEPS.length - 1;
 
   return (
     <>
       <div className="fixed inset-0 z-[100] pointer-events-none" />
       {rect && (
-        <div className="fixed z-[101] pointer-events-none transition-all duration-200" style={{
-          top: rect.top - 5, left: rect.left - 5,
-          width: rect.width + 10, height: rect.height + 10,
-          borderRadius: 14,
-          boxShadow: "0 0 0 4px #8b6914, 0 0 0 9999px rgba(0,0,0,0.55)",
-        }} />
+        <div
+          className="fixed z-[101] pointer-events-none"
+          style={{
+            willChange: "transform",
+            transform: `translate3d(${rect.left - 5}px, ${rect.top - 5}px, 0)`,
+            width: rect.width + 10,
+            height: rect.height + 10,
+            borderRadius: 14,
+            boxShadow: "0 0 0 4px #8b6914, 0 0 0 9999px rgba(0,0,0,0.55)",
+            transition: "transform 200ms ease-out",
+          }}
+        />
       )}
       <div
         key={step}
         className="fixed z-[102] w-80 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-2xl border border-gray-100 p-5"
-        style={{ animation: 'modalIn 0.15s ease-out', ...(isCentered ? { top: "50%", left: "50%", transform: "translate(-50%,-50%)" } : tipPos(rect, current.placement)) }}
+        style={{
+          willChange: "transform, opacity",
+          transform: `translate3d(${tipPos.x}px, ${tipPos.y}px, 0)`,
+          top: 0,
+          left: 0,
+          transition: "transform 200ms ease-out, opacity 150ms ease-out",
+          animation: "modalIn 0.15s ease-out",
+        }}
       >
         <div className="flex items-start justify-between gap-3 mb-2">
           <h3 className="font-serif text-[17px] font-semibold text-gray-900 leading-snug">{current.title}</h3>
