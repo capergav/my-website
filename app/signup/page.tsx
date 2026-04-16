@@ -85,15 +85,16 @@ export default function SignupPage() {
 
       {/* Logo mark + card wrapper */}
       <div className="relative z-10 flex flex-col items-center w-full max-w-sm">
-        {/* Gold rounded icon above card */}
-        <div className="w-14 h-14 rounded-2xl bg-[#8b6914] flex items-center justify-center shadow-lg mb-3">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-          </svg>
-        </div>
-        {/* MenuSnap label */}
-        <p className="text-white text-xs font-semibold uppercase tracking-widest mb-5">MenuSnap</p>
+        {/* Gold rounded icon above card — links home */}
+        <Link href="/" className="flex flex-col items-center no-underline cursor-pointer mb-5">
+          <div className="w-14 h-14 rounded-2xl bg-[#8b6914] flex items-center justify-center shadow-lg mb-3">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
+          </div>
+          <p className="text-white text-xs font-semibold uppercase tracking-widest">DineLinks</p>
+        </Link>
 
         {/* Frosted glass card */}
         <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl border border-white/60 shadow-2xl p-8">

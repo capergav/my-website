@@ -24,8 +24,8 @@ const orbitron = Orbitron({ variable: "--font-orbitron", subsets: ["latin"], wei
 const cinzel = Cinzel({ variable: "--font-cinzel", subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
-  title: "MenuSnap",
-  description: "Beautiful digital menus for restaurants.",
+  title: "DineLinks",
+  description: "Beautiful digital menus for restaurants. Set up in 30 minutes, update in seconds.",
 };
 
 export const viewport: Viewport = {

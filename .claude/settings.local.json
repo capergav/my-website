@@ -3,7 +3,8 @@
     "allow": [
       "Bash(node -e \"const l = require\\('lucide-react'\\); ['IceCream','Beer','Soup','Egg','Sandwich','UtensilsCrossed','Coffee','Fish','Wine','Leaf','Utensils','Sparkles'].forEach\\(n => console.log\\(n, !!l[n]\\)\\)\")",
       "Bash(npx tsc:*)",
-      "Bash(node -e \"const l = require\\('lucide-react'\\); ['Salad','Pizza','Beef','Croissant','GlassWater','Flame','Soup','Sandwich','UtensilsCrossed','Coffee','Wine','Beer','Fish','IceCream'].forEach\\(n => console.log\\(n, !!l[n]\\)\\)\")"
+      "Bash(node -e \"const l = require\\('lucide-react'\\); ['Salad','Pizza','Beef','Croissant','GlassWater','Flame','Soup','Sandwich','UtensilsCrossed','Coffee','Wine','Beer','Fish','IceCream'].forEach\\(n => console.log\\(n, !!l[n]\\)\\)\")",
+      "mcp__claude_ai_Supabase__execute_sql"
     ]
   }
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 
-const TOUR_KEY = "menusnap_tour_v2_done";
+const TOUR_KEY = "dinelinks_tour_v2_done";
 
 type Step = {
   id: string;
@@ -15,7 +15,7 @@ type Step = {
 const STEPS: Step[] = [
   {
     id: "welcome",
-    title: "Welcome to MenuSnap 👋",
+    title: "Welcome to DineLinks 👋",
     body: "Let's take a quick tour so you can get your restaurant's digital menu live fast. You can skip at any time.",
   },
   {
@@ -126,8 +126,9 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
         }} />
       )}
       <div
+        key={step}
         className="fixed z-[102] w-80 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-2xl border border-gray-100 p-5"
-        style={isCentered ? { top: "50%", left: "50%", transform: "translate(-50%,-50%)" } : tipPos(rect, current.placement)}
+        style={{ animation: 'modalIn 0.15s ease-out', ...(isCentered ? { top: "50%", left: "50%", transform: "translate(-50%,-50%)" } : tipPos(rect, current.placement)) }}
       >
         <div className="flex items-start justify-between gap-3 mb-2">
           <h3 className="font-serif text-[17px] font-semibold text-gray-900 leading-snug">{current.title}</h3>

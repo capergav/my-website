@@ -92,7 +92,7 @@ export function LanguageDropdown() {
         <ul
           ref={popupRef}
           role="listbox"
-          style={popupStyle}
+          style={{ ...popupStyle, animation: 'dropIn 0.12s ease-out' }}
           className="py-1 rounded-xl bg-[var(--card)] border border-[var(--card-border)] shadow-2xl overflow-hidden"
         >
           {locales.map((opt) => (

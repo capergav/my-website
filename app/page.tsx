@@ -208,6 +208,12 @@ export default function HomePage() {
                 {label}
               </button>
             ))}
+            <Link
+              href="/contact"
+              className={`text-sm transition-colors ${scrolled ? "text-[#2c2a26]/70 hover:text-[#2c2a26]" : "text-white/90 hover:text-white"}`}
+            >
+              Contact
+            </Link>
           </div>
 
           <div className="flex items-center gap-3">
@@ -469,6 +475,146 @@ export default function HomePage() {
             <Link href={EXAMPLE_MENU_URL} className="text-[#8b6914] font-medium text-sm hover:underline">
               View example menu →
             </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── SECTION 5b — ADMIN PANEL SHOWCASE ──────────────────────────────── */}
+      <section className="bg-white py-24">
+        <div className="max-w-6xl mx-auto px-6">
+          <div data-animate="fade-up">
+            <p className="text-xs font-semibold tracking-widest text-[#8b6914] uppercase mb-3">ADMIN PANEL</p>
+            <h2 style={{ fontFamily: "Georgia, serif" }} className="text-4xl font-semibold text-[#2c2a26]">
+              Manage everything from one place
+            </h2>
+            <p className="text-lg text-[#6b6560] max-w-xl mt-4">
+              Add dishes, drag to reorder, upload photos, toggle availability, set your theme — all without touching a line of code.
+            </p>
+          </div>
+
+          {/* Admin panel mockup */}
+          <div className="max-w-4xl mx-auto mt-14 rounded-2xl overflow-hidden shadow-2xl border border-[#2c2a26]/10" data-animate="fade-up">
+
+            {/* 1. Header bar */}
+            <div className="bg-[#1a1816] relative" style={{ minHeight: "8rem" }}>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-4 left-6 flex items-center gap-2">
+                <svg width="20" height="18" viewBox="0 0 44 40" fill="none">
+                  <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#c9a030" strokeWidth="2.6" strokeLinejoin="round" />
+                  <line x1="26" y1="3" x2="26" y2="37" stroke="#faf8f5" strokeWidth="2.6" strokeLinecap="round" />
+                  <line x1="26" y1="37" x2="42" y2="37" stroke="#faf8f5" strokeWidth="2.6" strokeLinecap="round" />
+                </svg>
+                <span style={{ fontFamily: "Georgia, serif" }} className="text-white text-xl font-semibold">The Copper Table</span>
+              </div>
+              <div className="absolute top-4 right-4 flex gap-2">
+                <button type="button" className="bg-white/15 text-white text-xs px-3 py-1.5 rounded-lg border border-white/20 flex items-center gap-1">🎨 Theme</button>
+                <button type="button" className="bg-white/15 text-white text-xs px-3 py-1.5 rounded-lg border border-white/20 flex items-center gap-1">↗ View menu</button>
+                <button type="button" className="bg-white/15 text-white text-xs px-2 py-1.5 rounded-lg border border-white/20">?</button>
+              </div>
+            </div>
+
+            {/* 2. Category tab strip */}
+            <div className="bg-[#faf8f5] border-b border-[#2c2a26]/8 px-4 py-3 flex items-center gap-2">
+              <span className="bg-[#8b6914] text-white text-xs font-semibold px-4 py-1.5 rounded-xl">Mains</span>
+              <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl">Starters</span>
+              <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl">Desserts</span>
+              <button type="button" className="bg-[#8b6914] text-white text-xs px-4 py-1.5 rounded-xl ml-auto">+ Add item</button>
+            </div>
+
+            {/* 3. Category note editor */}
+            <div className="bg-[#faf8f5] mx-4 mt-3 rounded-xl border border-[#2c2a26]/8 px-4 py-3">
+              <p className="text-[10px] uppercase tracking-widest text-[#6b6560] mb-2">Note for &ldquo;Mains&rdquo;</p>
+              <div className="bg-white border border-[#2c2a26]/10 rounded-lg px-3 py-2 text-xs text-[#6b6560] w-full">
+                All mains served with seasonal vegetables.
+              </div>
+              <button type="button" className="mt-2 text-[10px] bg-[#8b6914] text-white px-3 py-1 rounded-lg">Save note</button>
+            </div>
+
+            {/* 4. Item cards */}
+            <div className="space-y-2 mx-4 mt-3 mb-4">
+
+              {/* Item 1 — Seared Duck Confit */}
+              <div className="flex items-stretch bg-white rounded-2xl border border-[#2c2a26]/8 overflow-hidden shadow-sm">
+                <div className="flex flex-col items-center justify-center px-2 gap-1 border-r border-[#2c2a26]/8 py-3">
+                  <span className="text-[#8b6914] text-xs leading-none">▲</span>
+                  <span className="text-[10px] text-[#6b6560]">1</span>
+                  <span className="text-[#8b6914] text-xs leading-none">▼</span>
+                </div>
+                <div className="w-20 h-20 bg-[#c9963a]/20 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                  <svg className="w-8 h-8 text-[#8b6914]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </div>
+                <div className="p-3 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <span style={{ fontFamily: "Georgia, serif" }} className="text-sm font-semibold text-[#2c2a26]">Seared Duck Confit</span>
+                    <span className="text-[#8b6914] text-sm font-bold flex-shrink-0">$24.00</span>
+                  </div>
+                  <div className="mt-1.5 flex gap-1.5 flex-wrap">
+                    <span className="text-[10px] bg-green-50 text-green-700 border border-green-200 rounded-full px-2 py-0.5">Available</span>
+                    <span className="text-[10px] bg-[#8b6914]/10 text-[#8b6914] rounded-lg px-2 py-0.5">Edit</span>
+                    <span className="text-[10px] bg-red-50 text-red-600 rounded-lg px-2 py-0.5">Delete</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Item 2 — Atlantic Salmon */}
+              <div className="flex items-stretch bg-white rounded-2xl border border-[#2c2a26]/8 overflow-hidden shadow-sm">
+                <div className="flex flex-col items-center justify-center px-2 gap-1 border-r border-[#2c2a26]/8 py-3">
+                  <span className="text-[#8b6914] text-xs leading-none">▲</span>
+                  <span className="text-[10px] text-[#6b6560]">2</span>
+                  <span className="text-[#8b6914] text-xs leading-none">▼</span>
+                </div>
+                <div className="w-20 h-20 bg-[#c9963a]/20 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                  <svg className="w-8 h-8 text-[#8b6914]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                </div>
+                <div className="p-3 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <span style={{ fontFamily: "Georgia, serif" }} className="text-sm font-semibold text-[#2c2a26]">Atlantic Salmon</span>
+                    <span className="text-[#8b6914] text-sm font-bold flex-shrink-0">$22.00</span>
+                  </div>
+                  <div className="mt-1 text-[10px] text-[#8b6914] font-medium">★ Chef&apos;s pick</div>
+                  <div className="mt-1.5 flex gap-1.5 flex-wrap">
+                    <span className="text-[10px] bg-red-50 text-red-600 border border-red-200 rounded-full px-2 py-0.5">Unavailable</span>
+                    <span className="text-[10px] bg-[#8b6914]/10 text-[#8b6914] rounded-lg px-2 py-0.5">Edit</span>
+                    <span className="text-[10px] bg-red-50 text-red-600 rounded-lg px-2 py-0.5">Delete</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 5. Bottom bar */}
+            <div className="bg-[#faf8f5] border-t border-[#2c2a26]/8 px-6 py-3 flex items-center justify-between">
+              <span className="text-xs text-[#6b6560]">2 items in Mains</span>
+              <span className="text-xs text-[#8b6914]">All changes saved ✓</span>
+            </div>
+          </div>
+
+          {/* Feature callouts */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-10 max-w-4xl mx-auto">
+            <div className="text-center" data-animate="fade-up">
+              <svg className="w-5 h-5 text-[#8b6914] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+              </svg>
+              <h3 className="text-sm font-semibold text-[#2c2a26] mt-2">Drag to reorder</h3>
+              <p className="text-xs text-[#6b6560] mt-1">Sort your menu items and categories in any order with one click</p>
+            </div>
+            <div className="text-center" data-animate="fade-up" style={{ transitionDelay: "0.1s" }}>
+              <svg className="w-5 h-5 text-[#8b6914] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
+              </svg>
+              <h3 className="text-sm font-semibold text-[#2c2a26] mt-2">Toggle availability</h3>
+              <p className="text-xs text-[#6b6560] mt-1">Mark items as unavailable in seconds. They hide from your menu instantly.</p>
+            </div>
+            <div className="text-center" data-animate="fade-up" style={{ transitionDelay: "0.2s" }}>
+              <svg className="w-5 h-5 text-[#8b6914] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+              </svg>
+              <h3 className="text-sm font-semibold text-[#2c2a26] mt-2">Live theme preview</h3>
+              <p className="text-xs text-[#6b6560] mt-1">Change colors and fonts and see your menu update in real time</p>
+            </div>
           </div>
         </div>
       </section>
@@ -790,6 +936,7 @@ export default function HomePage() {
             <button type="button" onClick={() => scrollTo("pricing")} className="hover:text-[#faf8f5]/80 transition-colors">
               Pricing
             </button>
+            <Link href="/contact" className="hover:text-[#faf8f5]/80 transition-colors">Contact</Link>
             <Link href="/login" className="hover:text-[#faf8f5]/80 transition-colors">Sign in</Link>
             <Link href="/signup" className="hover:text-[#faf8f5]/80 transition-colors">Sign up</Link>
           </div>

@@ -41,16 +41,21 @@ export default function ForgotPasswordPage() {
       />
       <div className="absolute inset-0 bg-black/30" />
 
-      {/* Frosted glass card */}
-      <div className="relative z-10 w-full max-w-sm bg-white/90 backdrop-blur-sm rounded-2xl border border-white/60 shadow-xl p-8">
-        {/* Gold book icon */}
-        <div className="flex justify-center mb-5">
-          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#8b6914" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-          </svg>
-        </div>
+      {/* Logo mark + card wrapper */}
+      <div className="relative z-10 flex flex-col items-center w-full max-w-sm">
+        {/* Gold rounded icon above card — links home */}
+        <Link href="/" className="flex flex-col items-center no-underline cursor-pointer mb-5">
+          <div className="w-14 h-14 rounded-2xl bg-[#8b6914] flex items-center justify-center shadow-lg mb-3">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+            </svg>
+          </div>
+          <p className="text-white text-xs font-semibold uppercase tracking-widest">DineLinks</p>
+        </Link>
 
+      {/* Frosted glass card */}
+      <div className="w-full bg-white/90 backdrop-blur-sm rounded-2xl border border-white/60 shadow-xl p-8">
         <h1 className="text-2xl font-serif font-semibold text-gray-900 mb-1 text-center">
           Reset your password
         </h1>
@@ -101,6 +106,7 @@ export default function ForgotPasswordPage() {
             </p>
           </>
         )}
+      </div>
       </div>
     </main>
   );

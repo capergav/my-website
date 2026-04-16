@@ -89,10 +89,10 @@ export function AdminMenuEditor({
     const bg  = restaurant.background_color  ?? D_BG;
     const cd  = restaurant.main_color        ?? D_CARD;
     const ff  = fontFamily(restaurant.font_family);
-    let el = document.getElementById("menusnap-theme") as HTMLStyleElement | null;
+    let el = document.getElementById("dinelinks-theme") as HTMLStyleElement | null;
     if (!el) {
       el = document.createElement("style");
-      el.id = "menusnap-theme";
+      el.id = "dinelinks-theme";
       document.head.appendChild(el);
     }
     el.textContent = `:root{--foreground:${fc};--accent:${acc};--background:${bg};--card:${cd};--card-border:${fc}22;--muted:${fc}99;}body{font-family:${ff};}`;
@@ -243,7 +243,7 @@ export function AdminMenuEditor({
         <div className="hidden sm:flex absolute top-4 end-4 items-center gap-2 z-20">
           <button
             type="button"
-            onClick={() => { localStorage.removeItem("menusnap_tour_v2_done"); setTourKey((k) => k + 1); }}
+            onClick={() => { localStorage.removeItem("dinelinks_tour_v2_done"); setTourKey((k) => k + 1); }}
             title="Reopen tour"
             className="min-h-[40px] w-10 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-bold border border-white/20 flex items-center justify-center transition-colors"
           >
@@ -300,11 +300,12 @@ export function AdminMenuEditor({
 
       {/* Mobile action sheet */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end sm:hidden"
-          onClick={() => setMobileOpen(false)}>
-          <div className="bg-white rounded-t-2xl shadow-2xl p-5 space-y-2"
-            onClick={(e) => e.stopPropagation()}>
-            <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-3" />
+        <div className="fixed inset-0 z-50 flex flex-col justify-start sm:hidden bg-black/40"
+          onClick={() => setMobileOpen(false)}
+          style={{ animation: 'fadeIn 0.15s ease-out' }}>
+          <div className="bg-white rounded-b-2xl shadow-2xl p-5 space-y-2"
+            onClick={(e) => e.stopPropagation()}
+            style={{ animation: 'slideDown 0.2s ease-out' }}>
             <SheetThemeButton restaurant={restaurant} onSave={handleSaveTheme} saving={saving}
               onClose={() => setMobileOpen(false)} />
             <a href={`/menu/${restaurantSlug}`} target="_blank" rel="noopener noreferrer"
@@ -620,8 +621,10 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
     <>
       {trigger}
       {open && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-[var(--card)] shadow-2xl">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
+          style={{ animation: 'fadeIn 0.15s ease-out' }}>
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-[var(--card)] shadow-2xl"
+            style={{ animation: 'modalIn 0.15s ease-out' }}>
             <div className="sticky top-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
               <div>
                 <h2 className="text-base font-semibold text-[var(--foreground)]">Theme & branding</h2>
@@ -779,8 +782,10 @@ function ItemForm({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
-      <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+      style={{ animation: 'fadeIn 0.15s ease-out' }}>
+      <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+        style={{ animation: 'modalIn 0.15s ease-out' }}>
         <div className="sticky top-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
           <h3 className="font-serif text-lg font-semibold text-[var(--foreground)]">{item ? "Edit item" : "Add item"}</h3>
           <button type="button" onClick={onCancel} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
