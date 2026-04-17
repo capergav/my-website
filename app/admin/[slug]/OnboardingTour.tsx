@@ -4,92 +4,115 @@ import { useState, useEffect, useCallback, useRef } from "react";
 
 const TOUR_KEY = "dinelinks_tour_v2_done";
 
+type Placement = "top" | "bottom" | "left" | "right";
+
 type Step = {
   id: string;
+  selector: string | null;
+  mobileSelector?: string | null;
+  requiresMobileSheet?: boolean;
   title: string;
-  body: string;
-  target?: string;
-  placement?: "bottom-left" | "bottom-right" | "below-center" | "left";
+  description: string;
+  placement: Placement;
 };
 
 const STEPS: Step[] = [
   {
     id: "welcome",
+    selector: null,
     title: "Welcome to DineLinks 👋",
-    body: "Let's take a quick tour so you can get your restaurant's digital menu live fast. You can skip at any time.",
+    description: "Let's take a quick tour so you can get your restaurant's digital menu live fast. You can skip at any time.",
+    placement: "bottom",
   },
   {
     id: "theme",
+    selector: "[data-tour='theme-btn-desktop']",
+    mobileSelector: "[data-tour='theme-btn-mobile']",
+    requiresMobileSheet: true,
     title: "Theme & Branding",
-    body: "Click here to customise your restaurant name, hero photo, colours, and font. Changes apply instantly.",
-    target: "tour-theme",
-    placement: "bottom-left",
+    description: "Click here to customise your restaurant name, hero photo, colours, and font. Changes apply instantly.",
+    placement: "bottom",
   },
   {
     id: "view-menu",
+    selector: "[data-tour='view-menu-desktop']",
+    mobileSelector: "[data-tour='view-menu-mobile']",
+    requiresMobileSheet: true,
     title: "View Your Public Menu",
-    body: "Opens the live menu your customers see. Share the link via your website, Instagram bio, or a printed QR code.",
-    target: "tour-view-menu",
-    placement: "bottom-left",
+    description: "Opens the live menu your customers see. Share the link via your website, Instagram bio, or a printed QR code.",
+    placement: "bottom",
   },
   {
     id: "add-item",
+    selector: "[data-tour='add-item']",
     title: "Add Your First Item",
-    body: "Click here to add a dish. Upload a photo, set the price, dietary flags, and availability.",
-    target: "tour-add-item",
+    description: "Click here to add a dish. Upload a photo, set the price, dietary flags, and availability.",
     placement: "left",
   },
   {
     id: "done",
+    selector: null,
     title: "You're all set! 🎉",
-    body: "Start by adding your first dish. Categories appear automatically. Reopen this tour anytime with the '?' button in the header.",
+    description: "Start by adding your first dish. Categories appear automatically. Reopen this tour anytime with the '?' button in the header.",
+    placement: "bottom",
   },
 ];
 
-type Rect = { top: number; left: number; width: number; height: number };
-type TipPos = { x: number; y: number; centered: boolean };
+const TIP_W = 320;
+const GAP = 12;
 
-function measure(id: string): Rect | null {
-  if (typeof window === "undefined") return null;
-  const el = document.querySelector(`[data-tour="${id}"]`);
-  if (!el) return null;
-  const r = el.getBoundingClientRect();
-  return { top: r.top, left: r.left, width: r.width, height: r.height };
+type Pos = {
+  x: number;
+  y: number;
+  spotX: number;
+  spotY: number;
+  spotW: number;
+  spotH: number;
+  hasSpt: boolean;
+};
+
+function centered(): Pos {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  return { x: W / 2 - TIP_W / 2, y: H / 2 - 110, spotX: 0, spotY: 0, spotW: 0, spotH: 0, hasSpt: false };
 }
 
-const GAP = 12;
-const TIP_W = 320;
+function calcPos(el: Element, placement: Placement): Pos {
+  const r = el.getBoundingClientRect();
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const spotX = r.left, spotY = r.top, spotW = r.width, spotH = r.height;
+  let x = 0, y = 0;
 
-function calcTipPos(rect: Rect | null, placement?: Step["placement"]): TipPos {
-  if (!rect || !placement) {
-    const W = typeof window !== "undefined" ? window.innerWidth : 800;
-    const H = typeof window !== "undefined" ? window.innerHeight : 600;
-    return { x: W / 2 - TIP_W / 2, y: H / 2 - 100, centered: true };
-  }
-  const W = typeof window !== "undefined" ? window.innerWidth : 800;
+  const tipH = 160;
   switch (placement) {
-    case "bottom-left":
-      return { x: Math.min(rect.left, W - TIP_W - 16), y: rect.top + rect.height + GAP, centered: false };
-    case "bottom-right":
-      return { x: Math.max(16, rect.left + rect.width - TIP_W), y: rect.top + rect.height + GAP, centered: false };
+    case "bottom":
+      x = Math.max(8, Math.min(r.left, W - TIP_W - 8));
+      y = Math.min(r.bottom + GAP, H - tipH - 8);
+      break;
+    case "top":
+      x = Math.max(8, Math.min(r.left, W - TIP_W - 8));
+      y = Math.max(8, r.top - tipH - GAP);
+      break;
     case "left":
-      return { x: Math.max(16, rect.left - TIP_W - GAP), y: Math.max(16, rect.top), centered: false };
-    case "below-center":
-      return { x: Math.max(16, rect.left + rect.width / 2 - TIP_W / 2), y: rect.top + rect.height + GAP, centered: false };
-    default: {
-      const W2 = typeof window !== "undefined" ? window.innerWidth : 800;
-      const H2 = typeof window !== "undefined" ? window.innerHeight : 600;
-      return { x: W2 / 2 - TIP_W / 2, y: H2 / 2 - 100, centered: true };
-    }
+      x = Math.max(8, r.left - TIP_W - GAP);
+      y = Math.max(8, Math.min(r.top, H - tipH - 8));
+      break;
+    case "right":
+      x = Math.min(r.right + GAP, W - TIP_W - 8);
+      y = Math.max(8, Math.min(r.top, H - tipH - 8));
+      break;
   }
+  return { x, y, spotX, spotY, spotW, spotH, hasSpt: true };
 }
 
 export function OnboardingTour({ tourKey }: { tourKey: number }) {
   const [step, setStep]       = useState(0);
   const [visible, setVisible] = useState(false);
-  const [rect, setRect]       = useState<Rect | null>(null);
-  const [tipPos, setTipPos]   = useState<TipPos>({ x: 0, y: 0, centered: true });
-  const rafRef                = useRef<number | null>(null);
+  const [isReady, setIsReady] = useState(false);
+  const [pos, setPos]         = useState<Pos>(centered);
+  const retryRef              = useRef(0);
+  const debounceRef           = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!localStorage.getItem(TOUR_KEY)) setVisible(true);
@@ -101,75 +124,127 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
 
   const current = STEPS[step];
 
-  const updatePosition = useCallback(() => {
-    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(() => {
-      const r = current.target ? measure(current.target) : null;
-      setRect(r);
-      setTipPos(calcTipPos(r, current.placement));
-      rafRef.current = null;
-    });
-  }, [current.target, current.placement]);
+  const calculate = useCallback(() => {
+    const isMobile = window.innerWidth < 768;
+    const selector = isMobile && current.mobileSelector
+      ? current.mobileSelector
+      : current.selector;
+
+    if (!selector) {
+      setPos(centered());
+      requestAnimationFrame(() => setIsReady(true));
+      return;
+    }
+
+    const el = document.querySelector(selector);
+    if (!el) {
+      if (retryRef.current < 5) {
+        retryRef.current++;
+        setTimeout(calculate, 100);
+      } else {
+        // give up — show centered
+        setPos(centered());
+        requestAnimationFrame(() => setIsReady(true));
+      }
+      return;
+    }
+
+    setPos(calcPos(el, current.placement));
+    requestAnimationFrame(() => setIsReady(true));
+  }, [current]);
 
   useEffect(() => {
-    const t = setTimeout(updatePosition, 80);
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-    return () => {
-      clearTimeout(t);
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    if (!visible) return;
+    retryRef.current = 0;
+    setIsReady(false);
+
+    const isMobile = window.innerWidth < 768;
+    if (isMobile && current.requiresMobileSheet) {
+      // Open mobile sheet if not already open
+      const hamburger = document.querySelector<HTMLButtonElement>("[data-tour='hamburger']");
+      const sheetOpen = document.body.dataset.mobileSheetOpen === "true";
+      if (hamburger && !sheetOpen) {
+        hamburger.click();
+        // Wait for sheet animation
+        setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(calculate)), 250);
+        return;
+      }
+    }
+
+    requestAnimationFrame(() => requestAnimationFrame(calculate));
+  }, [step, visible, calculate, current.requiresMobileSheet]);
+
+  // Resize / scroll → recalculate (debounced)
+  useEffect(() => {
+    if (!visible) return;
+    const handler = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => {
+        setIsReady(false);
+        requestAnimationFrame(() => requestAnimationFrame(calculate));
+      }, 100);
     };
-  }, [updatePosition]);
+    window.addEventListener("resize", handler);
+    window.addEventListener("scroll", handler, true);
+    return () => {
+      window.removeEventListener("resize", handler);
+      window.removeEventListener("scroll", handler, true);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [visible, calculate]);
 
   const finish = useCallback(() => {
     localStorage.setItem(TOUR_KEY, "1");
     setVisible(false);
   }, []);
 
-  const next = () => step < STEPS.length - 1 ? setStep((s) => s + 1) : finish();
-  const back = () => step > 0 && setStep((s) => s - 1);
+  const next = () => step < STEPS.length - 1 ? setStep(s => s + 1) : finish();
+  const back = () => step > 0 && setStep(s => s - 1);
 
   if (!visible) return null;
 
   const isFirst = step === 0;
   const isLast  = step === STEPS.length - 1;
 
+  const spotCx = pos.spotX + pos.spotW / 2;
+  const spotCy = pos.spotY + pos.spotH / 2;
+  const radius  = Math.max(pos.spotW, pos.spotH) / 2 + 4;
+
   return (
     <>
-      <div className="fixed inset-0 z-[100] pointer-events-none" />
-      {rect && (
-        <div
-          className="fixed z-[101] pointer-events-none"
-          style={{
-            willChange: "transform",
-            transform: `translate3d(${rect.left - 5}px, ${rect.top - 5}px, 0)`,
-            width: rect.width + 10,
-            height: rect.height + 10,
-            borderRadius: 14,
-            boxShadow: "0 0 0 4px #8b6914, 0 0 0 9999px rgba(0,0,0,0.55)",
-            transition: "transform 200ms ease-out",
-          }}
-        />
-      )}
+      {/* Spotlight overlay */}
       <div
-        key={step}
-        className="fixed z-[102] w-80 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-2xl border border-gray-100 p-5"
+        className="fixed inset-0 pointer-events-none"
         style={{
-          willChange: "transform, opacity",
-          transform: `translate3d(${tipPos.x}px, ${tipPos.y}px, 0)`,
+          zIndex: 9999,
+          background: "rgba(0,0,0,0.6)",
+          WebkitMaskImage: pos.hasSpt
+            ? `radial-gradient(circle at ${spotCx}px ${spotCy}px, transparent ${radius + 8}px, black ${radius + 12}px)`
+            : "none",
+          maskImage: pos.hasSpt
+            ? `radial-gradient(circle at ${spotCx}px ${spotCy}px, transparent ${radius + 8}px, black ${radius + 12}px)`
+            : "none",
+        }}
+      />
+
+      {/* Tooltip */}
+      <div
+        className="fixed w-80 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-2xl border border-gray-100 p-5"
+        style={{
+          zIndex: 10000,
           top: 0,
           left: 0,
-          transition: "transform 200ms ease-out, opacity 150ms ease-out",
-          animation: "modalIn 0.15s ease-out",
+          willChange: "transform, opacity",
+          transform: `translate3d(${pos.x}px, ${pos.y}px, 0)`,
+          opacity: isReady ? 1 : 0,
+          transition: `opacity 150ms ease-out, transform 250ms ease-out`,
         }}
       >
         <div className="flex items-start justify-between gap-3 mb-2">
           <h3 className="font-serif text-[17px] font-semibold text-gray-900 leading-snug">{current.title}</h3>
           <button type="button" onClick={finish} aria-label="Skip tour" className="shrink-0 text-gray-400 hover:text-gray-600 text-lg leading-none mt-0.5">✕</button>
         </div>
-        <p className="text-sm text-gray-500 leading-relaxed mb-4">{current.body}</p>
+        <p className="text-sm text-gray-500 leading-relaxed mb-4">{current.description}</p>
         <div className="flex items-center justify-between">
           <div className="flex gap-1.5 items-center">
             {STEPS.map((_, i) => (

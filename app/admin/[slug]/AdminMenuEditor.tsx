@@ -81,22 +81,7 @@ export function AdminMenuEditor({
   const [message, setMessage]                   = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [mobileOpen, setMobileOpen]             = useState(false);
   const [tourKey, setTourKey]                   = useState(0);
-  const [showQR, setShowQR]                     = useState(false);
-  const [qrDataUrl, setQrDataUrl]               = useState('');
-  const [qrFg, setQrFg]                         = useState('#000000');
-  const [qrBg, setQrBg]                         = useState('#ffffff');
-  const [qrSize, setQrSize]                     = useState(500);
-  const [qrIncludeLogo, setQrIncludeLogo]       = useState(true);
-  const [qrTemplate, setQrTemplate]             = useState(1);
-  const [qrTagline, setQrTagline]               = useState('Scan to view our menu');
-
-  // ── QR code generation ───────────────────────────────────────────────────
-  useEffect(() => {
-    if (!showQR) return;
-    const url = window.location.origin + '/menu/' + restaurantSlug;
-    QRCode.toDataURL(url, { width: 400, margin: 2, color: { dark: qrFg, light: qrBg } })
-      .then(setQrDataUrl);
-  }, [showQR, qrFg, qrBg, restaurantSlug]);
+  const [showQR, setShowQR] = useState(false);
 
   // ── Live theme — no reload needed ────────────────────────────────────────
   useEffect(() => {
@@ -245,8 +230,9 @@ export function AdminMenuEditor({
         {/* Mobile: single hamburger button */}
         <div className="sm:hidden absolute top-3 end-3 z-20">
           <button
+            data-tour="hamburger"
             type="button"
-            onClick={() => setMobileOpen(true)}
+            onClick={() => { setMobileOpen(true); document.body.dataset.mobileSheetOpen = "true"; }}
             className="w-10 h-10 rounded-xl bg-white/15 border border-white/25 text-white flex items-center justify-center"
             aria-label="Menu"
           >
@@ -266,7 +252,7 @@ export function AdminMenuEditor({
           >
             ?
           </button>
-          <ThemeModal restaurant={restaurant} onSave={handleSaveTheme} saving={saving} tourTarget="tour-theme" />
+          <ThemeModal restaurant={restaurant} onSave={handleSaveTheme} saving={saving} tourTarget="theme-btn-desktop" />
           <button
             type="button"
             onClick={() => setShowQR(true)}
@@ -281,7 +267,7 @@ export function AdminMenuEditor({
             QR Code
           </button>
           <a
-            data-tour="tour-view-menu"
+            data-tour="view-menu-desktop"
             href={`/menu/${restaurantSlug}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -331,15 +317,16 @@ export function AdminMenuEditor({
       {/* Mobile action sheet */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-start sm:hidden bg-black/40"
-          onClick={() => setMobileOpen(false)}
+          onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
           style={{ animation: 'fadeIn 0.15s ease-out' }}>
           <div className="bg-white rounded-b-2xl shadow-2xl p-5 space-y-2 max-h-[80vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             style={{ animation: 'slideDown 0.2s ease-out', transition: 'transform 200ms ease-out' }}>
             <SheetThemeButton restaurant={restaurant} onSave={handleSaveTheme} saving={saving}
-              onClose={() => setMobileOpen(false)} />
-            <a href={`/menu/${restaurantSlug}`} target="_blank" rel="noopener noreferrer"
-              onClick={() => setMobileOpen(false)}
+              onClose={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
+              tourTarget="theme-btn-mobile" />
+            <a data-tour="view-menu-mobile" href={`/menu/${restaurantSlug}`} target="_blank" rel="noopener noreferrer"
+              onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -355,7 +342,7 @@ export function AdminMenuEditor({
               </svg>
               Sign out
             </button>
-            <button type="button" onClick={() => setMobileOpen(false)}
+            <button type="button" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-500 text-sm font-medium">
               Cancel
             </button>
@@ -533,13 +520,6 @@ export function AdminMenuEditor({
         <QRModal
           slug={restaurantSlug}
           restaurant={restaurant}
-          qrDataUrl={qrDataUrl}
-          qrFg={qrFg} setQrFg={setQrFg}
-          qrBg={qrBg} setQrBg={setQrBg}
-          qrSize={qrSize} setQrSize={setQrSize}
-          qrIncludeLogo={qrIncludeLogo} setQrIncludeLogo={setQrIncludeLogo}
-          qrTemplate={qrTemplate} setQrTemplate={setQrTemplate}
-          qrTagline={qrTagline} setQrTagline={setQrTagline}
           onClose={() => setShowQR(false)}
         />
       )}
@@ -644,7 +624,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
   ] as const;
 
   const trigger = sheetMode ? (
-    <button type="button" onClick={() => setOpen(true)}
+    <button data-tour={tourTarget} type="button" onClick={() => setOpen(true)}
       className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-[var(--background)] text-[var(--foreground)] text-sm font-medium">
       <svg className="w-4 h-4 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -782,7 +762,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 }
 
 // Alias for mobile sheet (sheetMode=true)
-function SheetThemeButton(props: Omit<ThemeModalProps, "sheetMode">) {
+function SheetThemeButton(props: Omit<ThemeModalProps, "sheetMode"> & { tourTarget?: string }) {
   return <ThemeModal {...props} sheetMode />;
 }
 
@@ -865,15 +845,40 @@ function ItemForm({
                 <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Category</label>
                 <input
                   type="text"
-                  list="category-suggestions"
+                  list="cat-suggestions"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   placeholder="e.g. Mains"
                   className="w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
                 />
-                <datalist id="category-suggestions">
+                <datalist id="cat-suggestions">
                   {categories.map((c) => <option key={c} value={c} />)}
                 </datalist>
+                {(() => {
+                  const matched = categories.find(c => c.toLowerCase() === category.toLowerCase());
+                  if (matched) {
+                    return (
+                      <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
+                        Adding to existing &ldquo;{matched}&rdquo;
+                      </p>
+                    );
+                  }
+                  const suggestions = categories.filter(c => category.trim() && c.toLowerCase().includes(category.toLowerCase())).slice(0, 3);
+                  if (category.trim() && !matched && suggestions.length > 0) {
+                    return (
+                      <div className="mt-1 flex gap-1 flex-wrap">
+                        {suggestions.map(c => (
+                          <button key={c} type="button" onClick={() => setCategory(c)}
+                            className="text-xs bg-[#8b6914]/10 text-[#8b6914] rounded-lg px-2 py-1 hover:bg-[#8b6914]/20">
+                            Use &ldquo;{c}&rdquo;
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
               </div>
             </div>
             <div>
@@ -927,69 +932,216 @@ function ItemForm({
 
 // ── QR Code Modal ─────────────────────────────────────────────────────────────
 
-type QRModalProps = {
+const QR_STYLES_MAP = {
+  classic: { fg: "#000000", bg: "#ffffff" },
+  brand:   { fg: "#2c2a26", bg: "#faf8f5" },
+  gold:    { fg: "#8b6914", bg: "#ffffff" },
+  dark:    { fg: "#faf8f5", bg: "#2c2a26" },
+} as const;
+type QRStyleKey = keyof typeof QR_STYLES_MAP;
+
+const SIZES_MAP = { small: 600, medium: 900, large: 1400 } as const;
+type QRSizeKey = keyof typeof SIZES_MAP;
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => res(img);
+    img.onerror = rej;
+    img.src = src;
+  });
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+async function composeQR(opts: {
   slug: string;
-  restaurant: Restaurant | null;
-  qrDataUrl: string;
-  qrFg: string; setQrFg: (v: string) => void;
-  qrBg: string; setQrBg: (v: string) => void;
-  qrSize: number; setQrSize: (v: number) => void;
-  qrIncludeLogo: boolean; setQrIncludeLogo: (v: boolean) => void;
-  qrTemplate: number; setQrTemplate: (v: number) => void;
-  qrTagline: string; setQrTagline: (v: string) => void;
-  onClose: () => void;
-};
+  style: QRStyleKey;
+  template: "simple" | "tagline" | "table";
+  size: QRSizeKey;
+  includeLogo: boolean;
+  logoBg: boolean;
+  logoBgShape: "circle" | "square" | "rounded";
+  logoBgColor: string;
+  tagline: string;
+  header: string;
+  logoUrl: string | null;
+  canvas: HTMLCanvasElement;
+}) {
+  const { slug, style, template, size, includeLogo, logoBg, logoBgShape, logoBgColor, tagline, header, logoUrl, canvas } = opts;
+  const px = SIZES_MAP[size];
+  const st = QR_STYLES_MAP[style];
+  const url = window.location.origin + "/menu/" + slug;
 
-const QR_STYLES = [
-  { label: "Classic", fg: "#000000", bg: "#ffffff" },
-  { label: "Brand",   fg: "#2c2a26", bg: "#faf8f5" },
-  { label: "Gold",    fg: "#8b6914", bg: "#ffffff"  },
-  { label: "Dark",    fg: "#faf8f5", bg: "#2c2a26"  },
-];
+  const qrDataUrl = await QRCode.toDataURL(url, {
+    width: px, margin: 2,
+    color: { dark: st.fg, light: st.bg },
+    errorCorrectionLevel: "H",
+  });
 
-const QR_SIZES = [
-  { label: "Small (5×5cm)",  px: 300 },
-  { label: "Medium (8×8cm)", px: 500 },
-  { label: "Large (12×12cm)", px: 800 },
-];
+  const ctx = canvas.getContext("2d")!;
+  const padding = px * 0.06;
+  const headerH = template === "table" ? px * 0.12 : 0;
+  const taglineH = (template === "tagline" || template === "table") ? px * 0.08 : 0;
+  const watermarkH = px * 0.06;
 
-function QRModal({
-  slug, restaurant, qrDataUrl,
-  qrFg, setQrFg, qrBg, setQrBg,
-  qrSize, setQrSize,
-  qrIncludeLogo, setQrIncludeLogo,
-  qrTemplate, setQrTemplate,
-  qrTagline, setQrTagline,
-  onClose,
-}: QRModalProps) {
+  canvas.width = px + padding * 2;
+  canvas.height = headerH + px + taglineH + watermarkH + padding * (headerH ? 3 : 2);
+
+  ctx.fillStyle = st.bg;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  let y = padding;
+
+  if (template === "table") {
+    ctx.fillStyle = st.fg;
+    ctx.font = `bold ${px * 0.07}px Georgia, serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(header, canvas.width / 2, y + px * 0.08);
+    y += headerH + padding;
+  }
+
+  const qrImg = await loadImage(qrDataUrl);
+  const qrX = (canvas.width - px) / 2;
+  ctx.drawImage(qrImg, qrX, y, px, px);
+
+  if (includeLogo && logoUrl) {
+    try {
+      const logoImg = await loadImage(logoUrl);
+      const logoSize = px * 0.22;
+      const lx = (canvas.width - logoSize) / 2;
+      const ly = y + (px - logoSize) / 2;
+      if (logoBg) {
+        const pad = logoSize * 0.18;
+        ctx.fillStyle = logoBgColor;
+        if (logoBgShape === "circle") {
+          ctx.beginPath();
+          ctx.arc(canvas.width / 2, ly + logoSize / 2, (logoSize + pad * 2) / 2, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (logoBgShape === "rounded") {
+          roundRect(ctx, lx - pad, ly - pad, logoSize + pad * 2, logoSize + pad * 2, (logoSize + pad * 2) * 0.18);
+          ctx.fill();
+        } else {
+          ctx.fillRect(lx - pad, ly - pad, logoSize + pad * 2, logoSize + pad * 2);
+        }
+      }
+      ctx.drawImage(logoImg, lx, ly, logoSize, logoSize);
+    } catch { /* logo failed to load */ }
+  }
+
+  y += px + padding;
+
+  if (template === "tagline" || template === "table") {
+    ctx.fillStyle = st.fg;
+    ctx.font = `${px * 0.04}px Georgia, serif`;
+    ctx.textAlign = "center";
+    ctx.fillText(tagline, canvas.width / 2, y + px * 0.04);
+    y += taglineH;
+  }
+
+  // Watermark
+  ctx.globalAlpha = 0.55;
+  ctx.fillStyle = st.fg;
+  ctx.font = `${px * 0.022}px system-ui, -apple-system, sans-serif`;
+  ctx.textAlign = "right";
+  const wmY = canvas.height - padding * 0.5;
+  ctx.fillText("dinelinks.com", canvas.width - padding, wmY);
+  const dlX = canvas.width - padding - ctx.measureText("dinelinks.com").width - px * 0.025;
+  ctx.font = `bold ${px * 0.025 * 1.4}px Georgia, serif`;
+  ctx.fillText("DL", dlX, wmY);
+  ctx.globalAlpha = 1;
+}
+
+function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Restaurant | null; onClose: () => void }) {
   const logoUrl = (restaurant as Restaurant & { logo_url?: string | null })?.logo_url ?? null;
   const restaurantName = restaurant?.name ?? "Your Restaurant";
-  const menuUrl = typeof window !== "undefined" ? window.location.origin + '/menu/' + slug : '/menu/' + slug;
 
-  const downloadPng = async () => {
-    const dataUrl = await QRCode.toDataURL(menuUrl, { width: qrSize, margin: 2, color: { dark: qrFg, light: qrBg } });
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = "dinelinks-qr.png";
-    a.click();
+  const [qrStyle, setQrStyle]           = useState<QRStyleKey>("classic");
+  const [qrTemplate, setQrTemplate]     = useState<"simple" | "tagline" | "table">("simple");
+  const [qrSize, setQrSize]             = useState<QRSizeKey>("medium");
+  const [qrIncludeLogo, setQrIncludeLogo] = useState(true);
+  const [qrLogoBg, setQrLogoBg]         = useState(false);
+  const [qrLogoBgShape, setQrLogoBgShape] = useState<"circle" | "square" | "rounded">("circle");
+  const [qrLogoBgColor, setQrLogoBgColor] = useState("#ffffff");
+  const [qrTagline, setQrTagline]       = useState("Scan to view our menu");
+  const [qrHeader, setQrHeader]         = useState(restaurantName);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+  const downloadCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const commonOpts = useCallback(() => ({
+    slug,
+    style: qrStyle,
+    template: qrTemplate,
+    size: qrSize,
+    includeLogo: qrIncludeLogo,
+    logoBg: qrLogoBg,
+    logoBgShape: qrLogoBgShape,
+    logoBgColor: qrLogoBgColor,
+    tagline: qrTagline,
+    header: qrHeader,
+    logoUrl,
+  }), [slug, qrStyle, qrTemplate, qrSize, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrTagline, qrHeader, logoUrl]);
+
+  // Live preview at ~400px wide
+  useEffect(() => {
+    const canvas = previewCanvasRef.current;
+    if (!canvas) return;
+    const previewCanvas = document.createElement("canvas");
+    composeQR({ ...commonOpts(), size: "small", canvas: previewCanvas }).then(() => {
+      const ctx = canvas.getContext("2d")!;
+      canvas.width = previewCanvas.width;
+      canvas.height = previewCanvas.height;
+      ctx.drawImage(previewCanvas, 0, 0);
+    }).catch(() => {});
+  }, [commonOpts]);
+
+  const downloadQR = async () => {
+    setIsDownloading(true);
+    try {
+      const canvas = downloadCanvasRef.current ?? document.createElement("canvas");
+      await composeQR({ ...commonOpts(), canvas });
+      canvas.toBlob(blob => {
+        if (!blob) return;
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = `dinelinks-qr-${qrTemplate}-${qrStyle}-${qrSize}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      }, "image/png");
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
-  const downloadSvg = async () => {
-    const svgStr = await QRCode.toString(menuUrl, { type: 'svg', margin: 2, color: { dark: qrFg, light: qrBg } });
-    const blob = new Blob([svgStr], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "dinelinks-qr.svg";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
+    <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#8b6914] focus:ring-offset-2 ${checked ? "bg-[#8b6914]" : "bg-gray-200"}`}>
+      <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform mt-0.5 ml-0.5 ${checked ? "translate-x-5" : "translate-x-0"}`} />
+    </button>
+  );
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
-      style={{ animation: 'fadeIn 0.15s ease-out' }}>
+      style={{ animation: "fadeIn 0.15s ease-out" }}>
       <div className="flex flex-col w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl bg-[var(--card)] shadow-2xl"
-        style={{ animation: 'modalIn 0.15s ease-out' }}>
+        style={{ animation: "modalIn 0.15s ease-out" }}>
 
         {/* Header */}
         <div className="flex-shrink-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 flex items-center justify-between">
@@ -1004,89 +1156,56 @@ function QRModal({
           </button>
         </div>
 
-        {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
 
-          {/* QR Preview */}
-          <div className="text-center">
-            <div className="relative inline-block">
-              {qrDataUrl ? (
-                <img src={qrDataUrl} alt="QR code" className="w-48 h-48 mx-auto" style={{ imageRendering: "pixelated" }} />
-              ) : (
-                <div className="w-48 h-48 mx-auto bg-gray-100 rounded-xl flex items-center justify-center">
-                  <div className="w-6 h-6 border-2 border-[#8b6914] border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
-              {logoUrl && qrIncludeLogo && qrDataUrl && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <img src={logoUrl} alt="logo" className="w-12 h-12 rounded-lg object-cover border-2 border-white shadow" />
-                </div>
-              )}
-            </div>
-            <p className="text-xs text-[var(--muted)] mt-2">{restaurantName}</p>
+          {/* Live preview */}
+          <div className="flex justify-center">
+            <canvas
+              ref={previewCanvasRef}
+              className="max-w-[220px] w-full rounded-xl border border-[var(--card-border)] shadow-sm"
+              style={{ imageRendering: "pixelated" }}
+            />
           </div>
-
-          {/* Logo toggle */}
-          {logoUrl && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-[var(--foreground)]">Include logo in QR code</span>
-              <button type="button" role="switch" aria-checked={qrIncludeLogo}
-                onClick={() => setQrIncludeLogo(!qrIncludeLogo)}
-                className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#8b6914] focus:ring-offset-2 ${qrIncludeLogo ? "bg-[#8b6914]" : "bg-gray-200"}`}>
-                <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform mt-0.5 ml-0.5 ${qrIncludeLogo ? "translate-x-5" : "translate-x-0"}`} />
-              </button>
-            </div>
-          )}
 
           {/* Style */}
           <div>
             <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Style</p>
             <div className="flex gap-2 flex-wrap">
-              {QR_STYLES.map(s => (
-                <button key={s.label} type="button"
-                  onClick={() => { setQrFg(s.fg); setQrBg(s.bg); }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${qrFg === s.fg && qrBg === s.bg ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[#8b6914]/50"}`}>
-                  {s.label}
+              {(Object.entries(QR_STYLES_MAP) as [QRStyleKey, { fg: string; bg: string }][]).map(([key, s]) => (
+                <button key={key} type="button" onClick={() => setQrStyle(key)}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${qrStyle === key ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[#8b6914]/50"}`}>
+                  <span className="flex gap-1">
+                    <span className="inline-block w-3 h-3 rounded-full border border-gray-200" style={{ background: s.fg }} />
+                    <span className="inline-block w-3 h-3 rounded-full border border-gray-200" style={{ background: s.bg }} />
+                  </span>
+                  {key.charAt(0).toUpperCase() + key.slice(1)}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Size */}
+          {/* Template */}
           <div>
-            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Size</p>
-            <div className="flex gap-2 flex-wrap">
-              {QR_SIZES.map(s => (
-                <button key={s.label} type="button"
-                  onClick={() => setQrSize(s.px)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${qrSize === s.px ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[#8b6914]/50"}`}>
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Print template */}
-          <div>
-            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-3">Print template</p>
+            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-3">Template</p>
             <div className="grid grid-cols-3 gap-3">
-              {[
-                { id: 1, label: "QR Only" },
-                { id: 2, label: "With tagline" },
-                { id: 3, label: "Table card" },
-              ].map(t => (
-                <div key={t.id}
-                  onClick={() => setQrTemplate(t.id)}
+              {([
+                { id: "simple" as const, label: "QR only" },
+                { id: "tagline" as const, label: "With tagline" },
+                { id: "table" as const, label: "Table card" },
+              ]).map(t => (
+                <div key={t.id} onClick={() => setQrTemplate(t.id)}
                   className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all ${qrTemplate === t.id ? "border-[#8b6914]" : "border-[var(--card-border)] hover:border-[#8b6914]/40"}`}>
                   <div className="bg-white rounded-lg p-2 mb-2 flex flex-col items-center gap-1 min-h-[80px] justify-center border border-gray-100">
-                    {t.id === 3 && <span className="text-[9px] font-bold text-[#2c2a26] truncate w-full text-center">{restaurantName}</span>}
-                    <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center text-[8px] text-gray-400">QR</div>
-                    {t.id !== 1 && (
-                      <input type="text" value={qrTagline}
-                        onChange={e => setQrTagline(e.target.value)}
+                    {t.id === "table" && (
+                      <input type="text" value={qrHeader} onChange={e => setQrHeader(e.target.value)}
                         onClick={e => e.stopPropagation()}
-                        className="w-full text-center text-[9px] border border-gray-200 rounded px-1 py-0.5 mt-1"
-                      />
+                        className="w-full text-center text-[9px] border border-gray-200 rounded px-1 py-0.5 mb-1 font-bold" />
+                    )}
+                    <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-[8px] text-gray-400">QR</div>
+                    {(t.id === "tagline" || t.id === "table") && (
+                      <input type="text" value={qrTagline} onChange={e => setQrTagline(e.target.value)}
+                        onClick={e => e.stopPropagation()}
+                        className="w-full text-center text-[9px] border border-gray-200 rounded px-1 py-0.5 mt-1" />
                     )}
                   </div>
                   <span className="text-xs text-[var(--muted)]">{t.label}</span>
@@ -1094,19 +1213,65 @@ function QRModal({
               ))}
             </div>
           </div>
+
+          {/* Size */}
+          <div>
+            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Output size</p>
+            <div className="flex gap-2">
+              {(["small", "medium", "large"] as QRSizeKey[]).map(s => (
+                <button key={s} type="button" onClick={() => setQrSize(s)}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${qrSize === s ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[#8b6914]/50"}`}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Logo */}
+          {logoUrl && (
+            <div className="space-y-3 rounded-xl border border-[var(--card-border)] p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-[var(--foreground)]">Include logo in center</span>
+                <Toggle checked={qrIncludeLogo} onChange={setQrIncludeLogo} />
+              </div>
+              {qrIncludeLogo && (
+                <div className="space-y-3 pt-2 border-t border-[var(--card-border)]">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-[var(--foreground)]">Add background behind logo</span>
+                    <Toggle checked={qrLogoBg} onChange={setQrLogoBg} />
+                  </div>
+                  {qrLogoBg && (
+                    <div className="flex gap-3 items-center flex-wrap">
+                      {(["circle", "square", "rounded"] as const).map(shape => (
+                        <button key={shape} type="button" onClick={() => setQrLogoBgShape(shape)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${qrLogoBgShape === shape ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-[var(--card-border)] text-[var(--foreground)]"}`}>
+                          {shape}
+                        </button>
+                      ))}
+                      <div className="flex items-center gap-2 ml-auto">
+                        <span className="text-xs text-[var(--muted)]">Color</span>
+                        <div className="relative w-8 h-8">
+                          <input type="color" value={qrLogoBgColor} onChange={e => setQrLogoBgColor(e.target.value)}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                          <div className="w-8 h-8 rounded-lg border-2 border-[var(--card-border)] shadow-sm" style={{ background: qrLogoBgColor }} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Footer — download buttons */}
-        <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)] flex gap-3">
-          <button type="button" onClick={downloadPng}
-            className="flex-1 py-2.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm hover:opacity-90 transition-opacity">
-            Download PNG
-          </button>
-          <button type="button" onClick={downloadSvg}
-            className="flex-1 py-2.5 rounded-xl border border-[#8b6914] text-[#8b6914] font-medium text-sm hover:bg-[#8b6914]/5 transition-colors">
-            Download SVG
+        {/* Footer */}
+        <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)]">
+          <button type="button" onClick={downloadQR} disabled={isDownloading}
+            className="w-full py-2.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
+            {isDownloading ? "Generating…" : "Download PNG"}
           </button>
         </div>
+        <canvas ref={downloadCanvasRef} className="hidden" />
       </div>
     </div>
   );

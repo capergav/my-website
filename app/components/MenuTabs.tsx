@@ -175,8 +175,11 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
     <>
       {/* Category tab strip */}
       <div className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
-        <div className="max-w-4xl mx-auto px-3 sm:px-6">
-          <div className="tabs-scroll flex gap-3 overflow-x-auto py-4 scrollbar-none px-1">
+        <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
+          {/* Left/right fade edges */}
+          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-r from-[var(--background)] to-transparent" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-l from-[var(--background)] to-transparent" />
+          <div className="tabs-scroll flex gap-3 overflow-x-auto py-4 scrollbar-none px-1 snap-x snap-mandatory">
             {sortedCategories.map((category) => {
               const firstImg = (grouped[category] ?? [])[0]?.image_url ?? null;
               const isActive = activeCategory === category;
@@ -185,14 +188,14 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                   key={category}
                   type="button"
                   onClick={() => { setActiveCategory(category); setDietFilter("all"); }}
-                  className={`flex-shrink-0 w-[72px] sm:w-24 flex flex-col items-center gap-1.5 rounded-2xl transition-all duration-200 touch-manipulation py-2 ${
+                  className={`flex-shrink-0 w-[72px] sm:w-24 flex flex-col items-center gap-1.5 rounded-2xl transition-all duration-200 touch-manipulation py-2 snap-start ${
                     isActive
                       ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--background)] shadow-md"
-                      : "opacity-75 hover:opacity-100"
+                      : "opacity-70 hover:opacity-100"
                   }`}
                 >
                   {/* Thumbnail */}
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden flex-shrink-0">
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden flex-shrink-0 transition-all duration-200">
                     {firstImg ? (
                       <img src={firstImg} alt="" className="w-full h-full object-cover" />
                     ) : (
@@ -246,13 +249,13 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
         <DietaryLegend items={rawItems} />
 
         {/* Items */}
-        <div className="space-y-3 sm:space-y-4 mt-4">
+        <div className="space-y-3 sm:space-y-4 mt-4" key={activeCategory}>
           {items.length === 0 && (
             <p className="text-center text-[var(--muted)] py-12 text-sm">
               No items match this filter.
             </p>
           )}
-          {items.map((item) => (
+          {items.map((item, idx) => (
             <article
               key={item.id}
               role="button"
@@ -264,7 +267,8 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                   setSelectedItem(item);
                 }
               }}
-              className="bg-[var(--card)] rounded-2xl overflow-hidden border border-[var(--card-border)] shadow-sm hover:shadow-md hover:border-[var(--accent)]/20 transition-all duration-200 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 touch-manipulation flex flex-row"
+              style={{ animationDelay: `${idx * 50}ms`, animationFillMode: "both" }}
+              className="menu-item-enter bg-[var(--card)] rounded-2xl overflow-hidden border border-[var(--card-border)] shadow-sm hover:shadow-lg hover:border-[var(--accent)]/20 transition-all duration-300 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 touch-manipulation flex flex-row"
             >
               {/* Image on the left — only when present */}
               {item.image_url && (
@@ -272,7 +276,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                   <img
                     src={item.image_url}
                     alt={item.name}
-                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
                   />
                 </div>
               )}

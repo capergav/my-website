@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { WheatOff, Flame, Leaf } from "lucide-react";
 
@@ -40,12 +40,12 @@ function DLLogoDark({ width = 44, height = 40 }: { width?: number; height?: numb
   );
 }
 
-function DLLogoNav({ scrolled, width = 32, height = 29 }: { scrolled: boolean; width?: number; height?: number }) {
+function DLLogoNav({ scrolled: _scrolled, width = 32, height = 29 }: { scrolled: boolean; width?: number; height?: number }) {
   return (
     <svg width={width} height={height} viewBox="0 0 44 40" fill="none">
-      <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke={scrolled ? "#8b6914" : "#c9a030"} strokeWidth="2.6" strokeLinejoin="round" />
-      <line x1="26" y1="3" x2="26" y2="37" stroke={scrolled ? "#2c2a26" : "#ffffff"} strokeWidth="2.6" strokeLinecap="round" />
-      <line x1="26" y1="37" x2="42" y2="37" stroke={scrolled ? "#2c2a26" : "#ffffff"} strokeWidth="2.6" strokeLinecap="round" />
+      <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#8b6914" strokeWidth="2.6" strokeLinejoin="round" />
+      <line x1="26" y1="3" x2="26" y2="37" stroke="#2c2a26" strokeWidth="2.6" strokeLinecap="round" />
+      <line x1="26" y1="37" x2="42" y2="37" stroke="#2c2a26" strokeWidth="2.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -150,15 +150,54 @@ const LANGUAGES = [
   { flag: "🇰🇷", name: "한국어" },
 ];
 
+function useCountUp(target: number | string, isVisible: boolean) {
+  const [current, setCurrent] = useState<number | string>(typeof target === "number" ? 0 : target);
+  useEffect(() => {
+    if (!isVisible || typeof target !== "number") {
+      if (typeof target !== "number") setCurrent(target);
+      return;
+    }
+    const start = performance.now();
+    let raf: number;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / 1500);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setCurrent(Math.round(target * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [isVisible, target]);
+  return current;
+}
+
+function StatNumber({ target, isVisible }: { target: number | string; isVisible: boolean }) {
+  const val = useCountUp(target, isVisible);
+  return <>{val}</>;
+}
+
 export default function HomePage() {
   const [scrolled, setScrolled] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+  const [statsVisible, setStatsVisible] = useState(false);
+  const statsRef = useRef<HTMLDivElement>(null);
 
   useScrollAnimation();
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 30);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 30);
+      setScrollY(window.scrollY);
+    };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!statsRef.current) return;
+    const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setStatsVisible(true); obs.disconnect(); } }, { threshold: 0.3 });
+    obs.observe(statsRef.current);
+    return () => obs.disconnect();
   }, []);
 
   const scrollTo = (id: string) => {
@@ -172,10 +211,25 @@ export default function HomePage() {
         [data-animate="fade-left"]{transform:translateX(-28px)}
         [data-animate="fade-right"]{transform:translateX(28px)}
         [data-animate].is-visible{opacity:1;transform:none}
-        @media(prefers-reduced-motion:reduce){[data-animate]{opacity:1;transform:none;transition:none}}
+        @media(prefers-reduced-motion:reduce){[data-animate]{opacity:1;transform:none;transition:none}
+          .anim-float{animation:none}.cta-shine::after{display:none}.shimmer-text{animation:none;color:#c9a030;-webkit-background-clip:unset;background-clip:unset}}
         @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-14px)}}
         @keyframes wave{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-6px) rotate(1deg)}}
         .anim-float{animation:float 3.8s ease-in-out infinite}
+        @keyframes shine{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}
+        .cta-shine{position:relative;overflow:hidden}
+        .cta-shine::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 40%,rgba(255,255,255,0.2) 50%,transparent 60%);transform:translateX(-100%);pointer-events:none}
+        .cta-shine:hover::after{animation:shine 700ms ease-out}
+        .feature-card{transition:all 0.3s ease}
+        .feature-card:hover{box-shadow:0 10px 30px -10px rgba(139,105,20,0.35);transform:translateY(-4px)}
+        .theme-cards-grid{perspective:800px}
+        .theme-card{transition:transform 400ms ease-out}
+        .theme-card:hover{transform:translateY(-4px) rotateY(-3deg)}
+        @keyframes shimmer{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+        .shimmer-text{background:linear-gradient(90deg,#faf8f5 0%,#c9a030 50%,#faf8f5 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shimmer 6s ease-in-out infinite}
+        .section-headline{position:relative;display:inline-block}
+        .section-headline::after{content:'';position:absolute;bottom:-6px;left:0;width:80px;height:2px;background:#8b6914;transform:scaleX(0);transform-origin:left;transition:transform 500ms ease-out 100ms}
+        [data-animate].is-visible .section-headline::after,.section-headline.is-visible::after{transform:scaleX(1)}
       `}</style>
 
       {/* ── SECTION 1 — NAVBAR ──────────────────────────────────────────────── */}
@@ -188,8 +242,8 @@ export default function HomePage() {
           <Link href="/" className="flex items-center gap-2.5">
             <DLLogoNav scrolled={scrolled} width={32} height={29} />
             <span className="text-xl select-none">
-              <span style={{ fontFamily: "Georgia, serif", color: scrolled ? "#2c2a26" : "#ffffff", fontWeight: 400 }}>Dine</span>
-              <span style={{ fontFamily: "Georgia, serif", color: scrolled ? "#8b6914" : "#c9a030", fontWeight: 700 }}>Links</span>
+              <span style={{ fontFamily: "Georgia, serif", color: "#2c2a26", fontWeight: 400 }}>Dine</span>
+              <span style={{ fontFamily: "Georgia, serif", color: "#8b6914", fontWeight: 700 }}>Links</span>
             </span>
           </Link>
 
@@ -204,14 +258,14 @@ export default function HomePage() {
                 key={id}
                 type="button"
                 onClick={() => scrollTo(id)}
-                className={`text-sm transition-colors ${scrolled ? "text-[#2c2a26]/70 hover:text-[#2c2a26]" : "text-white/90 hover:text-white"}`}
+                className={`text-sm transition-colors ${scrolled ? "text-[#2c2a26]/70 hover:text-[#2c2a26]" : "text-[#2c2a26]/80 hover:text-[#2c2a26]"}`}
               >
                 {label}
               </button>
             ))}
             <Link
               href="/contact"
-              className={`text-sm transition-colors ${scrolled ? "text-[#2c2a26]/70 hover:text-[#2c2a26]" : "text-white/90 hover:text-white"}`}
+              className={`text-sm transition-colors ${scrolled ? "text-[#2c2a26]/70 hover:text-[#2c2a26]" : "text-[#2c2a26]/80 hover:text-[#2c2a26]"}`}
             >
               Contact
             </Link>
@@ -220,13 +274,13 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className={`text-sm transition-colors ${scrolled ? "text-[#2c2a26] hover:text-[#8b6914]" : "text-white/80 hover:text-white"}`}
+              className={`text-sm transition-colors ${scrolled ? "text-[#2c2a26] hover:text-[#8b6914]" : "text-[#2c2a26]/80 hover:text-[#2c2a26]"}`}
             >
               Sign in
             </Link>
             <Link
               href="/signup"
-              className={`rounded-xl px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity ${scrolled ? "bg-[#8b6914] text-white" : "bg-white text-[#8b6914]"}`}
+              className="rounded-xl px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity bg-[#8b6914] text-white"
             >
               Get started free
             </Link>
@@ -252,7 +306,7 @@ export default function HomePage() {
             <div className="flex gap-4 mt-8 flex-wrap">
               <Link
                 href="/signup"
-                className="bg-[#8b6914] text-white rounded-xl px-7 py-3.5 text-base font-semibold hover:opacity-90 transition-opacity"
+                className="cta-shine bg-[#8b6914] text-white rounded-xl px-7 py-3.5 text-base font-semibold hover:opacity-90 transition-opacity"
               >
                 Get started →
               </Link>
@@ -272,6 +326,7 @@ export default function HomePage() {
 
           {/* Right column — phone mockup */}
           <div className="flex-1 flex flex-col items-center" data-animate="fade-left">
+            <div style={{ transform: `translateY(${Math.min(60, scrollY * 0.08)}px)`, willChange: "transform" }}>
             <div className="anim-float rounded-3xl overflow-hidden shadow-2xl border-4 border-[#2c2a26]/10 max-w-sm w-full mx-auto bg-white">
               {/* Hero bar */}
               <div className="relative h-48 overflow-hidden">
@@ -286,10 +341,19 @@ export default function HomePage() {
               </div>
 
               {/* Category tabs */}
-              <div className="bg-white border-b border-gray-100 px-3 py-2 flex gap-2">
-                <span className="text-gray-400 text-xs px-3 py-1">Starters</span>
-                <span className="bg-[#b45309]/10 text-[#b45309] border border-[#b45309]/30 rounded-xl px-3 py-1 text-xs font-semibold">Mains</span>
-                <span className="text-gray-400 text-xs px-3 py-1">Desserts</span>
+              <div className="bg-white border-b border-gray-100 flex gap-3 px-3 py-3 overflow-x-auto">
+                {[
+                  { name: "Starters", img: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=150&q=70", active: false },
+                  { name: "Mains",    img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&q=70", active: true  },
+                  { name: "Desserts", img: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=150&q=70", active: false },
+                ].map(cat => (
+                  <button key={cat.name} type="button" className="flex flex-col items-center gap-1 flex-shrink-0">
+                    <div className={`w-12 h-12 rounded-xl overflow-hidden ${cat.active ? "ring-2 ring-[#b45309] ring-offset-2" : ""}`}>
+                      <img src={cat.img} className="w-full h-full object-cover" alt={cat.name} />
+                    </div>
+                    <span className={`text-[10px] font-semibold uppercase tracking-wide ${cat.active ? "text-[#b45309]" : "text-gray-400"}`}>{cat.name}</span>
+                  </button>
+                ))}
               </div>
 
               {/* Dietary legend */}
@@ -321,6 +385,7 @@ export default function HomePage() {
 
               <p className="px-3 pb-3 text-center text-[10px] text-gray-300">Tap any item to see details</p>
             </div>
+            </div>
 
             <p className="hidden lg:block mt-4 text-center text-xs text-[#8b6914]/70">
               ↑ Example menu built with DineLinks
@@ -332,15 +397,17 @@ export default function HomePage() {
       {/* ── SECTION 3 — STATS BAR ───────────────────────────────────────────── */}
       <section className="bg-[#2c2a26] py-14">
         <div className="max-w-4xl mx-auto px-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8" data-animate>
+          <div ref={statsRef} className="grid grid-cols-2 lg:grid-cols-4 gap-8" data-animate>
             {[
-              { num: "30 min", label: "Average setup time" },
-              { num: "0", label: "Reprints after going digital" },
-              { num: "7", label: "Languages supported" },
-              { num: "Always", label: "Up-to-date menu" },
-            ].map(({ num, label }) => (
+              { target: "30 min", label: "Average setup time" },
+              { target: 0,        label: "Reprints after going digital" },
+              { target: 7,        label: "Languages supported" },
+              { target: "Always", label: "Up-to-date menu" },
+            ].map(({ target, label }) => (
               <div key={label} className="text-center">
-                <p style={{ fontFamily: "Georgia, serif" }} className="text-4xl font-semibold text-[#c9a030]">{num}</p>
+                <p style={{ fontFamily: "Georgia, serif" }} className="text-4xl font-semibold text-[#c9a030]">
+                  <StatNumber target={target} isVisible={statsVisible} />
+                </p>
                 <p className="text-sm text-[#faf8f5]/60 mt-1">{label}</p>
               </div>
             ))}
@@ -367,7 +434,7 @@ export default function HomePage() {
                 key={f.title}
                 data-animate="fade-up"
                 style={{ transitionDelay: `${i * 0.1}s` }}
-                className="bg-white rounded-2xl border border-[#2c2a26]/8 p-6 hover:-translate-y-1 hover:border-[#8b6914]/40 hover:shadow-lg transition-all duration-300"
+                className="feature-card bg-white rounded-2xl border border-[#2c2a26]/8 p-6 hover:border-[#8b6914]/40 transition-all duration-300"
               >
                 <div className="w-10 h-10 rounded-xl bg-[#8b6914]/10 flex items-center justify-center mb-4 text-[#8b6914]">
                   {f.icon}
@@ -421,10 +488,19 @@ export default function HomePage() {
               </div>
 
               {/* Tab strip */}
-              <div className="bg-[#fdf8f3]/95 backdrop-blur-sm border-b border-[#b45309]/10 px-4 py-3 flex gap-2">
-                <span className="text-gray-400 text-xs px-3 py-1 rounded-xl">Starters</span>
-                <span className="bg-[#b45309]/10 text-[#b45309] border border-[#b45309]/30 rounded-xl px-3 py-1 text-xs font-semibold">Mains</span>
-                <span className="text-gray-400 text-xs px-3 py-1 rounded-xl">Desserts</span>
+              <div className="bg-[#fdf8f3]/95 backdrop-blur-sm border-b border-[#b45309]/10 flex gap-3 px-4 py-3 overflow-x-auto">
+                {[
+                  { name: "Starters", img: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=150&q=70", active: false },
+                  { name: "Mains",    img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&q=70", active: true  },
+                  { name: "Desserts", img: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=150&q=70", active: false },
+                ].map(cat => (
+                  <button key={cat.name} type="button" className="flex flex-col items-center gap-1 flex-shrink-0">
+                    <div className={`w-12 h-12 rounded-xl overflow-hidden ${cat.active ? "ring-2 ring-[#b45309] ring-offset-2" : ""}`}>
+                      <img src={cat.img} className="w-full h-full object-cover" alt={cat.name} />
+                    </div>
+                    <span className={`text-[10px] font-semibold uppercase tracking-wide ${cat.active ? "text-[#b45309]" : "text-gray-400"}`}>{cat.name}</span>
+                  </button>
+                ))}
               </div>
 
               {/* Dietary legend */}
@@ -497,14 +573,11 @@ export default function HomePage() {
           <div className="max-w-4xl mx-auto mt-14 rounded-2xl overflow-hidden shadow-2xl border border-[#2c2a26]/10" data-animate="fade-up">
 
             {/* 1. Header bar */}
-            <div className="bg-[#1a1816] relative" style={{ minHeight: "8rem" }}>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <div className="relative h-32 overflow-hidden">
+              <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80" className="w-full h-full object-cover" alt="" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#1a1816] via-[#1a1816]/70 to-[#1a1816]/30" />
               <div className="absolute bottom-4 left-6 flex items-center gap-2">
-                <svg width="20" height="18" viewBox="0 0 44 40" fill="none">
-                  <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#c9a030" strokeWidth="2.6" strokeLinejoin="round" />
-                  <line x1="26" y1="3" x2="26" y2="37" stroke="#faf8f5" strokeWidth="2.6" strokeLinecap="round" />
-                  <line x1="26" y1="37" x2="42" y2="37" stroke="#faf8f5" strokeWidth="2.6" strokeLinecap="round" />
-                </svg>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="none" stroke="#c9a030" strokeWidth="1.5"/><text x="12" y="17" textAnchor="middle" fill="#c9a030" fontFamily="Georgia,serif" fontSize="13" fontWeight="600">C</text></svg>
                 <span style={{ fontFamily: "Georgia, serif" }} className="text-white text-xl font-semibold">The Copper Table</span>
               </div>
               <div className="absolute top-4 right-4 flex gap-2">
@@ -541,11 +614,7 @@ export default function HomePage() {
                   <span className="text-[10px] text-[#6b6560]">1</span>
                   <span className="text-[#8b6914] text-xs leading-none">▼</span>
                 </div>
-                <div className="w-20 h-20 bg-[#c9963a]/20 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                  <svg className="w-8 h-8 text-[#8b6914]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
-                </div>
+                <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=75" className="w-20 h-20 object-cover flex-shrink-0" alt="Seared Duck Confit" />
                 <div className="p-3 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <span style={{ fontFamily: "Georgia, serif" }} className="text-sm font-semibold text-[#2c2a26]">Seared Duck Confit</span>
@@ -566,11 +635,7 @@ export default function HomePage() {
                   <span className="text-[10px] text-[#6b6560]">2</span>
                   <span className="text-[#8b6914] text-xs leading-none">▼</span>
                 </div>
-                <div className="w-20 h-20 bg-[#c9963a]/20 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                  <svg className="w-8 h-8 text-[#8b6914]/40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                  </svg>
-                </div>
+                <img src="https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=200&q=75" className="w-20 h-20 object-cover flex-shrink-0" alt="Atlantic Salmon" />
                 <div className="p-3 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <span style={{ fontFamily: "Georgia, serif" }} className="text-sm font-semibold text-[#2c2a26]">Atlantic Salmon</span>
@@ -704,11 +769,11 @@ export default function HomePage() {
             Your menu should look like your restaurant, not a template. Choose any colors, fonts, and upload your own photos.
           </p>
 
-          <div className="flex flex-col sm:flex-row justify-center gap-6 mt-14 items-start">
+          <div className="theme-cards-grid flex flex-col sm:flex-row justify-center gap-6 mt-14 items-start">
 
             {/* Card 1 — Villa Romana (Italian fine dining, dark wine) */}
             <div
-              className="anim-float rounded-2xl overflow-hidden shadow-lg border border-[#c9963a]/20 flex-shrink-0 w-full sm:w-48"
+              className="theme-card anim-float rounded-2xl overflow-hidden shadow-lg border border-[#c9963a]/20 flex-shrink-0 w-full sm:w-48"
               style={{ background: "#1a0a0a", animationDelay: "0s" }}
             >
               <div className="h-20 relative overflow-hidden">
@@ -741,7 +806,7 @@ export default function HomePage() {
 
             {/* Card 2 — Takumi (modern Japanese, dark + teal) */}
             <div
-              className="anim-float rounded-2xl overflow-hidden shadow-lg border border-[#00d4aa]/20 flex-shrink-0 w-full sm:w-48"
+              className="theme-card anim-float rounded-2xl overflow-hidden shadow-lg border border-[#00d4aa]/20 flex-shrink-0 w-full sm:w-48"
               style={{ background: "#0d0d0d", animationDelay: "0.7s" }}
             >
               <div className="h-20 relative overflow-hidden">
@@ -774,7 +839,7 @@ export default function HomePage() {
 
             {/* Card 3 — Sol Café (beachside, bright orange) */}
             <div
-              className="anim-float rounded-2xl overflow-hidden shadow-lg border border-[#f97316]/20 flex-shrink-0 w-full sm:w-48"
+              className="theme-card anim-float rounded-2xl overflow-hidden shadow-lg border border-[#f97316]/20 flex-shrink-0 w-full sm:w-48"
               style={{ background: "#fff8ed", animationDelay: "1.4s" }}
             >
               <div className="h-20 relative overflow-hidden">
@@ -879,7 +944,7 @@ export default function HomePage() {
           </p>
           <Link
             href="/signup"
-            className="mt-10 inline-block bg-white text-[#8b6914] font-semibold text-lg px-10 py-4 rounded-xl hover:bg-[#faf8f5] transition-colors shadow-lg"
+            className="cta-shine mt-10 inline-block bg-white text-[#8b6914] font-semibold text-lg px-10 py-4 rounded-xl hover:bg-[#faf8f5] transition-colors shadow-lg"
           >
             Get started →
           </Link>
@@ -892,9 +957,8 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2.5">
             <DLLogoDark width={32} height={29} />
-            <span className="text-lg select-none">
-              <span style={{ fontFamily: "Georgia, serif", color: "#faf8f5", fontWeight: 400 }}>Dine</span>
-              <span style={{ fontFamily: "Georgia, serif", color: "#c9a030", fontWeight: 700 }}>Links</span>
+            <span className="text-lg select-none" style={{ fontFamily: "Georgia, serif", fontWeight: 700 }}>
+              <span className="shimmer-text">DineLinks</span>
             </span>
           </div>
 

@@ -107,3 +107,13 @@ body {
   from { transform: translateY(-100%); }
   to   { transform: translateY(0); }
 }
+@keyframes menuItemEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+.menu-item-enter {
+  animation: menuItemEnter 0.3s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-item-enter { animation: none; }
+}
