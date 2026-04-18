@@ -43,9 +43,9 @@ function DLLogoDark({ width = 44, height = 40 }: { width?: number; height?: numb
 function DLLogoNav({ scrolled: _scrolled, width = 32, height = 29 }: { scrolled: boolean; width?: number; height?: number }) {
   return (
     <svg width={width} height={height} viewBox="0 0 44 40" fill="none">
-      <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#8b6914" strokeWidth="2.6" strokeLinejoin="round" />
-      <line x1="26" y1="3" x2="26" y2="37" stroke="#2c2a26" strokeWidth="2.6" strokeLinecap="round" />
-      <line x1="26" y1="37" x2="42" y2="37" stroke="#2c2a26" strokeWidth="2.6" strokeLinecap="round" />
+      <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinejoin="round" />
+      <line x1="26" y1="3" x2="26" y2="37" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+      <line x1="26" y1="37" x2="42" y2="37" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -235,15 +235,15 @@ export default function HomePage() {
       {/* ── SECTION 1 — NAVBAR ──────────────────────────────────────────────── */}
       <nav className={`sticky top-0 z-50 w-full transition-all duration-300 ${
         scrolled
-          ? "bg-[#faf8f5]/92 backdrop-blur-md border-b border-[#2c2a26]/10"
-          : "bg-transparent"
+          ? "bg-background/92 backdrop-blur-md border-b border-foreground/10"
+          : "bg-background/80 backdrop-blur-sm"
       }`}>
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2.5">
             <DLLogoNav scrolled={scrolled} width={32} height={29} />
             <span className="text-xl select-none">
-              <span style={{ fontFamily: "Georgia, serif", color: "#2c2a26", fontWeight: 400 }}>Dine</span>
-              <span style={{ fontFamily: "Georgia, serif", color: "#8b6914", fontWeight: 700 }}>Links</span>
+              <span style={{ fontFamily: "Georgia, serif", color: "var(--foreground)", fontWeight: 400 }}>Dine</span>
+              <span style={{ fontFamily: "Georgia, serif", color: "var(--accent)", fontWeight: 700 }}>Links</span>
             </span>
           </Link>
 
@@ -258,14 +258,14 @@ export default function HomePage() {
                 key={id}
                 type="button"
                 onClick={() => scrollTo(id)}
-                className={`text-sm transition-colors ${scrolled ? "text-[#2c2a26]/70 hover:text-[#2c2a26]" : "text-[#2c2a26]/80 hover:text-[#2c2a26]"}`}
+                className="text-sm transition-colors text-foreground/70 hover:text-foreground"
               >
                 {label}
               </button>
             ))}
             <Link
               href="/contact"
-              className={`text-sm transition-colors ${scrolled ? "text-[#2c2a26]/70 hover:text-[#2c2a26]" : "text-[#2c2a26]/80 hover:text-[#2c2a26]"}`}
+              className="text-sm transition-colors text-foreground/70 hover:text-foreground"
             >
               Contact
             </Link>
@@ -274,7 +274,7 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className={`text-sm transition-colors ${scrolled ? "text-[#2c2a26] hover:text-[#8b6914]" : "text-[#2c2a26]/80 hover:text-[#2c2a26]"}`}
+              className="text-sm transition-colors text-foreground/70 hover:text-foreground"
             >
               Sign in
             </Link>
