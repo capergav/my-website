@@ -9,6 +9,16 @@ import type { MenuItemRow } from "@/app/lib/constants";
 import type { Restaurant } from "@/app/lib/supabase";
 import { ImageUploader } from "./ImageUploader";
 import { OnboardingTour } from "./OnboardingTour";
+import {
+  DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor,
+  useSensor, useSensors,
+} from '@dnd-kit/core';
+import type { DragEndEvent } from '@dnd-kit/core';
+import {
+  arrayMove, SortableContext, sortableKeyboardCoordinates,
+  horizontalListSortingStrategy, verticalListSortingStrategy, useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 type Grouped = Record<string, MenuItemRow[]>;
 
@@ -43,6 +53,55 @@ function fontFamily(font?: string | null) {
   }
 }
 
+function GripIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/>
+      <circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>
+    </svg>
+  );
+}
+
+function SortableMenuItem({ item, children }: { item: MenuItemRow; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 10 : 'auto',
+    boxShadow: isDragging ? '0 10px 25px -5px rgba(139, 105, 20, 0.35)' : undefined,
+    scale: isDragging ? '1.02' : undefined,
+    position: 'relative',
+  };
+  return (
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <div
+        {...listeners}
+        className="absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center cursor-grab active:cursor-grabbing text-[var(--muted)] hover:text-[var(--accent)] touch-none z-10"
+        title="Drag to reorder"
+      >
+        <GripIcon />
+      </div>
+      <div className="pl-8">{children}</div>
+    </div>
+  );
+}
+
+function SortableCategoryTab({ name, children }: { name: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: name });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
+      {...attributes}
+      {...listeners}
+      className="cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
+    >
+      {children}
+    </div>
+  );
+}
+
 type Props = {
   restaurantId: string;
   restaurantSlug: string;
@@ -62,6 +121,12 @@ export function AdminMenuEditor({
 }: Props) {
   const router = useRouter();
   const supabase = createSupabaseClient();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   const deleteStorageImage = async (url: string) => {
     if (!url || !url.includes('supabase.co/storage')) return;
@@ -209,6 +274,41 @@ export function AdminMenuEditor({
     // Refresh to make sure DB and UI are in sync
     await refreshMenu();
   }, [grouped, activeCategory, supabase, refreshMenu]);
+
+  const handleItemDragEnd = useCallback(async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const list = [...(grouped[activeCategory] ?? [])];
+    const oldIndex = list.findIndex(i => i.id === active.id);
+    const newIndex = list.findIndex(i => i.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(list, oldIndex, newIndex);
+    // Optimistic update
+    setGrouped(prev => ({ ...prev, [activeCategory]: reordered }));
+    setSaving(true);
+    await Promise.all(
+      reordered.map((item, idx) =>
+        supabase.from('menu_items').update({ sort_order: idx }).eq('id', item.id)
+      )
+    );
+    setSaving(false);
+  }, [grouped, activeCategory, supabase]);
+
+  const handleCategoryDragEnd = useCallback(async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const cats = [...sortedCategories];
+    const oldIndex = cats.indexOf(active.id as string);
+    const newIndex = cats.indexOf(over.id as string);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(cats, oldIndex, newIndex);
+    setSortedCategories(reordered);
+    // Persist sort order — upsert so inferred categories are inserted too
+    for (let i = 0; i < reordered.length; i++) {
+      await supabase.from('restaurant_categories')
+        .upsert({ restaurant_id: restaurantId, name: reordered[i], sort_order: i }, { onConflict: 'restaurant_id,name' });
+    }
+  }, [sortedCategories, restaurantId, supabase]);
 
   const items   = grouped[activeCategory] ?? [];
   const isEmpty = sortedCategories.length === 0;
@@ -378,21 +478,30 @@ export function AdminMenuEditor({
 
       {!isEmpty && (
         <>
-          {/* Category tabs — px-1 prevents ring clip */}
+          {/* Category tabs — draggable + clickable */}
           <div className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
             <div className="max-w-4xl mx-auto px-3 sm:px-6">
-              <div className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1">
-                {sortedCategories.map((cat) => (
-                  <button key={cat} type="button" onClick={() => setActiveCategory(cat)}
-                    className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                      activeCategory === cat
-                        ? "bg-[var(--accent)] text-white shadow-sm"
-                        : "bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted)] hover:text-[var(--foreground)]"
-                    }`}>
-                    {cat}
-                  </button>
-                ))}
-              </div>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
+                <SortableContext items={sortedCategories} strategy={horizontalListSortingStrategy}>
+                  <div className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1">
+                    {sortedCategories.map((cat) => (
+                      <SortableCategoryTab key={cat} name={cat}>
+                        <button
+                          type="button"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={() => setActiveCategory(cat)}
+                          className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all select-none ${
+                            activeCategory === cat
+                              ? "bg-[var(--accent)] text-white shadow-sm"
+                              : "bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted)] hover:text-[var(--foreground)]"
+                          }`}>
+                          {cat}
+                        </button>
+                      </SortableCategoryTab>
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             </div>
           </div>
 
@@ -413,90 +522,75 @@ export function AdminMenuEditor({
               saving={savingNote}
             />
 
-            <div className="space-y-3 mt-6">
-              {items.map((item, idx) => (
-                <div key={item.id}
-                  className={`bg-[var(--card)] rounded-2xl border border-[var(--card-border)] overflow-hidden shadow-sm ${
-                    item.available === false ? "opacity-50" : ""
-                  }`}>
-                  <div className="flex items-stretch">
-                    {/* Sort arrows — left strip */}
-                    <div className="flex flex-col items-center justify-center border-r border-[var(--card-border)] px-2 gap-1 py-3 flex-shrink-0">
-                      <button type="button" title="Move up"
-                        disabled={saving || idx === 0}
-                        onClick={() => moveItem(idx, idx - 1)}
-                        className="p-1 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card-border)] disabled:opacity-25 transition-colors touch-manipulation">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
-                        </svg>
-                      </button>
-                      <span className="text-[10px] text-[var(--muted)] font-mono tabular-nums">{idx + 1}</span>
-                      <button type="button" title="Move down"
-                        disabled={saving || idx === items.length - 1}
-                        onClick={() => moveItem(idx, idx + 1)}
-                        className="p-1 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--card-border)] disabled:opacity-25 transition-colors touch-manipulation">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                    </div>
-
-                    {/* Item image */}
-                    {item.image_url && (
-                      <div className="w-24 sm:w-32 aspect-square overflow-hidden bg-[var(--card-border)] flex-shrink-0">
-                        <img src={item.image_url} alt="" className="w-full h-full object-cover" />
-                      </div>
-                    )}
-
-                    {/* Details */}
-                    <div className="p-3 sm:p-4 flex-1 min-w-0">
-                      <div className="flex justify-between gap-2 items-start flex-wrap">
-                        <div className="min-w-0">
-                          <h3 className="font-serif text-base font-semibold leading-snug text-wrap-balance">{item.name}</h3>
-                          {item.available === false && (
-                            <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 mt-0.5">
-                              Unavailable
-                            </span>
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleItemDragEnd}>
+              <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-3 mt-6">
+                  {items.map((item, idx) => (
+                    <SortableMenuItem key={item.id} item={item}>
+                      <div className={`bg-[var(--card)] rounded-2xl border border-[var(--card-border)] overflow-hidden shadow-sm ${
+                        item.available === false ? "opacity-50" : ""
+                      }`}>
+                        <div className="flex items-stretch">
+                          {/* Item image */}
+                          {item.image_url && (
+                            <div className="w-24 sm:w-32 aspect-square overflow-hidden bg-[var(--card-border)] flex-shrink-0">
+                              <img src={item.image_url} alt="" className="w-full h-full object-cover" />
+                            </div>
                           )}
+
+                          {/* Details */}
+                          <div className="p-3 sm:p-4 flex-1 min-w-0">
+                            <div className="flex justify-between gap-2 items-start flex-wrap">
+                              <div className="min-w-0">
+                                <h3 className="font-serif text-base font-semibold leading-snug text-wrap-balance">{item.name}</h3>
+                                {item.available === false && (
+                                  <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 mt-0.5">
+                                    Unavailable
+                                  </span>
+                                )}
+                              </div>
+                              <span className="font-semibold text-[var(--accent)] tabular-nums text-sm flex-shrink-0">
+                                ${Number(item.price).toFixed(2)}
+                              </span>
+                            </div>
+                            {item.description && (
+                              <p className="text-[var(--muted)] text-xs sm:text-sm mt-1 line-clamp-2 text-wrap-force">
+                                {item.description}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-1.5 mt-2 items-center">
+                              <AvailabilityToggle
+                                available={item.available !== false}
+                                onChange={async (next) => {
+                                  setSaving(true);
+                                  const { error } = await supabase.from("menu_items")
+                                    .update({ available: next }).eq("id", item.id);
+                                  if (error) showMsg("err", error.message);
+                                  else { showMsg("ok", next ? "Marked available." : "Marked unavailable."); await refreshMenu(); }
+                                  setSaving(false);
+                                }}
+                              />
+                              <button type="button"
+                                onClick={() => { setEditingItem(item); setAddingNew(false); }}
+                                className="px-3 py-1 rounded-lg bg-[var(--card-border)] text-xs font-medium hover:bg-[var(--accent)]/15 text-[var(--accent)] transition-colors">
+                                Edit
+                              </button>
+                              <button type="button"
+                                onClick={() => handleDelete(item.id, item.image_url)}
+                                disabled={saving}
+                                className="px-3 py-1 rounded-lg bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100 disabled:opacity-50 transition-colors">
+                                Delete
+                              </button>
+                              <span className="ml-auto text-[10px] text-[var(--muted)] tabular-nums">#{idx + 1}</span>
+                            </div>
+                          </div>
                         </div>
-                        <span className="font-semibold text-[var(--accent)] tabular-nums text-sm flex-shrink-0">
-                          ${Number(item.price).toFixed(2)}
-                        </span>
                       </div>
-                      {item.description && (
-                        <p className="text-[var(--muted)] text-xs sm:text-sm mt-1 line-clamp-2 text-wrap-force">
-                          {item.description}
-                        </p>
-                      )}
-                      <div className="flex flex-wrap gap-1.5 mt-2 items-center">
-                        <AvailabilityToggle
-                          available={item.available !== false}
-                          onChange={async (next) => {
-                            setSaving(true);
-                            const { error } = await supabase.from("menu_items")
-                              .update({ available: next }).eq("id", item.id);
-                            if (error) showMsg("err", error.message);
-                            else { showMsg("ok", next ? "Marked available." : "Marked unavailable."); await refreshMenu(); }
-                            setSaving(false);
-                          }}
-                        />
-                        <button type="button"
-                          onClick={() => { setEditingItem(item); setAddingNew(false); }}
-                          className="px-3 py-1 rounded-lg bg-[var(--card-border)] text-xs font-medium hover:bg-[var(--accent)]/15 text-[var(--accent)] transition-colors">
-                          Edit
-                        </button>
-                        <button type="button"
-                          onClick={() => handleDelete(item.id, item.image_url)}
-                          disabled={saving}
-                          className="px-3 py-1 rounded-lg bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100 disabled:opacity-50 transition-colors">
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+                    </SortableMenuItem>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+            </DndContext>
           </div>
         </>
       )}
