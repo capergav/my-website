@@ -9,6 +9,8 @@ import type { MenuItemRow } from "@/app/lib/constants";
 import type { Restaurant } from "@/app/lib/supabase";
 import { ImageUploader } from "./ImageUploader";
 import { OnboardingTour } from "./OnboardingTour";
+import { useSubscription } from "@/lib/useSubscription";
+import { CreditCard } from "lucide-react";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor,
   useSensor, useSensors,
@@ -147,6 +149,41 @@ export function AdminMenuEditor({
   const [mobileOpen, setMobileOpen]             = useState(false);
   const [tourKey, setTourKey]                   = useState(0);
   const [showQR, setShowQR] = useState(false);
+  const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) setUser({ id: data.user.id, email: data.user.email ?? '' });
+    });
+  }, [supabase]);
+
+  const { status: subStatus, isActive, daysLeftInTrial } = useSubscription(user?.id);
+
+  const startCheckout = async () => {
+    if (!user) return;
+    setCheckoutLoading(true);
+    try {
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, userEmail: user.email }),
+      });
+      const { url } = await res.json();
+      if (url) window.location.href = url;
+    } finally { setCheckoutLoading(false); }
+  };
+
+  const openPortal = async () => {
+    if (!user) return;
+    const res = await fetch('/api/stripe/portal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id }),
+    });
+    const { url } = await res.json();
+    if (url) window.location.href = url;
+  };
 
   // ── Live theme — no reload needed ────────────────────────────────────────
   useEffect(() => {
@@ -313,8 +350,55 @@ export function AdminMenuEditor({
   const items   = grouped[activeCategory] ?? [];
   const isEmpty = sortedCategories.length === 0;
 
+  if (subStatus !== 'loading' && !isActive) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center">
+          <div className="flex justify-center mb-4">
+            <svg width="48" height="44" viewBox="0 0 44 40" fill="none">
+              <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#8b6914" strokeWidth="2.6" strokeLinejoin="round"/>
+              <line x1="26" y1="3" x2="26" y2="37" stroke="#2c2a26" strokeWidth="2.6" strokeLinecap="round"/>
+              <line x1="26" y1="37" x2="42" y2="37" stroke="#2c2a26" strokeWidth="2.6" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <h2 className="text-2xl font-serif font-semibold text-[#2c2a26] mb-2">
+            {subStatus === 'canceled' ? 'Your subscription ended' : 'Start your free trial'}
+          </h2>
+          <p className="text-sm text-[#6b6560] mb-6">
+            {subStatus === 'canceled'
+              ? 'Reactivate to continue managing your menu.'
+              : 'Get full access to DineLinks for 2 months free, then $25/month. Cancel anytime.'}
+          </p>
+          <button onClick={startCheckout} disabled={checkoutLoading}
+            className="w-full bg-[#8b6914] text-white font-semibold py-3.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
+            {checkoutLoading ? 'Loading...' : subStatus === 'canceled' ? 'Reactivate subscription' : 'Start 2 months free'}
+          </button>
+          <p className="text-xs text-[#6b6560] mt-4">No credit card required for first 2 months</p>
+          <button onClick={() => supabase.auth.signOut().then(() => router.push('/'))}
+            className="text-xs text-[#6b6560] mt-6 hover:underline block mx-auto">
+            Sign out
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+
+      {/* ── Subscription banners ─────────────────────────────────────────────── */}
+      {subStatus === 'trialing' && daysLeftInTrial !== null && daysLeftInTrial <= 7 && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 text-center text-sm text-amber-900">
+          Your free trial ends in {daysLeftInTrial} {daysLeftInTrial === 1 ? 'day' : 'days'}.{' '}
+          <button onClick={openPortal} className="ml-2 font-semibold underline hover:text-amber-700">Manage billing</button>
+        </div>
+      )}
+      {subStatus === 'past_due' && (
+        <div className="bg-red-50 border-b border-red-200 px-4 py-2.5 text-center text-sm text-red-900">
+          Payment failed.{' '}
+          <button onClick={openPortal} className="font-semibold underline">Update payment method</button>
+        </div>
+      )}
 
       {/* ── Header ──────────────────────────────────────────────────────────── */}
       <div className="relative overflow-hidden bg-[#1a1816]" style={{ minHeight: "13rem" }}>
@@ -353,6 +437,13 @@ export function AdminMenuEditor({
             ?
           </button>
           <ThemeModal restaurant={restaurant} onSave={handleSaveTheme} saving={saving} tourTarget="theme-btn-desktop" />
+          <button
+            type="button"
+            onClick={openPortal}
+            className="min-h-[40px] px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-medium border border-white/25 flex items-center gap-1.5 transition-colors"
+          >
+            <CreditCard size={16} /> Billing
+          </button>
           <button
             type="button"
             onClick={() => setShowQR(true)}
@@ -425,6 +516,11 @@ export function AdminMenuEditor({
             <SheetThemeButton restaurant={restaurant} onSave={handleSaveTheme} saving={saving}
               onClose={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
               tourTarget="theme-btn-mobile" />
+            <button type="button" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; openPortal(); }}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
+              <CreditCard size={16} className="text-gray-500" />
+              Billing
+            </button>
             <a data-tour="view-menu-mobile" href={`/menu/${restaurantSlug}`} target="_blank" rel="noopener noreferrer"
               onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
