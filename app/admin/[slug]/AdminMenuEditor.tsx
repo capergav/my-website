@@ -272,15 +272,14 @@ export function AdminMenuEditor({
 
   const handleSaveTheme = async (updates: Partial<Restaurant>) => {
     setSaving(true);
-    const restaurantAny = restaurant as any;
-    const updatesAny = updates as any;
-    if (restaurantAny?.hero_image_url && 'hero_image_url' in updates &&
-        restaurantAny.hero_image_url !== updatesAny.hero_image_url) {
-      await deleteStorageImage(restaurantAny.hero_image_url);
+    type RestaurantExt = Restaurant & { hero_image_url?: string | null; logo_url?: string | null };
+    const r = restaurant as RestaurantExt | null;
+    const u = updates as RestaurantExt;
+    if (r?.hero_image_url && 'hero_image_url' in updates && r.hero_image_url !== u.hero_image_url) {
+      await deleteStorageImage(r.hero_image_url);
     }
-    if (restaurantAny?.logo_url && 'logo_url' in updatesAny &&
-        restaurantAny.logo_url !== updatesAny.logo_url) {
-      await deleteStorageImage(restaurantAny.logo_url);
+    if (r?.logo_url && 'logo_url' in updates && r.logo_url !== u.logo_url) {
+      await deleteStorageImage(r.logo_url);
     }
     const { error } = await supabase.from("restaurants").update(updates).eq("id", restaurantId);
     if (error) { showMsg("err", error.message); }
@@ -857,6 +856,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
   const [logoUrl, setLogoUrl]     = useState("");
   const [fontOpen, setFontOpen]   = useState(false);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
     if (open && restaurant) {
       setCard(restaurant.main_color ?? D_CARD);
@@ -869,7 +869,9 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       setLogoUrl((restaurant as Restaurant & { logo_url?: string | null }).logo_url ?? "");
       setFontOpen(false);
     }
-  }, [open, restaurant]);
+    // initialise form fields when modal opens — setState-in-effect is intentional here
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const save = () => {
     onSave({
@@ -1089,6 +1091,21 @@ function SheetThemeButton(props: Omit<ThemeModalProps, "sheetMode"> & { tourTarg
   return <ThemeModal {...props} sheetMode />;
 }
 
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-1">
+      <span className="text-sm font-sans text-[var(--foreground)]">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className={`text-xs font-sans transition-colors ${checked ? "text-[#8b6914] font-semibold" : "text-[var(--muted)]"}`}>{checked ? "On" : "Off"}</span>
+        <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#8b6914] focus:ring-offset-2 ${checked ? "bg-[#8b6914]" : "bg-gray-200"}`}>
+          <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-all duration-200 mt-0.5 ml-0.5 ${checked ? "translate-x-5" : "translate-x-0"}`} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function ItemForm({
   item, categories, restaurantSlug, onSave, onCancel, saving, existingImageUrl,
 }: {
@@ -1121,19 +1138,6 @@ function ItemForm({
       vegan, vegetarian: veg, dairy_free: dairy, spicy,
     });
   };
-
-  const Toggle = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) => (
-    <div className="flex items-center justify-between gap-3 py-1">
-      <span className="text-sm font-sans text-[var(--foreground)]">{label}</span>
-      <div className="flex items-center gap-2">
-        <span className={`text-xs font-sans transition-colors ${checked ? "text-[#8b6914] font-semibold" : "text-[var(--muted)]"}`}>{checked ? "On" : "Off"}</span>
-        <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
-          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#8b6914] focus:ring-offset-2 ${checked ? "bg-[#8b6914]" : "bg-gray-200"}`}>
-          <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-all duration-200 mt-0.5 ml-0.5 ${checked ? "translate-x-5" : "translate-x-0"}`} />
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
