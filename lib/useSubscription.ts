@@ -29,6 +29,7 @@ export function useSubscription(userId: string | undefined) {
   const daysLeftInTrial = trialEnd && status === 'trialing'
     ? Math.max(0, Math.ceil((trialEnd.getTime() - Date.now()) / 86400000))
     : null;
+  const isTrialExpired = status === 'trialing' && trialEnd !== null && trialEnd < new Date();
 
-  return { status, isActive, trialEnd, periodEnd, daysLeftInTrial };
+  return { status, isActive, trialEnd, periodEnd, daysLeftInTrial, isTrialExpired };
 }

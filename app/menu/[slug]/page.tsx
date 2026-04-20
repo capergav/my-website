@@ -6,6 +6,7 @@ import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
 import { MenuTabs } from "@/app/components/MenuTabs";
 import { HeroWithLang } from "@/app/components/HeroWithLang";
+import { Clock } from "lucide-react";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -15,11 +16,42 @@ export default async function PublicMenuPage({ params }: Props) {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url")
+    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id")
     .eq("slug", slug)
     .maybeSingle();
 
   if (!restaurant) notFound();
+
+  // Check subscription status — pause menu if trial expired or canceled
+  const { data: sub } = await supabase
+    .from("subscriptions")
+    .select("status, trial_end")
+    .eq("user_id", (restaurant as { owner_id?: string }).owner_id ?? "")
+    .maybeSingle();
+
+  const isPaused =
+    !sub ||
+    sub.status === "canceled" ||
+    (sub.status === "trialing" && sub.trial_end && new Date(sub.trial_end) < new Date()) ||
+    sub.status === "past_due";
+
+  if (isPaused) {
+    return (
+      <main className="min-h-screen bg-[#faf8f5] flex items-center justify-center px-4 text-center">
+        <div className="max-w-md">
+          <div className="w-16 h-16 rounded-full bg-[#8b6914]/10 mx-auto flex items-center justify-center mb-4">
+            <Clock size={28} className="text-[#8b6914]" />
+          </div>
+          <h1 style={{ fontFamily: "Georgia, serif" }} className="text-2xl font-semibold text-[#2c2a26]">
+            Menu temporarily unavailable
+          </h1>
+          <p className="text-[#6b6560] mt-2 text-sm">
+            This restaurant&apos;s digital menu is currently paused. Please check back soon.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   const [{ data: menuItems }, { data: categoryNotesRows }] = await Promise.all([
     supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).eq("available", true).order("sort_order", { ascending: true }).order("name", { ascending: true }),

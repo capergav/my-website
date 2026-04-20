@@ -16,23 +16,27 @@ export const DIETARY_META: {
   key: keyof DietaryFlags;
   Icon: React.ComponentType<{ size?: number; className?: string }>;
   label: string;
+  abbr: string;
 }[] = [
-  { key: "chefs_favorite", Icon: Star,        label: "Chef's Favourite" },
-  { key: "gluten_free",    Icon: WheatOff,    label: "Gluten Free"      },
-  { key: "nut_free",       Icon: ShieldCheck, label: "Nut Free"         },
-  { key: "vegan",          Icon: Leaf,        label: "Vegan"            },
-  { key: "vegetarian",     Icon: Sprout,      label: "Vegetarian"       },
-  { key: "dairy_free",     Icon: MilkOff,     label: "Dairy Free"       },
-  { key: "spicy",          Icon: Flame,       label: "Spicy"            },
+  { key: "chefs_favorite", Icon: Star,        label: "Chef's Favourite", abbr: "★"  },
+  { key: "gluten_free",    Icon: WheatOff,    label: "Gluten Free",      abbr: "GF" },
+  { key: "nut_free",       Icon: ShieldCheck, label: "Nut Free",         abbr: "NF" },
+  { key: "vegan",          Icon: Leaf,        label: "Vegan",            abbr: "VG" },
+  { key: "vegetarian",     Icon: Sprout,      label: "Vegetarian",       abbr: "V"  },
+  { key: "dairy_free",     Icon: MilkOff,     label: "Dairy Free",       abbr: "DF" },
+  { key: "spicy",          Icon: Flame,       label: "Spicy",            abbr: "🌶" },
 ];
 
 export function DietaryIcons({ item }: { item: DietaryFlags }) {
   const active = DIETARY_META.filter(({ key }) => item[key]);
   if (active.length === 0) return null;
   return (
-    <div className="flex items-center gap-2 mt-1.5 flex-wrap" role="group" aria-label="Dietary information">
-      {active.map(({ key, Icon }) => (
-        <Icon key={key} size={16} className="shrink-0 text-[var(--muted)]" aria-hidden />
+    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap" role="group" aria-label="Dietary information">
+      {active.map(({ key, Icon, label, abbr }) => (
+        <span key={key} aria-label={label} title={label} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--accent)]/10 text-[var(--accent)]">
+          <Icon size={10} aria-hidden />
+          {abbr}
+        </span>
       ))}
     </div>
   );

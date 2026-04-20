@@ -10,7 +10,7 @@ import type { Restaurant } from "@/app/lib/supabase";
 import { ImageUploader } from "./ImageUploader";
 import { OnboardingTour } from "./OnboardingTour";
 import { useSubscription } from "@/lib/useSubscription";
-import { CreditCard } from "lucide-react";
+import { CreditCard, UtensilsCrossed, AlertTriangle, AlertCircle, Plus, GripVertical } from "lucide-react";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor,
   useSensor, useSensors,
@@ -28,6 +28,18 @@ const D_ACCENT = "#8b6914";
 const D_BG     = "#faf8f5";
 const D_TEXT   = "#2c2a26";
 const D_CARD   = "#ffffff";
+
+function getContrast(hex1: string, hex2: string): number {
+  const lum = (hex: string) => {
+    const clean = hex.replace("#", "");
+    if (clean.length !== 6) return 0;
+    const rgb = clean.match(/.{2}/g)!.map((h) => parseInt(h, 16) / 255);
+    const [r, g, b] = rgb.map((c) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)));
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const l1 = lum(hex1), l2 = lum(hex2);
+  return (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+}
 
 const FONT_OPTIONS = [
   { value: "sans",     label: "Geist Sans (default)",  cls: "font-geist-sans" },
@@ -55,14 +67,6 @@ function fontFamily(font?: string | null) {
   }
 }
 
-function GripIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/>
-      <circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>
-    </svg>
-  );
-}
 
 function SortableMenuItem({ item, children }: { item: MenuItemRow; children: React.ReactNode }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
@@ -79,12 +83,13 @@ function SortableMenuItem({ item, children }: { item: MenuItemRow; children: Rea
     <div ref={setNodeRef} style={style} {...attributes}>
       <div
         {...listeners}
-        className="absolute left-0 top-0 bottom-0 w-8 flex items-center justify-center cursor-grab active:cursor-grabbing text-[var(--muted)] hover:text-[var(--accent)] touch-none z-10"
+        className="absolute left-0 top-0 bottom-0 w-9 flex flex-col items-center justify-center gap-0.5 cursor-grab active:cursor-grabbing touch-none z-10 rounded-l-xl bg-[var(--card-border)]/30 hover:bg-[#8b6914]/10 group transition-colors"
         title="Drag to reorder"
       >
-        <GripIcon />
+        <GripVertical size={18} className="text-[var(--muted)] group-hover:text-[#8b6914] transition-colors" />
+        <span className="text-[8px] text-[var(--muted)] group-hover:text-[#8b6914] opacity-0 group-hover:opacity-100 transition-opacity font-medium leading-none">Drag</span>
       </div>
-      <div className="pl-8">{children}</div>
+      <div className="pl-9">{children}</div>
     </div>
   );
 }
@@ -149,6 +154,7 @@ export function AdminMenuEditor({
   const [mobileOpen, setMobileOpen]             = useState(false);
   const [tourKey, setTourKey]                   = useState(0);
   const [showQR, setShowQR] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
@@ -158,7 +164,7 @@ export function AdminMenuEditor({
     });
   }, [supabase]);
 
-  const { status: subStatus, isActive, daysLeftInTrial } = useSubscription(user?.id);
+  const { status: subStatus, isActive, daysLeftInTrial, isTrialExpired } = useSubscription(user?.id);
 
   const startCheckout = async () => {
     if (!user) return;
@@ -350,7 +356,8 @@ export function AdminMenuEditor({
   const items   = grouped[activeCategory] ?? [];
   const isEmpty = sortedCategories.length === 0;
 
-  if (subStatus !== 'loading' && !isActive) {
+  // No subscription yet — show "start trial" blocker
+  if (subStatus !== 'loading' && subStatus === 'none') {
     return (
       <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-md flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center">
@@ -361,19 +368,15 @@ export function AdminMenuEditor({
               <line x1="26" y1="37" x2="42" y2="37" stroke="#2c2a26" strokeWidth="2.6" strokeLinecap="round"/>
             </svg>
           </div>
-          <h2 className="text-2xl font-serif font-semibold text-[#2c2a26] mb-2">
-            {subStatus === 'canceled' ? 'Your subscription ended' : 'Start your free trial'}
-          </h2>
+          <h2 className="text-2xl font-serif font-semibold text-[#2c2a26] mb-2">Start your free trial</h2>
           <p className="text-sm text-[#6b6560] mb-6">
-            {subStatus === 'canceled'
-              ? 'Reactivate to continue managing your menu.'
-              : 'Get full access to DineLinks for 2 months free, then $25/month. Cancel anytime.'}
+            Get full access to DineLinks for 2 months free, then $25/month. Cancel anytime.
           </p>
           <button onClick={startCheckout} disabled={checkoutLoading}
             className="w-full bg-[#8b6914] text-white font-semibold py-3.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
-            {checkoutLoading ? 'Loading...' : subStatus === 'canceled' ? 'Reactivate subscription' : 'Start 2 months free'}
+            {checkoutLoading ? 'Loading...' : 'Start 2 months free'}
           </button>
-          <p className="text-xs text-[#6b6560] mt-4">No credit card required for first 2 months</p>
+          <p className="text-xs text-[#6b6560] mt-4">No credit card required</p>
           <button onClick={() => supabase.auth.signOut().then(() => router.push('/'))}
             className="text-xs text-[#6b6560] mt-6 hover:underline block mx-auto">
             Sign out
@@ -383,20 +386,77 @@ export function AdminMenuEditor({
     );
   }
 
+  const showTrialExpiredOverlay = subStatus !== 'loading' && (isTrialExpired || subStatus === 'canceled');
+
   return (
-    <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
+    <main className={`min-h-screen bg-[var(--background)] text-[var(--foreground)] ${showTrialExpiredOverlay ? 'pointer-events-none grayscale opacity-60' : ''}`}>
 
       {/* ── Subscription banners ─────────────────────────────────────────────── */}
-      {subStatus === 'trialing' && daysLeftInTrial !== null && daysLeftInTrial <= 7 && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 text-center text-sm text-amber-900">
-          Your free trial ends in {daysLeftInTrial} {daysLeftInTrial === 1 ? 'day' : 'days'}.{' '}
-          <button onClick={openPortal} className="ml-2 font-semibold underline hover:text-amber-700">Manage billing</button>
+      {subStatus === 'trialing' && daysLeftInTrial !== null && daysLeftInTrial > 7 && (
+        <div className="bg-[#8b6914]/10 border-b border-[#8b6914]/20 px-4 py-2.5 flex items-center justify-between gap-3">
+          <span className="text-sm text-[#2c2a26]">
+            🎉 You&apos;re on a free 2-month trial — {daysLeftInTrial} days left
+          </span>
+          <button onClick={startCheckout} className="text-xs bg-[#8b6914] text-white px-4 py-1.5 rounded-lg font-semibold hover:opacity-90 flex-shrink-0">
+            Upgrade to paid
+          </button>
+        </div>
+      )}
+      {subStatus === 'trialing' && daysLeftInTrial !== null && daysLeftInTrial <= 7 && daysLeftInTrial > 0 && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between gap-3">
+          <span className="text-sm text-amber-900 flex items-center gap-2">
+            <AlertTriangle size={16} className="text-amber-600 flex-shrink-0" />
+            Your trial ends in {daysLeftInTrial} {daysLeftInTrial === 1 ? 'day' : 'days'}. Your menu will pause when it expires.
+          </span>
+          <button onClick={startCheckout} className="text-xs bg-amber-600 text-white px-4 py-1.5 rounded-lg font-semibold hover:bg-amber-700 flex-shrink-0">
+            Add payment method
+          </button>
         </div>
       )}
       {subStatus === 'past_due' && (
-        <div className="bg-red-50 border-b border-red-200 px-4 py-2.5 text-center text-sm text-red-900">
-          Payment failed.{' '}
-          <button onClick={openPortal} className="font-semibold underline">Update payment method</button>
+        <div className="bg-red-50 border-b border-red-200 px-4 py-2.5 flex items-center justify-between gap-3">
+          <span className="text-sm text-red-900 flex items-center gap-2">
+            <AlertCircle size={16} className="text-red-600 flex-shrink-0" />
+            Payment failed. Update your payment method to keep your menu live.
+          </span>
+          <button onClick={openPortal} className="text-xs bg-red-600 text-white px-4 py-1.5 rounded-lg font-semibold hover:bg-red-700 flex-shrink-0">
+            Update payment
+          </button>
+        </div>
+      )}
+
+      {/* Trial expired / canceled overlay */}
+      {showTrialExpiredOverlay && (
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 pointer-events-auto">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center">
+            <div className="flex justify-center mb-4">
+              <svg width="48" height="44" viewBox="0 0 44 40" fill="none">
+                <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#8b6914" strokeWidth="2.6" strokeLinejoin="round"/>
+                <line x1="26" y1="3" x2="26" y2="37" stroke="#2c2a26" strokeWidth="2.6" strokeLinecap="round"/>
+                <line x1="26" y1="37" x2="42" y2="37" stroke="#2c2a26" strokeWidth="2.6" strokeLinecap="round"/>
+              </svg>
+            </div>
+            <div className="flex justify-center mb-2">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertCircle size={24} className="text-red-600" />
+              </div>
+            </div>
+            <h2 className="text-2xl font-serif font-semibold text-[#2c2a26] mb-2">
+              Your free trial has ended
+            </h2>
+            <p className="text-sm text-[#6b6560] mb-6">
+              Your menu is paused and visitors see an &ldquo;unavailable&rdquo; message. Subscribe now to keep your menu live and get full access to DineLinks.
+            </p>
+            <button onClick={startCheckout} disabled={checkoutLoading}
+              className="w-full bg-[#8b6914] text-white font-semibold py-3.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
+              {checkoutLoading ? 'Loading...' : 'Subscribe now — $25/month'}
+            </button>
+            <p className="text-xs text-[#6b6560] mt-4">Reactivates your menu immediately. Cancel anytime.</p>
+            <button onClick={() => supabase.auth.signOut().then(() => router.push('/'))}
+              className="text-xs text-[#6b6560] mt-6 hover:underline block mx-auto">
+              Sign out
+            </button>
+          </div>
         </div>
       )}
 
@@ -557,17 +617,15 @@ export function AdminMenuEditor({
 
       {/* Empty state */}
       {isEmpty && (
-        <div className="max-w-2xl mx-auto px-6 py-20 flex flex-col items-center gap-6 text-center">
-          <div className="w-20 h-20 rounded-3xl bg-[var(--accent)]/10 flex items-center justify-center text-4xl">🍽️</div>
-          <div>
-            <h2 className="font-serif text-2xl font-semibold mb-2">Your menu is empty</h2>
-            <p className="text-[var(--muted)] text-sm max-w-xs mx-auto leading-relaxed">
-              Add your first dish and it will appear here, organised into categories automatically.
-            </p>
+        <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
+          <div className="w-20 h-20 rounded-full bg-[#8b6914]/10 flex items-center justify-center mb-4">
+            <UtensilsCrossed size={32} className="text-[#8b6914]" />
           </div>
+          <h3 className="text-xl font-semibold text-[var(--foreground)] font-serif">Your menu is empty</h3>
+          <p className="text-sm text-[var(--muted)] mt-2 max-w-xs">Start by adding your first item. You can always add categories and photos later.</p>
           <button type="button" onClick={() => { setAddingNew(true); setEditingItem(null); }}
-            className="px-8 py-3 rounded-xl bg-[var(--accent)] text-white font-medium hover:opacity-90 transition-opacity">
-            + Add your first item
+            className="mt-6 bg-[#8b6914] text-white font-semibold rounded-xl px-6 py-3 hover:opacity-90 transition-opacity flex items-center gap-2">
+            <Plus size={16} /> Add your first item
           </button>
         </div>
       )}
@@ -579,14 +637,14 @@ export function AdminMenuEditor({
             <div className="max-w-4xl mx-auto px-3 sm:px-6">
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
                 <SortableContext items={sortedCategories} strategy={horizontalListSortingStrategy}>
-                  <div className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1">
+                  <div className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 items-center">
                     {sortedCategories.map((cat) => (
                       <SortableCategoryTab key={cat} name={cat}>
                         <button
                           type="button"
                           onPointerDown={(e) => e.stopPropagation()}
                           onClick={() => setActiveCategory(cat)}
-                          className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all select-none ${
+                          className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all select-none font-sans ${
                             activeCategory === cat
                               ? "bg-[var(--accent)] text-white shadow-sm"
                               : "bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted)] hover:text-[var(--foreground)]"
@@ -595,6 +653,13 @@ export function AdminMenuEditor({
                         </button>
                       </SortableCategoryTab>
                     ))}
+                    <button
+                      type="button"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={() => setShowCategoryModal(true)}
+                      className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold font-sans text-[#8b6914] border-2 border-dashed border-[#8b6914]/30 rounded-xl px-3 py-1.5 hover:bg-[#8b6914]/5 transition-colors">
+                      <Plus size={14} /> Add category
+                    </button>
                   </div>
                 </SortableContext>
               </DndContext>
@@ -646,7 +711,7 @@ export function AdminMenuEditor({
                                 )}
                               </div>
                               <span className="font-semibold text-[var(--accent)] tabular-nums text-sm flex-shrink-0">
-                                ${Number(item.price).toFixed(2)}
+                                {Number.isInteger(Number(item.price)) ? `$${Number(item.price)}` : `$${Number(item.price).toFixed(2)}`}
                               </span>
                             </div>
                             {item.description && (
@@ -668,13 +733,13 @@ export function AdminMenuEditor({
                               />
                               <button type="button"
                                 onClick={() => { setEditingItem(item); setAddingNew(false); }}
-                                className="px-3 py-1 rounded-lg bg-[var(--card-border)] text-xs font-medium hover:bg-[var(--accent)]/15 text-[var(--accent)] transition-colors">
+                                className="px-3 py-1.5 rounded-lg bg-[#8b6914] text-white text-xs font-semibold font-sans hover:opacity-90 transition-opacity">
                                 Edit
                               </button>
                               <button type="button"
                                 onClick={() => handleDelete(item.id, item.image_url)}
                                 disabled={saving}
-                                className="px-3 py-1 rounded-lg bg-red-50 text-red-600 text-xs font-medium hover:bg-red-100 disabled:opacity-50 transition-colors">
+                                className="px-2 py-1.5 text-[var(--muted)] hover:text-red-600 text-xs font-sans disabled:opacity-50 transition-colors">
                                 Delete
                               </button>
                               <span className="ml-auto text-[10px] text-[var(--muted)] tabular-nums">#{idx + 1}</span>
@@ -713,6 +778,20 @@ export function AdminMenuEditor({
           onClose={() => setShowQR(false)}
         />
       )}
+
+      {/* Add Category Modal */}
+      {showCategoryModal && (
+        <AddCategoryModal
+          restaurantId={restaurantId}
+          existingCategories={sortedCategories}
+          onCreated={async (name) => {
+            setShowCategoryModal(false);
+            await refreshMenu();
+            setActiveCategory(name);
+          }}
+          onClose={() => setShowCategoryModal(false)}
+        />
+      )}
     </main>
   );
 }
@@ -740,14 +819,15 @@ function CategoryNoteEditor({
   useEffect(() => { setNote(initialNote); }, [initialNote]);
   return (
     <div className="mb-5 p-4 rounded-xl border border-[var(--card-border)] bg-[var(--card)]">
-      <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-2">
+      <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-2">
         Note for &ldquo;{category}&rdquo;
       </label>
       <textarea value={note} onChange={(e) => setNote(e.target.value)}
-        placeholder="e.g. All pizzas are 12 inches." rows={2}
-        className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
+        placeholder={`Optional note for "${category}" — e.g. "All ${category.toLowerCase()} served hot"`}
+        rows={2}
+        className="font-sans w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
       <button type="button" onClick={() => onSave(category, note)} disabled={saving}
-        className="mt-2 px-4 py-1.5 rounded-lg bg-[var(--accent)] text-white text-sm font-medium disabled:opacity-50 hover:opacity-90 transition-opacity">
+        className="font-sans mt-2 px-4 py-1.5 rounded-lg bg-[var(--accent)] text-white text-sm font-medium disabled:opacity-50 hover:opacity-90 transition-opacity">
         {saving ? "Saving…" : "Save note"}
       </button>
     </div>
@@ -854,35 +934,72 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
             </div>
 
             <div className="flex-1 overflow-y-auto px-6 py-6 space-y-7">
+              {/* Preset themes */}
+              <section>
+                <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-3">Preset themes</h3>
+                <div className="flex gap-2 flex-wrap">
+                  {([
+                    { label: "Classic", bg: "#ffffff", card: "#ffffff", font: "#2c2a26", accent: "#8b6914" },
+                    { label: "Dark mode", bg: "#1a1816", card: "#2c2a26", font: "#faf8f5", accent: "#c9a030" },
+                    { label: "Warm cream", bg: "#faf8f5", card: "#ffffff", font: "#2c2a26", accent: "#b45309" },
+                  ] as const).map((preset) => (
+                    <button key={preset.label} type="button"
+                      onClick={() => { setBg(preset.bg); setCard(preset.card); setFontColor(preset.font); setAccent(preset.accent); }}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium font-sans border border-[var(--card-border)] text-[var(--foreground)] hover:border-[#8b6914]/50 transition-colors">
+                      <span className="flex gap-0.5">
+                        <span className="inline-block w-3 h-3 rounded-full border border-gray-200" style={{ background: preset.bg }} />
+                        <span className="inline-block w-3 h-3 rounded-full border border-gray-200" style={{ background: preset.font }} />
+                        <span className="inline-block w-3 h-3 rounded-full border border-gray-200" style={{ background: preset.accent }} />
+                      </span>
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
               {/* Details */}
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-4">Restaurant details</h3>
+                <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-4">Restaurant details</h3>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Restaurant name</label>
+                    <label className="block text-sm font-sans font-medium text-[var(--foreground)] mb-1.5">Restaurant name</label>
                     <input type="text" value={name} onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. La Piazza"
-                      className="w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                      className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Logo</label>
-                    <p className="text-xs text-[var(--muted)] mb-2">PNG with a transparent background works best.</p>
-                    <ImageUploader
-                      currentUrl={logoUrl}
-                      onUploaded={(url) => setLogoUrl(url)}
-                      folder="logos"
-                      aspectRatio="square"
-                    />
+                    <label className="block text-sm font-medium font-sans text-[var(--foreground)] mb-1.5">Logo</label>
+                    <p className="text-xs font-sans text-[var(--muted)] mb-2">PNG with a transparent background works best.</p>
+                    <div className="max-w-[140px]">
+                      <ImageUploader
+                        currentUrl={logoUrl}
+                        onUploaded={(url) => setLogoUrl(url)}
+                        folder="logos"
+                        aspectRatio="square"
+                      />
+                    </div>
+                    {logoUrl && (
+                      <a href={logoUrl} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs font-sans text-[#8b6914] hover:underline inline-block">
+                        View full size ↗
+                      </a>
+                    )}
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Hero / banner image</label>
-                    <p className="text-xs text-[var(--muted)] mb-2">Shown across the top of your public menu.</p>
-                    <ImageUploader
-                      currentUrl={heroUrl}
-                      onUploaded={(url) => setHeroUrl(url)}
-                      folder="hero"
-                      aspectRatio="video"
-                    />
+                    <label className="block text-sm font-medium font-sans text-[var(--foreground)] mb-1.5">Hero / banner image</label>
+                    <p className="text-xs font-sans text-[var(--muted)] mb-2">Shown across the top of your public menu.</p>
+                    <div className="max-h-[160px] overflow-hidden rounded-lg">
+                      <ImageUploader
+                        currentUrl={heroUrl}
+                        onUploaded={(url) => setHeroUrl(url)}
+                        folder="hero"
+                        aspectRatio="video"
+                      />
+                    </div>
+                    {heroUrl && (
+                      <a href={heroUrl} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs font-sans text-[#8b6914] hover:underline inline-block">
+                        View full size ↗
+                      </a>
+                    )}
                   </div>
                 </div>
               </section>
@@ -909,9 +1026,25 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                 </div>
               </section>
 
+              {/* Contrast warning */}
+              {(() => {
+                const c1 = getContrast(fontColor, card);
+                const c2 = getContrast(fontColor, bg);
+                const minContrast = Math.min(c1, c2);
+                if (minContrast < 4.5) {
+                  return (
+                    <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs font-sans text-red-700 flex items-center gap-2 -mt-3">
+                      <AlertTriangle size={14} className="flex-shrink-0" />
+                      Your text may be hard to read. Pick a darker or lighter text color. (Contrast: {minContrast.toFixed(1)}, minimum: 4.5)
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
               {/* Font */}
               <section>
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-4">Font</h3>
+                <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-4">Font</h3>
                 <div className="relative">
                   <button type="button" onClick={() => setFontOpen((o) => !o)}
                     className="w-full px-4 py-3 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#8b6914]">
@@ -940,7 +1073,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
             </div>
             <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)]">
               <button type="button" onClick={save} disabled={saving}
-                className="w-full py-3.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity shadow-sm">
+                className="font-sans w-full py-3.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity shadow-sm">
                 {saving ? "Saving…" : "Save theme"}
               </button>
             </div>
@@ -991,11 +1124,14 @@ function ItemForm({
 
   const Toggle = ({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) => (
     <div className="flex items-center justify-between gap-3 py-1">
-      <span className="text-sm text-[var(--foreground)]">{label}</span>
-      <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
-        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#8b6914] focus:ring-offset-2 ${checked ? "bg-[#8b6914]" : "bg-gray-200"}`}>
-        <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform mt-0.5 ml-0.5 ${checked ? "translate-x-5" : "translate-x-0"}`} />
-      </button>
+      <span className="text-sm font-sans text-[var(--foreground)]">{label}</span>
+      <div className="flex items-center gap-2">
+        <span className={`text-xs font-sans transition-colors ${checked ? "text-[#8b6914] font-semibold" : "text-[var(--muted)]"}`}>{checked ? "On" : "Off"}</span>
+        <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#8b6914] focus:ring-offset-2 ${checked ? "bg-[#8b6914]" : "bg-gray-200"}`}>
+          <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-all duration-200 mt-0.5 ml-0.5 ${checked ? "translate-x-5" : "translate-x-0"}`} />
+        </button>
+      </div>
     </div>
   );
 
@@ -1015,31 +1151,31 @@ function ItemForm({
         <div className="flex-1 overflow-y-auto px-6 py-6">
           <form id="item-form" onSubmit={submit} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Name *</label>
+              <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Name *</label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
-                className="w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Description</label>
+              <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Description</label>
               <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3}
-                className="w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Price *</label>
+                <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Price *</label>
                 <input type="number" step="0.01" min="0" value={price}
                   onChange={(e) => setPrice(e.target.value)} required
-                  className="w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                  className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
               </div>
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Category</label>
+                <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Category</label>
                 <input
                   type="text"
                   list="cat-suggestions"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   placeholder="e.g. Mains"
-                  className="w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
+                  className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
                 />
                 <datalist id="cat-suggestions">
                   {categories.map((c) => <option key={c} value={c} />)}
@@ -1080,10 +1216,10 @@ function ItemForm({
                 aspectRatio="video"
                 existingImageUrl={existingImageUrl}
               />
-              <label className="block text-xs font-medium text-[var(--muted)] mt-3 mb-1">Or paste image URL</label>
+              <label className="block text-xs font-sans font-medium text-[var(--muted)] mt-3 mb-1">Or paste image URL</label>
               <input type="url" value={imgUrl} onChange={(e) => setImgUrl(e.target.value)}
                 placeholder="https://..."
-                className="w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
             </div>
             <div className="flex items-center gap-3">
               <input id="avail" type="checkbox" checked={available}
@@ -1107,14 +1243,82 @@ function ItemForm({
         </div>
         <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)] flex gap-3">
           <button type="button" onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
+            className="font-sans flex-1 py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
             Cancel
           </button>
           <button type="submit" form="item-form" disabled={saving}
-            className="flex-1 py-2.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
+            className="font-sans flex-1 py-2.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
             {saving ? "Saving…" : item ? "Update item" : "Add item"}
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Add Category Modal ────────────────────────────────────────────────────────
+
+function AddCategoryModal({
+  restaurantId,
+  existingCategories,
+  onCreated,
+  onClose,
+}: {
+  restaurantId: string;
+  existingCategories: string[];
+  onCreated: (name: string) => void;
+  onClose: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const supabase = createSupabaseClient();
+
+  const create = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (existingCategories.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      setError("That category already exists.");
+      return;
+    }
+    setSaving(true);
+    const maxOrder = existingCategories.length;
+    await supabase
+      .from("restaurant_categories")
+      .upsert({ restaurant_id: restaurantId, name: trimmed, sort_order: maxOrder }, { onConflict: "restaurant_id,name" });
+    setSaving(false);
+    onCreated(trimmed);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" style={{ animation: "fadeIn 0.15s ease-out" }}>
+      <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-sm p-6" style={{ animation: "modalIn 0.15s ease-out" }}>
+        <h3 className="font-serif text-lg font-semibold text-[var(--foreground)] mb-4">Add category</h3>
+        <form onSubmit={create} className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-1.5">Category name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => { setName(e.target.value); setError(""); }}
+              placeholder="e.g. Desserts"
+              autoFocus
+              className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
+            />
+            {error && <p className="mt-1 text-xs text-red-600 font-sans">{error}</p>}
+          </div>
+          <div className="flex gap-3">
+            <button type="button" onClick={onClose}
+              className="font-sans flex-1 py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving || !name.trim()}
+              className="font-sans flex-1 py-2.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
+              {saving ? "Creating…" : "Create"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

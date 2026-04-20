@@ -161,7 +161,6 @@ const LANGUAGES = [
   { flag: "🇪🇸", name: "Español" },
   { flag: "🇸🇦", name: "العربية", rtl: true },
   { flag: "🇨🇳", name: "中文" },
-  { flag: "🇯🇵", name: "日本語" },
   { flag: "🇰🇷", name: "한국어" },
 ];
 
@@ -170,6 +169,15 @@ export default function HomePage() {
   const rm = prefersReducedMotion;
 
   const [scrolled, setScrolled] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    import("@/app/lib/supabase").then(({ createSupabaseClient }) => {
+      createSupabaseClient().auth.getUser().then(({ data }) => {
+        setIsLoggedIn(!!data.user);
+      });
+    });
+  }, []);
 
   // 3D tilt for hero phone mockup
   const heroRef = useRef<HTMLDivElement>(null);
@@ -253,9 +261,9 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-sm transition-colors text-foreground/70 hover:text-foreground">Sign in</Link>
-            <Link href="/signup" className="rounded-xl px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity bg-[#8b6914] text-white">
-              Get started free
+            {!isLoggedIn && <Link href="/login" className="text-sm transition-colors text-foreground/70 hover:text-foreground">Sign in</Link>}
+            <Link href={isLoggedIn ? '/admin' : '/signup'} className="rounded-xl px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity bg-[#8b6914] text-white">
+              {isLoggedIn ? 'Go to my menu' : 'Get started free'}
             </Link>
           </div>
         </div>
@@ -314,8 +322,8 @@ export default function HomePage() {
                 whileTap={rm ? {} : { scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 17 }}
               >
-                <Link href="/signup" className="cta-shine bg-[#8b6914] text-white rounded-xl px-7 py-3.5 text-base font-semibold hover:opacity-90 transition-opacity inline-block">
-                  Get started →
+                <Link href={isLoggedIn ? '/admin' : '/signup'} className="cta-shine bg-[#8b6914] text-white rounded-xl px-7 py-3.5 text-base font-semibold hover:opacity-90 transition-opacity inline-block">
+                  {isLoggedIn ? 'Go to my menu →' : 'Get started →'}
                 </Link>
               </motion.div>
               <Link href={EXAMPLE_MENU_URL} className="rounded-xl px-7 py-3.5 text-base font-medium border-2 border-[#2c2a26]/20 text-[#2c2a26] hover:bg-[#2c2a26]/5 transition-colors">
@@ -430,7 +438,7 @@ export default function HomePage() {
             {[
               { target: 30, suffix: " min", label: "Average setup time" },
               { target: 0,  suffix: "",     label: "Reprints after going digital" },
-              { target: 7,  suffix: "",     label: "Languages supported" },
+              { target: 6,  suffix: "",     label: "Languages supported" },
               { target: "Always", suffix: "", label: "Up-to-date menu" },
             ].map(({ target, suffix, label }, i) => (
               <motion.div key={label} className="text-center"
@@ -618,6 +626,7 @@ export default function HomePage() {
           </motion.div>
 
           <div className="flex flex-wrap gap-3 justify-center mt-12 max-w-2xl mx-auto">
+
             {LANGUAGES.map((lang, i) => (
               <motion.div
                 key={lang.name}
@@ -641,7 +650,7 @@ export default function HomePage() {
 
           <motion.div className="max-w-xl mx-auto mt-10 rounded-2xl border border-[#8b6914]/30 bg-[#8b6914]/5 p-6 text-center" {...enter(0.1)}>
             <p className="text-[#2c2a26] text-sm leading-relaxed">
-              Perfect for restaurants in tourist areas, diverse neighborhoods, and cities with international visitors. One menu, seven languages, zero extra work.
+              Perfect for restaurants in tourist areas, diverse neighborhoods, and cities with international visitors. One menu, six languages, zero extra work.
             </p>
           </motion.div>
         </div>
@@ -814,7 +823,7 @@ export default function HomePage() {
               <p className="text-sm text-[#faf8f5]/60 mt-2">Everything you need to go digital</p>
               <hr className="my-6 border-[#faf8f5]/10" />
               <ul className="space-y-3 text-sm text-[#faf8f5]/80">
-                {["1 digital menu","Unlimited menu items","7 languages supported","QR code & shareable link","Dietary labels & filters","Custom categories","Real-time updates","Custom colors & fonts","Upload logo & photos","Priority email support"].map((f) => (
+                {["1 digital menu","Unlimited menu items","6 languages supported","QR code & shareable link","Dietary labels & filters","Custom categories","Real-time updates","Custom colors & fonts","Upload logo & photos","Priority email support"].map((f) => (
                   <li key={f} className="flex items-center gap-2"><span className="text-[#c9a030]">✓</span> {f}</li>
                 ))}
               </ul>
@@ -824,8 +833,8 @@ export default function HomePage() {
                 whileTap={rm ? {} : { scale: 0.98 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 17 }}
               >
-                <Link href="/signup" className="block w-full py-3 rounded-xl bg-[#8b6914] text-white font-semibold text-center hover:opacity-90 transition-opacity">
-                  Get started →
+                <Link href={isLoggedIn ? '/admin' : '/signup'} className="block w-full py-3 rounded-xl bg-[#8b6914] text-white font-semibold text-center hover:opacity-90 transition-opacity">
+                  {isLoggedIn ? 'Go to my menu →' : 'Get started →'}
                 </Link>
               </motion.div>
               <p className="mt-3 text-[#faf8f5]/40 text-xs text-center">No setup fee · Cancel anytime</p>
@@ -856,8 +865,8 @@ export default function HomePage() {
             whileTap={rm ? {} : { scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 400, damping: 17 }}
           >
-            <Link href="/signup" className="cta-shine bg-white text-[#8b6914] font-semibold text-lg px-10 py-4 rounded-xl hover:bg-[#faf8f5] transition-colors shadow-lg inline-block">
-              Get started →
+            <Link href={isLoggedIn ? '/admin' : '/signup'} className="cta-shine bg-white text-[#8b6914] font-semibold text-lg px-10 py-4 rounded-xl hover:bg-[#faf8f5] transition-colors shadow-lg inline-block">
+              {isLoggedIn ? 'Go to my menu →' : 'Get started →'}
             </Link>
           </motion.div>
           <p className="mt-6 text-white/50 text-sm">No setup fee · Cancel anytime · Live in 30 minutes</p>
@@ -885,8 +894,9 @@ export default function HomePage() {
             <button type="button" onClick={() => scrollTo("how-it-works")} className="hover:text-[#faf8f5]/80 transition-colors">How it works</button>
             <button type="button" onClick={() => scrollTo("pricing")} className="hover:text-[#faf8f5]/80 transition-colors">Pricing</button>
             <Link href="/contact" className="hover:text-[#faf8f5]/80 transition-colors">Contact</Link>
+            <Link href="/privacy" className="hover:text-[#faf8f5]/80 transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-[#faf8f5]/80 transition-colors">Terms of Service</Link>
             <Link href="/login" className="hover:text-[#faf8f5]/80 transition-colors">Sign in</Link>
-            <Link href="/signup" className="hover:text-[#faf8f5]/80 transition-colors">Sign up</Link>
           </div>
 
           <p className="text-sm text-[#faf8f5]/30">© 2025 DineLinks</p>

@@ -96,6 +96,11 @@ function CategoryIcon({ name, isActive }: { name: string; isActive: boolean }) {
   );
 }
 
+function formatPrice(price: number): string {
+  if (Number.isInteger(price)) return `$${price}`;
+  return `$${price.toFixed(2)}`;
+}
+
 export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: MenuTabsProps) {
   const { t, getCategoryLabel } = useLanguage();
   const [activeCategory, setActiveCategory] = useState(sortedCategories[0] ?? "");
@@ -155,7 +160,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                 <TranslatedText text={selectedItem.name} />
               </h1>
               <span className="font-semibold text-[var(--accent)] text-2xl flex-shrink-0 tabular-nums">
-                ${Number(selectedItem.price).toFixed(2)}
+                {formatPrice(Number(selectedItem.price))}
               </span>
             </div>
             <DietaryIcons item={selectedItem} />
@@ -173,8 +178,8 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
   // ── Category listing ──────────────────────────────────────────────────────
   return (
     <>
-      {/* Category tab strip */}
-      <div className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
+      {/* Category tab strip — hidden when only one category */}
+      {sortedCategories.length > 1 && <div className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
         <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
           {/* Left/right fade edges */}
           <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-r from-[var(--background)] to-transparent" />
@@ -215,7 +220,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
             })}
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* Category content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-[env(safe-area-inset-bottom)]">
@@ -288,7 +293,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                     <TranslatedText text={item.name} />
                   </h3>
                   <span className="font-semibold text-[var(--accent)] whitespace-nowrap flex-shrink-0 tabular-nums">
-                    ${Number(item.price).toFixed(2)}
+                    {formatPrice(Number(item.price))}
                   </span>
                 </div>
                 <DietaryIcons item={item} />
