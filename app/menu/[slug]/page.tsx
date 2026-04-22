@@ -92,14 +92,27 @@ export default async function PublicMenuPage({ params }: Props) {
     case "cinzel":   fontFamily = "var(--font-cinzel), serif"; break;
   }
 
-  const themeStyle = `:root{--foreground:${fontColor};--accent:${accent};--background:${bg};--card:${card};}body{color:var(--foreground);font-family:${fontFamily};}`;
+  const themeStyle = `:root{--foreground:${fontColor};--accent:${accent};--background:${bg};--card:${card};--muted:${fontColor}99;--card-border:${fontColor}26;}body{color:var(--foreground);font-family:${fontFamily};}`;
+
+  const hasItems = sortedCategories.length > 0;
 
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: themeStyle }} />
       <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-        <HeroWithLang restaurantName={restaurant.name ?? undefined} heroImageUrl={restaurant.hero_image_url ?? undefined} logoUrl={(restaurant as { logo_url?: string | null }).logo_url ?? undefined} />
-        <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} />
+        <HeroWithLang
+          restaurantName={restaurant.name ?? undefined}
+          heroImageUrl={restaurant.hero_image_url ?? undefined}
+          logoUrl={(restaurant as { logo_url?: string | null }).logo_url ?? undefined}
+        />
+        {hasItems ? (
+          <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} />
+        ) : (
+          <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+            <h2 className="text-2xl font-serif font-semibold text-[var(--foreground)]">No items yet</h2>
+            <p className="text-sm mt-2 max-w-xs" style={{ color: `${fontColor}99` }}>This menu is still being set up. Check back soon.</p>
+          </div>
+        )}
       </main>
     </>
   );

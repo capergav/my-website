@@ -162,6 +162,10 @@ const LANGUAGES = [
   { flag: "🇸🇦", name: "العربية", rtl: true },
   { flag: "🇨🇳", name: "中文" },
   { flag: "🇰🇷", name: "한국어" },
+  { flag: "🇮🇳", name: "ਪੰਜਾਬੀ" },
+  { flag: "🇭🇰", name: "廣東話" },
+  { flag: "🇵🇭", name: "Filipino" },
+  { flag: "🇮🇳", name: "हिन्दी" },
 ];
 
 export default function HomePage() {
@@ -438,7 +442,7 @@ export default function HomePage() {
             {[
               { target: 30, suffix: " min", label: "Average setup time" },
               { target: 0,  suffix: "",     label: "Reprints after going digital" },
-              { target: 6,  suffix: "",     label: "Languages supported" },
+              { target: 10, suffix: "",     label: "Languages supported" },
               { target: "Always", suffix: "", label: "Up-to-date menu" },
             ].map(({ target, suffix, label }, i) => (
               <motion.div key={label} className="text-center"
@@ -650,7 +654,7 @@ export default function HomePage() {
 
           <motion.div className="max-w-xl mx-auto mt-10 rounded-2xl border border-[#8b6914]/30 bg-[#8b6914]/5 p-6 text-center" {...enter(0.1)}>
             <p className="text-[#2c2a26] text-sm leading-relaxed">
-              Perfect for restaurants in tourist areas, diverse neighborhoods, and cities with international visitors. One menu, six languages, zero extra work.
+              Perfect for restaurants in tourist areas, diverse neighborhoods, and cities with international visitors. One menu, ten languages, zero extra work.
             </p>
           </motion.div>
         </div>
@@ -823,7 +827,7 @@ export default function HomePage() {
               <p className="text-sm text-[#faf8f5]/60 mt-2">Everything you need to go digital</p>
               <hr className="my-6 border-[#faf8f5]/10" />
               <ul className="space-y-3 text-sm text-[#faf8f5]/80">
-                {["1 digital menu","Unlimited menu items","6 languages supported","QR code & shareable link","Dietary labels & filters","Custom categories","Real-time updates","Custom colors & fonts","Upload logo & photos","Priority email support"].map((f) => (
+                {["1 digital menu","Unlimited menu items","10 languages supported","QR code & shareable link","Dietary labels & filters","Custom categories","Real-time updates","Custom colors & fonts","Upload logo & photos","Priority email support"].map((f) => (
                   <li key={f} className="flex items-center gap-2"><span className="text-[#c9a030]">✓</span> {f}</li>
                 ))}
               </ul>

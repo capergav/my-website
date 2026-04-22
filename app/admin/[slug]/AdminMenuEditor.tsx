@@ -10,7 +10,7 @@ import type { Restaurant } from "@/app/lib/supabase";
 import { ImageUploader } from "./ImageUploader";
 import { OnboardingTour } from "./OnboardingTour";
 import { useSubscription } from "@/lib/useSubscription";
-import { CreditCard, UtensilsCrossed, AlertTriangle, AlertCircle, Plus, GripVertical } from "lucide-react";
+import { CreditCard, AlertTriangle, AlertCircle, Plus, GripVertical } from "lucide-react";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor,
   useSensor, useSensors,
@@ -283,7 +283,7 @@ export function AdminMenuEditor({
     }
     const { error } = await supabase.from("restaurants").update(updates).eq("id", restaurantId);
     if (error) { showMsg("err", error.message); }
-    else { setRestaurant(p => p ? { ...p, ...updates } : null); showMsg("ok", "Theme saved — changes applied instantly."); }
+    else { setRestaurant(p => p ? { ...p, ...updates } : null); showMsg("ok", "Saved — reload menu to see changes"); }
     setSaving(false);
   };
 
@@ -397,7 +397,7 @@ export function AdminMenuEditor({
             🎉 You&apos;re on a free 2-month trial — {daysLeftInTrial} days left
           </span>
           <button onClick={startCheckout} className="text-xs bg-[#8b6914] text-white px-4 py-1.5 rounded-lg font-semibold hover:opacity-90 flex-shrink-0">
-            Upgrade to paid
+            Start subscription
           </button>
         </div>
       )}
@@ -617,13 +617,10 @@ export function AdminMenuEditor({
       {/* Empty state */}
       {isEmpty && (
         <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-          <div className="w-20 h-20 rounded-full bg-[#8b6914]/10 flex items-center justify-center mb-4">
-            <UtensilsCrossed size={32} className="text-[#8b6914]" />
-          </div>
-          <h3 className="text-xl font-semibold text-[var(--foreground)] font-serif">Your menu is empty</h3>
+          <h3 className="text-xl font-semibold text-[var(--foreground)] font-serif">No items yet</h3>
           <p className="text-sm text-[var(--muted)] mt-2 max-w-xs">Start by adding your first item. You can always add categories and photos later.</p>
           <button type="button" onClick={() => { setAddingNew(true); setEditingItem(null); }}
-            className="mt-6 bg-[#8b6914] text-white font-semibold rounded-xl px-6 py-3 hover:opacity-90 transition-opacity flex items-center gap-2">
+            className="mt-6 bg-[var(--accent)] text-white font-semibold rounded-xl px-6 py-3 hover:opacity-90 transition-opacity flex items-center gap-2">
             <Plus size={16} /> Add your first item
           </button>
         </div>
@@ -1457,9 +1454,28 @@ async function composeQR(opts: {
   ctx.textAlign = "right";
   const wmY = canvas.height - padding * 0.5;
   ctx.fillText("dinelinks.com", canvas.width - padding, wmY);
-  const dlX = canvas.width - padding - ctx.measureText("dinelinks.com").width - px * 0.025;
-  ctx.font = `bold ${px * 0.025 * 1.4}px Georgia, serif`;
-  ctx.fillText("DL", dlX, wmY);
+  const domainW = ctx.measureText("dinelinks.com").width;
+  const logoSize = px * 0.038;
+  const logoX = canvas.width - padding - domainW - px * 0.018 - logoSize;
+  const logoY = wmY - logoSize * 0.82;
+  const drawLogo = (lctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+    lctx.lineWidth = size * 0.08;
+    lctx.lineCap = "round";
+    lctx.strokeStyle = '#8b6914';
+    lctx.beginPath();
+    lctx.moveTo(x + size * 0.1, y + size * 0.1);
+    lctx.lineTo(x + size * 0.1, y + size * 0.9);
+    lctx.quadraticCurveTo(x + size * 0.9, y + size * 0.9, x + size * 0.9, y + size * 0.5);
+    lctx.quadraticCurveTo(x + size * 0.9, y + size * 0.1, x + size * 0.1, y + size * 0.1);
+    lctx.stroke();
+    lctx.strokeStyle = '#2c2a26';
+    lctx.beginPath();
+    lctx.moveTo(x + size * 0.65, y + size * 0.1);
+    lctx.lineTo(x + size * 0.65, y + size * 0.9);
+    lctx.lineTo(x + size * 1.05, y + size * 0.9);
+    lctx.stroke();
+  };
+  drawLogo(ctx, logoX, logoY, logoSize);
   ctx.globalAlpha = 1;
 }
 

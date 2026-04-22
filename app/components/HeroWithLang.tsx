@@ -17,14 +17,31 @@ export function HeroWithLang({
   const { t } = useLanguage();
 
   const title = restaurantName || t("hero.title");
-  const imageSrc =
-    heroImageUrl ||
-    "https://images.unsplash.com/photo-1555396273-367ea4eb4db5";
+
+  if (!heroImageUrl) {
+    return (
+      <div className="bg-[var(--card)] border-b border-[var(--card-border)] px-4 py-5 flex items-center justify-between gap-3">
+        <h1
+          className="font-serif font-semibold text-xl text-[var(--foreground)] truncate"
+          style={{ animation: "heroFadeUp 0.4s ease-out both" }}
+        >
+          {title}
+        </h1>
+        <div className="flex-shrink-0">
+          <LanguageDropdown />
+        </div>
+        <style>{`
+          @keyframes heroFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+          @media (prefers-reduced-motion: reduce) { @keyframes heroFadeUp { from { opacity: 1; } } }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="relative h-72 lg:h-80 overflow-hidden">
       <img
-        src={imageSrc}
+        src={heroImageUrl}
         alt={title}
         className="w-full h-full object-cover"
       />

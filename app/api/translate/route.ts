@@ -21,12 +21,16 @@ function setCache(text: string, to: string, translated: string): void {
 }
 
 const MYMEMORY_LANG: Record<Locale, string> = {
-  en: "en",
-  fr: "fr",
-  zh: "zh-CN",
-  ar: "ar",
-  es: "es",
-  ko: "ko",
+  en:  "en",
+  fr:  "fr",
+  zh:  "zh-CN",
+  ar:  "ar",
+  es:  "es",
+  ko:  "ko",
+  pa:  "pa",
+  yue: "zh-TW",
+  tl:  "tl",
+  hi:  "hi",
 };
 
 export async function POST(request: NextRequest) {
