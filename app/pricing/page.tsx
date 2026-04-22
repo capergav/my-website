@@ -31,8 +31,9 @@ export default function PricingPage() {
           <h1 className="font-serif text-4xl font-semibold text-[#2c2a26]">DineLinks</h1>
           <p className="text-[#6b6560] mt-2">Simple, honest pricing</p>
         </div>
-        <div className="rounded-2xl bg-[#8b6914]/10 border border-[#8b6914]/30 px-6 py-3 text-center mb-4">
-          <p className="text-sm font-medium text-[#8b6914]">🎉 First 2 months free</p>
+        <div className="rounded-2xl bg-[#8b6914] px-6 py-4 text-center mb-4 shadow-md">
+          <p className="text-base font-bold text-white">🎉 <span className="underline underline-offset-2">First 2 months free</span> — no credit card required</p>
+          <p className="text-xs text-white/70 mt-1">Start today, pay nothing for 60 days</p>
         </div>
         <div className="bg-[#2c2a26] rounded-3xl border-2 border-[#8b6914]/50 p-8 text-white">
           <div className="text-center">

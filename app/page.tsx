@@ -267,7 +267,7 @@ export default function HomePage() {
           <div className="flex items-center gap-3">
             {!isLoggedIn && <Link href="/login" className="text-sm transition-colors text-foreground/70 hover:text-foreground">Sign in</Link>}
             <Link href={isLoggedIn ? '/admin' : '/signup'} className="rounded-xl px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity bg-[#8b6914] text-white">
-              {isLoggedIn ? 'Go to my menu' : 'Get started free'}
+              {isLoggedIn ? 'Go to my menu' : 'Start free trial'}
             </Link>
           </div>
         </div>
@@ -305,8 +305,8 @@ export default function HomePage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: rm ? 0 : 0.7, ease: [0.22, 1, 0.36, 1] }}
           >
-            <span className="inline-flex items-center gap-2 rounded-full border border-[#8b6914]/40 bg-[#8b6914]/8 px-4 py-1.5 text-sm text-[#8b6914] font-medium">
-              ✦ No setup fee — live in 30 minutes
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#8b6914]/40 bg-[#8b6914]/8 px-4 py-1.5 text-sm text-[#8b6914] font-semibold">
+              ✦ 2 months free · No credit card required
             </span>
             <motion.h1
               style={{ fontFamily: "Georgia, serif" }}
@@ -334,11 +334,12 @@ export default function HomePage() {
                 See a real menu →
               </Link>
             </div>
-            <div className="mt-5 flex gap-5 flex-wrap text-sm text-[#6b6560]">
+            <div className="mt-4 flex gap-5 flex-wrap text-sm text-[#6b6560]">
               <span>✓ No setup fee</span>
               <span>✓ Live in 30 minutes</span>
-              <span>✓ First 2 months free</span>
+              <span className="font-bold text-[#8b6914]">✓ First 2 months free</span>
             </div>
+            <p className="mt-2 text-sm font-semibold text-[#8b6914]">No credit card required — cancel anytime</p>
           </motion.div>
 
           {/* Right column — phone mockup */}
@@ -817,8 +818,9 @@ export default function HomePage() {
           </motion.div>
 
           <div className="max-w-sm mx-auto mt-14">
-            <motion.div className="rounded-2xl bg-[#8b6914]/10 border border-[#8b6914]/30 px-6 py-3 text-center mb-6" {...enter(0.05)}>
-              <p className="text-sm font-medium text-[#8b6914]">🎉 Launch offer — first 2 months free when you sign up now</p>
+            <motion.div className="rounded-2xl bg-[#8b6914] px-6 py-4 text-center mb-6 shadow-md" {...enter(0.05)}>
+              <p className="text-base font-bold text-white">🎉 <span className="underline underline-offset-2">First 2 months free</span> — no credit card required</p>
+              <p className="text-xs text-white/70 mt-1">Start today, pay nothing for 60 days</p>
             </motion.div>
             <motion.div className="bg-[#2c2a26] rounded-3xl border-2 border-[#8b6914]/50 p-8 text-left" {...enter(0.1)}>
               <span className="inline-flex rounded-full bg-[#8b6914]/20 text-[#c9a030] text-xs font-semibold px-3 py-1">DineLinks</span>
@@ -841,7 +843,7 @@ export default function HomePage() {
                   {isLoggedIn ? 'Go to my menu →' : 'Get started →'}
                 </Link>
               </motion.div>
-              <p className="mt-3 text-[#faf8f5]/40 text-xs text-center">No setup fee · Cancel anytime</p>
+              <p className="mt-3 text-[#faf8f5]/50 text-xs text-center">No credit card required · 2 months free · Cancel anytime</p>
             </motion.div>
           </div>
         </div>
@@ -862,7 +864,7 @@ export default function HomePage() {
           >
             Ready to go digital?
           </motion.h2>
-          <p className="text-xl text-white/80 max-w-md mx-auto mt-5">First 2 months free — no credit card required.</p>
+          <p className="text-2xl font-semibold text-white max-w-md mx-auto mt-5">First 2 months free — no credit card required.</p>
           <motion.div
             className="inline-block mt-10"
             whileHover={rm ? {} : { scale: 1.03, y: -2 }}
@@ -873,7 +875,7 @@ export default function HomePage() {
               {isLoggedIn ? 'Go to my menu →' : 'Get started →'}
             </Link>
           </motion.div>
-          <p className="mt-6 text-white/50 text-sm">No setup fee · Cancel anytime · Live in 30 minutes</p>
+          <p className="mt-6 text-white/60 text-sm">No setup fee · Cancel anytime · Live in 30 minutes</p>
         </div>
       </section>
 

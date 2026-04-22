@@ -97,6 +97,11 @@ export default function SignupPage() {
           <p className="text-white text-xs font-semibold uppercase tracking-widest">DineLinks</p>
         </Link>
 
+        {/* Trial callout */}
+        <div className="w-full bg-[#8b6914] rounded-2xl px-5 py-3 text-center mb-3 shadow-lg">
+          <p className="text-white font-semibold text-sm">🎉 First 2 months free — no credit card required</p>
+        </div>
+
         {/* Frosted glass card */}
         <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl border border-white/60 shadow-2xl p-8">
           <h1 className="text-2xl font-serif font-semibold text-gray-900 mb-1 text-center">Create your menu</h1>
@@ -188,6 +193,7 @@ export default function SignupPage() {
             >
               {loading ? "Creating account…" : "Create account"}
             </button>
+            <p className="text-xs text-center text-gray-400 mt-2">No credit card required · Cancel anytime</p>
           </form>
 
           <p className="text-sm text-center text-gray-500 mt-6">
