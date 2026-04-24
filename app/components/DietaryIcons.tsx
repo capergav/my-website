@@ -33,7 +33,7 @@ export function DietaryIcons({ item }: { item: DietaryFlags }) {
   return (
     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap" role="group" aria-label="Dietary information">
       {active.map(({ key, Icon, label, abbr }) => (
-        <span key={key} aria-label={label} title={label} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[var(--accent)]/10 text-[var(--accent)]">
+        <span key={key} aria-label={label} title={label} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${key === 'chefs_favorite' ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'bg-[var(--main-color)]/10 text-[var(--main-color)]'}`}>
           <Icon size={10} aria-hidden />
           {abbr}
         </span>

@@ -35,21 +35,30 @@ export default async function PublicMenuPage({ params }: Props) {
     (sub.status === "trialing" && sub.trial_end && new Date(sub.trial_end) < new Date()) ||
     sub.status === "past_due";
 
+  const pausedFontColor = restaurant.font_color ?? "#2c2a26";
+  const pausedAccent    = restaurant.accent_color ?? "#8b6914";
+  const pausedBg        = restaurant.background_color ?? "#faf8f5";
+  const pausedCard      = restaurant.main_color ?? "#ffffff";
+  const pausedThemeStyle = `:root{--foreground:${pausedFontColor};--accent:${pausedAccent};--background:${pausedBg};--card:${pausedCard};--muted:${pausedFontColor}99;--card-border:${pausedFontColor}26;--main-color:${pausedCard};--accent-color:${pausedAccent};--background-color:${pausedBg};--font-color:${pausedFontColor};}`;
+
   if (isPaused) {
     return (
-      <main className="min-h-screen bg-[#faf8f5] flex items-center justify-center px-4 text-center">
-        <div className="max-w-md">
-          <div className="w-16 h-16 rounded-full bg-[#8b6914]/10 mx-auto flex items-center justify-center mb-4">
-            <Clock size={28} className="text-[#8b6914]" />
+      <>
+        <style dangerouslySetInnerHTML={{ __html: pausedThemeStyle }} />
+        <main className="min-h-screen bg-[var(--background)] flex items-center justify-center px-4 text-center">
+          <div className="max-w-md">
+            <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4" style={{ background: `${pausedCard}1a` }}>
+              <Clock size={28} style={{ color: pausedCard }} />
+            </div>
+            <h1 className="text-2xl font-semibold text-[var(--foreground)]">
+              Menu temporarily unavailable
+            </h1>
+            <p className="text-[var(--muted)] mt-2 text-sm">
+              This restaurant&apos;s digital menu is currently paused. Please check back soon.
+            </p>
           </div>
-          <h1 style={{ fontFamily: "Georgia, serif" }} className="text-2xl font-semibold text-[#2c2a26]">
-            Menu temporarily unavailable
-          </h1>
-          <p className="text-[#6b6560] mt-2 text-sm">
-            This restaurant&apos;s digital menu is currently paused. Please check back soon.
-          </p>
-        </div>
-      </main>
+        </main>
+      </>
     );
   }
 
@@ -92,7 +101,7 @@ export default async function PublicMenuPage({ params }: Props) {
     case "cinzel":   fontFamily = "var(--font-cinzel), serif"; break;
   }
 
-  const themeStyle = `:root{--foreground:${fontColor};--accent:${accent};--background:${bg};--card:${card};--muted:${fontColor}99;--card-border:${fontColor}26;}body{color:var(--foreground);font-family:${fontFamily};}`;
+  const themeStyle = `:root{--foreground:${fontColor};--accent:${accent};--background:${bg};--card:${card};--muted:${fontColor}99;--card-border:${fontColor}26;--main-color:${card};--accent-color:${accent};--background-color:${bg};--font-color:${fontColor};}body{color:var(--foreground);font-family:${fontFamily};}`;
 
   const hasItems = sortedCategories.length > 0;
 

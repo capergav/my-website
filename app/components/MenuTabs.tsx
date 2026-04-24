@@ -79,7 +79,7 @@ function CategoryIcon({ name, isActive }: { name: string; isActive: boolean }) {
   return (
     <div
       className="w-full h-full flex items-center justify-center transition-colors"
-      style={{ background: isActive ? "var(--accent)" : "var(--card-border)" }}
+      style={{ background: isActive ? "var(--main-color)" : "var(--card-border)" }}
     >
       {Icon ? (
         <Icon
@@ -195,7 +195,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                   onClick={() => { setActiveCategory(category); setDietFilter("all"); }}
                   className={`flex-shrink-0 w-[72px] sm:w-24 flex flex-col items-center gap-1.5 rounded-2xl transition-all duration-200 touch-manipulation py-2 snap-start ${
                     isActive
-                      ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--background)] shadow-md"
+                      ? "ring-2 ring-[var(--main-color)] ring-offset-2 ring-offset-[var(--background)] shadow-md"
                       : "opacity-70 hover:opacity-100"
                   }`}
                 >
@@ -210,7 +210,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                   {/* Label */}
                   <span
                     className={`text-[10px] sm:text-xs font-semibold text-center leading-tight px-1 w-full truncate uppercase tracking-wide ${
-                      isActive ? "text-[var(--accent)]" : "text-[var(--muted)]"
+                      isActive ? "text-[var(--main-color)]" : "text-[var(--muted)]"
                     }`}
                   >
                     {getCategoryLabel(category)}

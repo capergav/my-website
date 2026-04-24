@@ -29,6 +29,111 @@ const D_BG     = "#faf8f5";
 const D_TEXT   = "#2c2a26";
 const D_CARD   = "#ffffff";
 
+const FONT_NAME_TO_VALUE: Record<string, string> = {
+  'Playfair Display': 'playfair',
+  'Geist Sans': 'sans',
+  'Pacifico': 'pacifico',
+  'Cinzel': 'cinzel',
+  'Bebas Neue': 'bebas',
+  'Cormorant Garamond': 'serif',
+  'Poppins': 'poppins',
+  'Geist Mono': 'mono',
+  'Orbitron': 'orbitron',
+};
+
+const PRESET_THEMES = [
+  {
+    name: 'The Copper Table',
+    description: 'Warm upscale bistro',
+    main_color: '#8b6914',
+    accent_color: '#c9a030',
+    background_color: '#faf8f5',
+    font_color: '#2c2a26',
+    font_family: 'Playfair Display',
+  },
+  {
+    name: 'Midnight Brasserie',
+    description: 'Dark & elegant French',
+    main_color: '#c9963a',
+    accent_color: '#e8b84b',
+    background_color: '#1a0a0a',
+    font_color: '#faf0e0',
+    font_family: 'Playfair Display',
+  },
+  {
+    name: 'Sakura Modern',
+    description: 'Clean Japanese minimalist',
+    main_color: '#00d4aa',
+    accent_color: '#00b894',
+    background_color: '#0d0d0d',
+    font_color: '#ffffff',
+    font_family: 'Geist Sans',
+  },
+  {
+    name: 'Sol Café',
+    description: 'Bright & sunny café',
+    main_color: '#f97316',
+    accent_color: '#fb923c',
+    background_color: '#fff8ed',
+    font_color: '#2c2a26',
+    font_family: 'Pacifico',
+  },
+  {
+    name: 'Verde Trattoria',
+    description: 'Italian rustic green',
+    main_color: '#2d6a4f',
+    accent_color: '#40916c',
+    background_color: '#f8fdf9',
+    font_color: '#1b3a2d',
+    font_family: 'Playfair Display',
+  },
+  {
+    name: 'Spice Route',
+    description: 'Bold Indian & South Asian',
+    main_color: '#c0392b',
+    accent_color: '#e74c3c',
+    background_color: '#fff9f0',
+    font_color: '#2c1810',
+    font_family: 'Cinzel',
+  },
+  {
+    name: 'Ocean Blue',
+    description: 'Fresh seafood & coastal',
+    main_color: '#0077b6',
+    accent_color: '#00b4d8',
+    background_color: '#f0f8ff',
+    font_color: '#03045e',
+    font_family: 'Geist Sans',
+  },
+  {
+    name: 'Urban Grill',
+    description: 'Industrial steakhouse',
+    main_color: '#e63946',
+    accent_color: '#ff6b6b',
+    background_color: '#1a1a1a',
+    font_color: '#f1faee',
+    font_family: 'Bebas Neue',
+  },
+  {
+    name: 'Lavender Garden',
+    description: 'Soft brunch & bakery',
+    main_color: '#7c3aed',
+    accent_color: '#a78bfa',
+    background_color: '#faf5ff',
+    font_color: '#3b0764',
+    font_family: 'Cormorant Garamond',
+  },
+  {
+    name: 'Terracotta',
+    description: 'Mediterranean warmth',
+    main_color: '#c1440e',
+    accent_color: '#e8652a',
+    background_color: '#fdf6f0',
+    font_color: '#3d1a0a',
+    font_family: 'Cinzel',
+  },
+];
+
 function getContrast(hex1: string, hex2: string): number {
   const lum = (hex: string) => {
     const clean = hex.replace("#", "");
@@ -83,11 +188,11 @@ function SortableMenuItem({ item, children }: { item: MenuItemRow; children: Rea
     <div ref={setNodeRef} style={style} {...attributes}>
       <div
         {...listeners}
-        className="absolute left-0 top-0 bottom-0 w-9 flex flex-col items-center justify-center gap-0.5 cursor-grab active:cursor-grabbing touch-none z-10 rounded-l-xl bg-[var(--card-border)]/30 hover:bg-[#8b6914]/10 group transition-colors"
+        className="absolute left-0 top-0 bottom-0 w-9 flex flex-col items-center justify-center gap-0.5 cursor-grab active:cursor-grabbing touch-none z-10 rounded-l-xl bg-[var(--card-border)]/30 hover:bg-[var(--main-color)]/10 group transition-colors"
         title="Drag to reorder"
       >
-        <GripVertical size={18} className="text-[var(--muted)] group-hover:text-[#8b6914] transition-colors" />
-        <span className="text-[8px] text-[var(--muted)] group-hover:text-[#8b6914] opacity-0 group-hover:opacity-100 transition-opacity font-medium leading-none">Drag</span>
+        <GripVertical size={18} className="text-[var(--muted)] group-hover:text-[var(--main-color)] transition-colors" />
+        <span className="text-[8px] text-[var(--muted)] group-hover:text-[var(--main-color)] opacity-0 group-hover:opacity-100 transition-opacity font-medium leading-none">Drag</span>
       </div>
       <div className="pl-9">{children}</div>
     </div>
@@ -205,7 +310,7 @@ export function AdminMenuEditor({
       el.id = "dinelinks-theme";
       document.head.appendChild(el);
     }
-    el.textContent = `:root{--foreground:${fc};--accent:${acc};--background:${bg};--card:${cd};--card-border:${fc}22;--muted:${fc}99;}body{font-family:${ff};}`;
+    el.textContent = `:root{--foreground:${fc};--accent:${acc};--background:${bg};--card:${cd};--card-border:${fc}22;--muted:${fc}99;--main-color:${cd};--accent-color:${acc};--background-color:${bg};--font-color:${fc};}body{font-family:${ff};}`;
   }, [restaurant]);
 
   const showMsg = useCallback((type: "ok" | "err", text: string) => {
@@ -372,7 +477,7 @@ export function AdminMenuEditor({
             Get full access to DineLinks for 2 months free, then $25/month. Cancel anytime.
           </p>
           <button onClick={startCheckout} disabled={checkoutLoading}
-            className="w-full bg-[#8b6914] text-white font-semibold py-3.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
+            className="w-full bg-[var(--main-color,#8b6914)] text-white font-semibold py-3.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
             {checkoutLoading ? 'Loading...' : 'Start 2 months free'}
           </button>
           <p className="text-xs text-[#6b6560] mt-4">No credit card required</p>
@@ -396,7 +501,7 @@ export function AdminMenuEditor({
           <span className="text-sm text-[#2c2a26]">
             🎉 You&apos;re on a free 2-month trial — {daysLeftInTrial} days left
           </span>
-          <button onClick={startCheckout} className="text-xs bg-[#8b6914] text-white px-4 py-1.5 rounded-lg font-semibold hover:opacity-90 flex-shrink-0">
+          <button onClick={startCheckout} className="text-xs bg-[var(--main-color)] text-white px-4 py-1.5 rounded-lg font-semibold hover:opacity-90 flex-shrink-0">
             Start subscription
           </button>
         </div>
@@ -447,7 +552,7 @@ export function AdminMenuEditor({
               Your menu is paused and visitors see an &ldquo;unavailable&rdquo; message. Subscribe now to keep your menu live and get full access to DineLinks.
             </p>
             <button onClick={startCheckout} disabled={checkoutLoading}
-              className="w-full bg-[#8b6914] text-white font-semibold py-3.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
+              className="w-full bg-[var(--main-color,#8b6914)] text-white font-semibold py-3.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
               {checkoutLoading ? 'Loading...' : 'Subscribe now — $25/month'}
             </button>
             <p className="text-xs text-[#6b6560] mt-4">Reactivates your menu immediately. Cancel anytime.</p>
@@ -653,7 +758,7 @@ export function AdminMenuEditor({
                       type="button"
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => setShowCategoryModal(true)}
-                      className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold font-sans text-[#8b6914] border-2 border-dashed border-[#8b6914]/30 rounded-xl px-3 py-1.5 hover:bg-[#8b6914]/5 transition-colors">
+                      className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold font-sans text-[var(--main-color)] border-2 border-dashed border-[var(--main-color)]/30 rounded-xl px-3 py-1.5 hover:bg-[var(--main-color)]/5 transition-colors">
                       <Plus size={14} /> Add category
                     </button>
                   </div>
@@ -729,7 +834,7 @@ export function AdminMenuEditor({
                               />
                               <button type="button"
                                 onClick={() => { setEditingItem(item); setAddingNew(false); }}
-                                className="px-3 py-1.5 rounded-lg bg-[#8b6914] text-white text-xs font-semibold font-sans hover:opacity-90 transition-opacity">
+                                className="px-3 py-1.5 rounded-lg bg-[var(--main-color)] text-white text-xs font-semibold font-sans hover:opacity-90 transition-opacity">
                                 Edit
                               </button>
                               <button type="button"
@@ -936,21 +1041,29 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
               {/* Preset themes */}
               <section>
                 <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-3">Preset themes</h3>
-                <div className="flex gap-2 flex-wrap">
-                  {([
-                    { label: "Classic", bg: "#ffffff", card: "#ffffff", font: "#2c2a26", accent: "#8b6914" },
-                    { label: "Dark mode", bg: "#1a1816", card: "#2c2a26", font: "#faf8f5", accent: "#c9a030" },
-                    { label: "Warm cream", bg: "#faf8f5", card: "#ffffff", font: "#2c2a26", accent: "#b45309" },
-                  ] as const).map((preset) => (
-                    <button key={preset.label} type="button"
-                      onClick={() => { setBg(preset.bg); setCard(preset.card); setFontColor(preset.font); setAccent(preset.accent); }}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium font-sans border border-[var(--card-border)] text-[var(--foreground)] hover:border-[#8b6914]/50 transition-colors">
-                      <span className="flex gap-0.5">
-                        <span className="inline-block w-3 h-3 rounded-full border border-gray-200" style={{ background: preset.bg }} />
-                        <span className="inline-block w-3 h-3 rounded-full border border-gray-200" style={{ background: preset.font }} />
-                        <span className="inline-block w-3 h-3 rounded-full border border-gray-200" style={{ background: preset.accent }} />
-                      </span>
-                      {preset.label}
+                <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
+                  {PRESET_THEMES.map((preset) => (
+                    <button
+                      key={preset.name}
+                      type="button"
+                      onClick={() => {
+                        setCard(preset.main_color);
+                        setAccent(preset.accent_color);
+                        setBg(preset.background_color);
+                        setFontColor(preset.font_color);
+                        setFont(FONT_NAME_TO_VALUE[preset.font_family] ?? 'sans');
+                      }}
+                      className="flex flex-col gap-2 p-3 rounded-xl border border-[var(--card-border)] text-left hover:border-[var(--accent)]/50 transition-all hover:shadow-sm"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span className="w-6 h-6 rounded-md shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.main_color }} />
+                        <span className="w-6 h-6 rounded-md shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.background_color }} />
+                        <span className="w-4 h-4 rounded-full shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.accent_color }} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold font-sans text-[var(--foreground)] leading-tight">{preset.name}</p>
+                        <p className="text-[10px] font-sans text-[var(--muted)] mt-0.5 leading-tight">{preset.description}</p>
+                      </div>
                     </button>
                   ))}
                 </div>

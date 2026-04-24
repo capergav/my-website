@@ -45,7 +45,7 @@ export function HeroWithLang({
         alt={title}
         className="w-full h-full object-cover"
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, var(--background-color, #000000) 0%, rgba(0,0,0,0.35) 45%, transparent 100%)' }} />
       <div className="absolute top-4 end-4 sm:top-5 sm:end-5 z-10">
         <LanguageDropdown />
       </div>
