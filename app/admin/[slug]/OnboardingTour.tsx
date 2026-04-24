@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 
-const TOUR_KEY = "dinelinks_tour_v2_done";
+const TOUR_KEY = "dinelinks_tour_v3_done";
 
 type Placement = "top" | "bottom" | "left" | "right";
 
@@ -20,9 +20,37 @@ const STEPS: Step[] = [
   {
     id: "welcome",
     selector: null,
-    title: "Welcome to DineLinks 👋",
-    description: "Let's take a quick tour so you can get your restaurant's digital menu live fast. You can skip at any time.",
+    title: "Welcome to DineLinks!",
+    description: "Let's take a quick tour of your dashboard. You can skip at any time and replay it from Settings.",
     placement: "bottom",
+  },
+  {
+    id: "menu",
+    selector: "[data-tour='menu-area']",
+    title: "Your menu",
+    description: "This is where all your categories and items live. Drag to reorder, click to edit.",
+    placement: "top",
+  },
+  {
+    id: "add-item",
+    selector: "[data-tour='add-item']",
+    title: "Add your first item",
+    description: "Click here to add dishes to your menu. Upload a photo, set the price, dietary flags, and availability.",
+    placement: "left",
+  },
+  {
+    id: "categories",
+    selector: "[data-tour='add-category']",
+    title: "Categories",
+    description: "Group your items into categories like Appetizers, Mains, Desserts — drag tabs to reorder them.",
+    placement: "bottom",
+  },
+  {
+    id: "availability",
+    selector: "[data-tour='availability-toggle']",
+    title: "Item availability",
+    description: "Toggle items on or off instantly — great for 86'd dishes or daily specials. Changes go live immediately.",
+    placement: "right",
   },
   {
     id: "theme",
@@ -30,7 +58,14 @@ const STEPS: Step[] = [
     mobileSelector: "[data-tour='theme-btn-mobile']",
     requiresMobileSheet: true,
     title: "Theme & Branding",
-    description: "Click here to customise your restaurant name, hero photo, colours, and font. Changes apply instantly.",
+    description: "Customize your menu's colors, fonts, and logo to match your restaurant's vibe.",
+    placement: "bottom",
+  },
+  {
+    id: "qr",
+    selector: "[data-tour='qr-btn']",
+    title: "QR Codes",
+    description: "Generate printable QR codes for your tables — customers scan and see your menu instantly.",
     placement: "bottom",
   },
   {
@@ -38,22 +73,31 @@ const STEPS: Step[] = [
     selector: "[data-tour='view-menu-desktop']",
     mobileSelector: "[data-tour='view-menu-mobile']",
     requiresMobileSheet: true,
-    title: "View Your Public Menu",
-    description: "Opens the live menu your customers see. Share the link via your website, Instagram bio, or a printed QR code.",
+    title: "Live preview",
+    description: "See exactly what your customers see. Changes appear instantly — no refresh needed.",
     placement: "bottom",
   },
   {
-    id: "add-item",
-    selector: "[data-tour='add-item']",
-    title: "Add Your First Item",
-    description: "Click here to add a dish. Upload a photo, set the price, dietary flags, and availability.",
-    placement: "left",
+    id: "share",
+    selector: null,
+    title: "Share your menu",
+    description: "Copy your menu link or download QR codes to put on tables, windows, and business cards.",
+    placement: "bottom",
+  },
+  {
+    id: "settings",
+    selector: "[data-tour='settings-btn']",
+    mobileSelector: "[data-tour='settings-btn-mobile']",
+    requiresMobileSheet: true,
+    title: "Settings",
+    description: "Manage your restaurant info, hours, and account here. You can also replay this tour anytime.",
+    placement: "bottom",
   },
   {
     id: "done",
     selector: null,
     title: "You're all set! 🎉",
-    description: "Start by adding your first dish. Categories appear automatically. Reopen this tour anytime with the '?' button in the header.",
+    description: "That's the tour! You can replay it anytime from Settings → Help, or by clicking the ? button.",
     placement: "bottom",
   },
 ];
@@ -84,7 +128,7 @@ function calcPos(el: Element, placement: Placement): Pos {
   const spotX = r.left, spotY = r.top, spotW = r.width, spotH = r.height;
   let x = 0, y = 0;
 
-  const tipH = 160;
+  const tipH = 180;
   switch (placement) {
     case "bottom":
       x = Math.max(8, Math.min(r.left, W - TIP_W - 8));
@@ -142,7 +186,6 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
         retryRef.current++;
         setTimeout(calculate, 100);
       } else {
-        // give up — show centered
         setPos(centered());
         requestAnimationFrame(() => setIsReady(true));
       }
@@ -159,14 +202,24 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
     setIsReady(false);
 
     const isMobile = window.innerWidth < 768;
+
     if (isMobile && current.requiresMobileSheet) {
       // Open mobile sheet if not already open
       const hamburger = document.querySelector<HTMLButtonElement>("[data-tour='hamburger']");
       const sheetOpen = document.body.dataset.mobileSheetOpen === "true";
       if (hamburger && !sheetOpen) {
         hamburger.click();
-        // Wait for sheet animation
         setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(calculate)), 250);
+        return;
+      }
+    } else if (isMobile && !current.requiresMobileSheet) {
+      // Close mobile sheet if open so it doesn't block the spotlight
+      const sheetOpen = document.body.dataset.mobileSheetOpen === "true";
+      if (sheetOpen) {
+        document.body.dataset.mobileSheetOpen = "false";
+        const closeBtn = document.querySelector<HTMLButtonElement>("[data-tour='sheet-close']");
+        if (closeBtn) closeBtn.click();
+        setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(calculate)), 300);
         return;
       }
     }
@@ -205,6 +258,7 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
 
   const isFirst = step === 0;
   const isLast  = step === STEPS.length - 1;
+  const total   = STEPS.length;
 
   const spotCx = pos.spotX + pos.spotW / 2;
   const spotCy = pos.spotY + pos.spotH / 2;
@@ -245,12 +299,18 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
           <button type="button" onClick={finish} aria-label="Skip tour" className="shrink-0 text-gray-400 hover:text-gray-600 text-lg leading-none mt-0.5">✕</button>
         </div>
         <p className="text-sm text-gray-500 leading-relaxed mb-4">{current.description}</p>
+
+        {/* Progress + buttons */}
         <div className="flex items-center justify-between">
-          <div className="flex gap-1.5 items-center">
-            {STEPS.map((_, i) => (
-              <span key={i} className="inline-block rounded-full transition-all duration-200"
-                style={{ width: i === step ? 18 : 6, height: 6, background: i === step ? "#8b6914" : "#e5e7eb" }} />
-            ))}
+          <div className="flex items-center gap-2">
+            {/* Dot progress */}
+            <div className="flex gap-1 items-center">
+              {STEPS.map((_, i) => (
+                <span key={i} className="inline-block rounded-full transition-all duration-200"
+                  style={{ width: i === step ? 18 : 6, height: 6, background: i === step ? "#8b6914" : "#e5e7eb" }} />
+              ))}
+            </div>
+            <span className="text-[10px] text-gray-400 ml-1">{step + 1}/{total}</span>
           </div>
           <div className="flex gap-2">
             {isFirst ? (

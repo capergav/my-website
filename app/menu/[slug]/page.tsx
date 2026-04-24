@@ -70,10 +70,16 @@ export default async function PublicMenuPage({ params }: Props) {
   const showTrialBanner = sub?.status === "trialing" && trialEnd !== null && trialEnd > now;
   const trialWindingDown = showTrialBanner && daysLeft !== null && daysLeft <= 7;
 
-  const [{ data: menuItems }, { data: categoryNotesRows }] = await Promise.all([
+  const [{ data: menuItems }, { data: categoryNotesRows }, { data: categoryRows }] = await Promise.all([
     supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).eq("available", true).order("sort_order", { ascending: true }).order("name", { ascending: true }),
     supabase.from("category_notes").select("category, note").eq("restaurant_id", restaurant.id),
+    supabase.from("restaurant_categories").select("name, show_image, image_url").eq("restaurant_id", restaurant.id),
   ]);
+
+  const categoryImageMap: Record<string, { show: boolean; url: string | null }> = {};
+  for (const row of (categoryRows ?? []) as { name: string; show_image: boolean; image_url: string | null }[]) {
+    categoryImageMap[row.name] = { show: row.show_image ?? false, url: row.image_url ?? null };
+  }
 
   const categoryNotes: Record<string, string> = {};
   for (const row of (categoryNotesRows ?? []) as { category: string; note: string | null }[]) {
@@ -120,32 +126,34 @@ export default async function PublicMenuPage({ params }: Props) {
       {/* ── DineLinks trial banner — always hardcoded brand colors, never restaurant theme ── */}
       {showTrialBanner && (
         <div
-          style={{ background: "#8b6914", fontFamily: "system-ui, -apple-system, sans-serif" }}
-          className="py-2 px-4 text-center"
+          style={{ background: "#ffffff", fontFamily: "system-ui, -apple-system, sans-serif" }}
+          className="py-2 px-4 text-center shadow-lg border-b border-gray-200"
         >
           {trialWindingDown ? (
-            <p className="text-sm text-white flex items-center justify-center gap-2 flex-wrap">
+            <p className="text-sm text-[#111111] flex items-center justify-center gap-2 flex-wrap">
+              <span style={{ color: "#8b6914", fontWeight: 700 }}>DineLinks</span>
+              <span style={{ color: "#8b6914" }}>·</span>
               <span>
                 Free trial ends in{" "}
                 <strong>{daysLeft} day{daysLeft !== 1 ? "s" : ""}</strong>
               </span>
               <Link
                 href="/signup"
-                style={{ background: "#2c2a26", color: "#ffffff" }}
+                style={{ background: "#8b6914", color: "#ffffff" }}
                 className="inline-block rounded-lg px-3 py-0.5 text-xs font-semibold hover:opacity-90 transition-opacity"
               >
                 Subscribe to keep this menu live →
               </Link>
             </p>
           ) : (
-            <p className="text-sm text-white flex items-center justify-center gap-2 flex-wrap">
-              <span style={{ color: "#c9a030" }}>✦</span>
-              <span>Powered by DineLinks</span>
-              <span style={{ color: "#c9a030" }}>·</span>
-              <span>Get your own digital menu — 2 months free</span>
+            <p className="text-sm text-[#111111] flex items-center justify-center gap-2 flex-wrap">
+              <span style={{ color: "#8b6914", fontWeight: 700 }}>DineLinks</span>
+              <span style={{ color: "#8b6914" }}>✦</span>
+              <span>Powered by DineLinks — Get your own digital menu</span>
+              <span style={{ color: "#8b6914", fontWeight: 600 }}>2 months free</span>
               <Link
                 href="/signup"
-                style={{ background: "#ffffff", color: "#8b6914" }}
+                style={{ background: "#8b6914", color: "#ffffff" }}
                 className="inline-block rounded-lg px-3 py-0.5 text-xs font-semibold hover:opacity-90 transition-opacity"
               >
                 Start free →
@@ -162,7 +170,7 @@ export default async function PublicMenuPage({ params }: Props) {
           logoUrl={(restaurant as { logo_url?: string | null }).logo_url ?? undefined}
         />
         {hasItems ? (
-          <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} />
+          <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} categoryImageMap={categoryImageMap} />
         ) : (
           <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
             <h2 className="text-2xl font-serif font-semibold text-[var(--foreground)]">No items yet</h2>

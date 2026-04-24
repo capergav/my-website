@@ -1,3 +1,12 @@
+export type CategoryRow = {
+  id: string;
+  restaurant_id: string;
+  name: string;
+  sort_order: number;
+  show_image: boolean;
+  image_url: string | null;
+};
+
 export const CATEGORY_ORDER = [
   "Breakfast",
   "Appetizers",

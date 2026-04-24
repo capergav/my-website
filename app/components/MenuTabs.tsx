@@ -42,6 +42,7 @@ export type MenuTabsProps = {
   grouped: Record<string, MenuItem[]>;
   sortedCategories: string[];
   categoryNotes?: Record<string, string>;
+  categoryImageMap?: Record<string, { show: boolean; url: string | null }>;
 };
 
 // Lucide icon map for category thumbnails
@@ -102,7 +103,7 @@ function formatPrice(price: number): string {
   return `$${price.toFixed(2)}`;
 }
 
-export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: MenuTabsProps) {
+export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, categoryImageMap = {} }: MenuTabsProps) {
   const { t, getCategoryLabel } = useLanguage();
   const [activeCategory, setActiveCategory] = useState(sortedCategories[0] ?? "");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -226,6 +227,18 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
           </div>
         </div>
       </div>}
+
+      {/* Category banner image — only when show_image === true and image exists */}
+      {categoryImageMap[activeCategory]?.show && categoryImageMap[activeCategory]?.url && (
+        <div className="w-full overflow-hidden" style={{ maxHeight: 220 }}>
+          <img
+            src={categoryImageMap[activeCategory].url!}
+            alt={activeCategory}
+            className="w-full h-full object-cover"
+            style={{ maxHeight: 220 }}
+          />
+        </div>
+      )}
 
       {/* Category content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-[env(safe-area-inset-bottom)]">

@@ -602,8 +602,9 @@ export function AdminMenuEditor({
         {/* Desktop action row */}
         <div className="hidden sm:flex absolute top-4 end-4 items-center gap-2 z-20">
           <button
+            data-tour="settings-btn"
             type="button"
-            onClick={() => { localStorage.removeItem("dinelinks_tour_v2_done"); setTourKey((k) => k + 1); }}
+            onClick={() => { localStorage.removeItem("dinelinks_tour_v3_done"); setTourKey((k) => k + 1); }}
             title="Reopen tour"
             className="min-h-[40px] w-10 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-bold border border-white/20 flex items-center justify-center transition-colors"
           >
@@ -618,6 +619,7 @@ export function AdminMenuEditor({
             <CreditCard size={16} /> Billing
           </button>
           <button
+            data-tour="qr-btn"
             type="button"
             onClick={() => setShowQR(true)}
             className="min-h-[40px] px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-medium border border-white/25 flex items-center gap-1.5 transition-colors"
@@ -703,6 +705,14 @@ export function AdminMenuEditor({
               </svg>
               View public menu
             </a>
+            <button data-tour="settings-btn-mobile" type="button" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; localStorage.removeItem("dinelinks_tour_v3_done"); setTourKey((k) => k + 1); }}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
+              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              Replay tour
+            </button>
             <button type="button" onClick={() => { setMobileOpen(false); handleSignOut(); }}
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -711,7 +721,7 @@ export function AdminMenuEditor({
               </svg>
               Sign out
             </button>
-            <button type="button" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
+            <button type="button" data-tour="sheet-close" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-500 text-sm font-medium">
               Cancel
             </button>
@@ -764,6 +774,7 @@ export function AdminMenuEditor({
                       </SortableCategoryTab>
                     ))}
                     <button
+                      data-tour="add-category"
                       type="button"
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => setShowCategoryModal(true)}
@@ -789,10 +800,10 @@ export function AdminMenuEditor({
             </div>
           </div>
 
-          <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
+          <div data-tour="menu-area" className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
             <div className="flex justify-between items-center mb-5">
               <h2 className="font-serif text-xl sm:text-2xl font-semibold">{activeCategory}</h2>
-              <motion.button data-tour="tour-add-item" type="button"
+              <motion.button data-tour="add-item" type="button"
                 onClick={() => { setAddingNew(true); setEditingItem(null); }}
                 className="px-4 py-2 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity shadow-sm"
                 whileTap={{ scale: 0.96 }}
@@ -861,6 +872,7 @@ export function AdminMenuEditor({
                               </p>
                             )}
                             <div className="flex flex-wrap gap-1.5 mt-2 items-center">
+                              <span data-tour="availability-toggle">
                               <AvailabilityToggle
                                 available={item.available !== false}
                                 onChange={async (next) => {
@@ -872,6 +884,7 @@ export function AdminMenuEditor({
                                   setSaving(false);
                                 }}
                               />
+                              </span>
                               <motion.button type="button"
                                 onClick={() => { setEditingItem(item); setAddingNew(false); }}
                                 className="px-3 py-1.5 rounded-lg bg-[var(--main-color)] text-white text-xs font-semibold font-sans hover:opacity-90 transition-opacity"
@@ -1445,6 +1458,7 @@ function AddCategoryModal({
   onClose: () => void;
 }) {
   const [name, setName] = useState("");
+  const [showImage, setShowImage] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const supabase = createSupabaseClient();
@@ -1461,7 +1475,7 @@ function AddCategoryModal({
     const maxOrder = existingCategories.length;
     await supabase
       .from("restaurant_categories")
-      .upsert({ restaurant_id: restaurantId, name: trimmed, sort_order: maxOrder }, { onConflict: "restaurant_id,name" });
+      .upsert({ restaurant_id: restaurantId, name: trimmed, sort_order: maxOrder, show_image: showImage }, { onConflict: "restaurant_id,name" });
     setSaving(false);
     onCreated(trimmed);
   };
@@ -1483,6 +1497,29 @@ function AddCategoryModal({
             />
             {error && <p className="mt-1 text-xs text-red-600 font-sans">{error}</p>}
           </div>
+
+          {/* Show image toggle */}
+          <div className="rounded-xl border border-[var(--card-border)] p-4 bg-[var(--background)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-[var(--foreground)] font-sans">Show image on category</p>
+                <p className="text-xs text-[var(--muted)] mt-0.5 font-sans">Display a banner image at the top of this category on your menu</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowImage((v) => !v)}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${showImage ? 'bg-[#8b6914]' : 'bg-gray-200'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${showImage ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+            {showImage && (
+              <p className="text-xs text-[var(--muted)] mt-3 font-sans">
+                You can upload a category image after creating the category by editing it in &ldquo;Manage categories&rdquo;.
+              </p>
+            )}
+          </div>
+
           <div className="flex gap-3">
             <button type="button" onClick={onClose}
               className="font-sans flex-1 py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
@@ -1502,36 +1539,52 @@ function AddCategoryModal({
 // ── Manage Categories Modal ───────────────────────────────────────────────────
 
 function SortableCategoryManageRow({
-  name, itemCount, onDelete,
-}: { name: string; itemCount: number; onDelete: () => void }) {
+  name, itemCount, showImage, onDelete, onToggleShowImage,
+}: { name: string; itemCount: number; showImage: boolean; onDelete: () => void; onToggleShowImage: (val: boolean) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: name });
   return (
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
-      className="flex items-center gap-3 p-3 rounded-xl border border-[var(--card-border)] bg-[var(--background)]"
+      className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] overflow-hidden"
     >
-      <div
-        {...attributes}
-        {...listeners}
-        className="cursor-grab active:cursor-grabbing touch-none text-[var(--muted)] hover:text-[var(--foreground)] transition-colors flex-shrink-0"
-      >
-        <GripVertical size={16} />
+      <div className="flex items-center gap-3 p-3">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing touch-none text-[var(--muted)] hover:text-[var(--foreground)] transition-colors flex-shrink-0"
+        >
+          <GripVertical size={16} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-[var(--foreground)] truncate">{name}</p>
+          <p className="text-xs text-[var(--muted)]">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
+        </div>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="flex-shrink-0 p-1.5 rounded-lg text-[var(--muted)] hover:text-red-600 hover:bg-red-50 transition-colors"
+          title="Delete category"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
       </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-[var(--foreground)] truncate">{name}</p>
-        <p className="text-xs text-[var(--muted)]">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
+      {/* Show image toggle */}
+      <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]/50">
+        <div>
+          <p className="text-xs font-medium text-[var(--foreground)] font-sans">Show image on category</p>
+          <p className="text-[10px] text-[var(--muted)] font-sans">Display a banner image at the top of this category</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onToggleShowImage(!showImage)}
+          className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${showImage ? 'bg-[#8b6914]' : 'bg-gray-200'}`}
+        >
+          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${showImage ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={onDelete}
-        className="flex-shrink-0 p-1.5 rounded-lg text-[var(--muted)] hover:text-red-600 hover:bg-red-50 transition-colors"
-        title="Delete category"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
-      </button>
     </div>
   );
 }
@@ -1546,8 +1599,26 @@ function ManageCategoriesModal({
   onUpdated: (newCats: string[]) => Promise<void>;
 }) {
   const [cats, setCats] = useState(categories);
+  const [showImageMap, setShowImageMap] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
   const supabase = createSupabaseClient();
+
+  // Load show_image values for existing categories
+  useEffect(() => {
+    supabase
+      .from('restaurant_categories')
+      .select('name, show_image')
+      .eq('restaurant_id', restaurantId)
+      .then(({ data }) => {
+        if (data) {
+          const map: Record<string, boolean> = {};
+          for (const row of data as { name: string; show_image: boolean }[]) {
+            map[row.name] = row.show_image ?? false;
+          }
+          setShowImageMap(map);
+        }
+      });
+  }, [restaurantId, supabase]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -1618,7 +1689,15 @@ function ManageCategoriesModal({
                       key={cat}
                       name={cat}
                       itemCount={grouped[cat]?.length ?? 0}
+                      showImage={showImageMap[cat] ?? false}
                       onDelete={() => handleDelete(cat)}
+                      onToggleShowImage={async (val) => {
+                        setShowImageMap((prev) => ({ ...prev, [cat]: val }));
+                        await supabase.from('restaurant_categories')
+                          .update({ show_image: val })
+                          .eq('restaurant_id', restaurantId)
+                          .eq('name', cat);
+                      }}
                     />
                   ))}
                 </div>

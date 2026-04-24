@@ -405,6 +405,8 @@ export default function HomePage() {
   const [ctaHovered, setCtaHovered] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterDone, setNewsletterDone] = useState(false);
+  const [newsletterLoading, setNewsletterLoading] = useState(false);
+  const [newsletterError, setNewsletterError] = useState('');
 
   useEffect(() => {
     import("@/app/lib/supabase").then(({ createSupabaseClient }) => {
@@ -773,13 +775,11 @@ export default function HomePage() {
               <motion.div
                 key={item.name}
                 className="bg-white rounded-2xl border border-[#2c2a26]/8 p-6 text-center hover:shadow-lg hover:border-[#8b6914]/30 transition-all duration-300 cursor-default"
-                {...(rm ? {} : {
-                  initial: { opacity: 0, y: 30 },
-                  whileInView: { opacity: 1, y: 0 },
-                  viewport: { once: true },
-                  transition: { duration: 0.55, delay: i * 0.1, ease: [0.22, 1, 0.36, 1] },
-                  whileHover: { y: -8, boxShadow: '0 12px 32px -8px rgba(139,105,20,0.18)' },
-                })}
+                initial={rm ? undefined : { opacity: 0, y: 20 }}
+                whileInView={rm ? undefined : { opacity: 1, y: 0 }}
+                viewport={rm ? undefined : { once: true }}
+                transition={rm ? undefined : { duration: 0.5, delay: i * 0.1 }}
+                whileHover={rm ? undefined : { y: -8, boxShadow: '0 12px 32px -8px rgba(139,105,20,0.18)' }}
               >
                 <div className="w-14 h-14 rounded-full bg-[#8b6914]/12 flex items-center justify-center text-2xl mx-auto mb-4">
                   {item.icon}
@@ -923,54 +923,115 @@ export default function HomePage() {
             <motion.div className="h-0.5 bg-[#8b6914] mt-4 origin-left" style={{ width: 80 }} {...underline()} />
           </motion.div>
 
-          <motion.div className="max-w-4xl mx-auto mt-14 rounded-2xl overflow-hidden shadow-2xl border border-[#2c2a26]/10" {...enter(0.1)}>
-            <div className="relative h-32 overflow-hidden">
-              <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80" className="w-full h-full object-cover" alt="" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#1a1816] via-[#1a1816]/70 to-[#1a1816]/30" />
-              <div className="absolute bottom-4 left-6 flex items-center gap-2">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="11" fill="none" stroke="#c9a030" strokeWidth="1.5"/><text x="12" y="17" textAnchor="middle" fill="#c9a030" fontFamily="Georgia,serif" fontSize="13" fontWeight="600">C</text></svg>
-                <span style={{ fontFamily: "Georgia, serif" }} className="text-white text-xl font-semibold">The Copper Table</span>
+          <motion.div className="max-w-4xl mx-auto mt-14 rounded-2xl overflow-hidden shadow-2xl border border-[#2c2a26]/10 select-none" {...enter(0.1)}>
+            {/* Header bar */}
+            <div className="relative h-36 overflow-hidden bg-[#1a1816]">
+              <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80" className="absolute inset-0 w-full h-full object-cover" alt="" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#1a1816]/90 via-[#1a1816]/55 to-[#1a1816]/25" />
+              {/* Desktop branding bottom-left */}
+              <div className="absolute bottom-4 left-5 flex flex-col">
+                <span className="text-white/50 text-[10px] font-semibold uppercase tracking-widest mb-0.5">Admin Panel</span>
+                <div className="flex items-center gap-2">
+                  <svg width="20" height="18" viewBox="0 0 44 40" fill="none">
+                    <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#c9a030" strokeWidth="2.6" strokeLinejoin="round"/>
+                    <line x1="26" y1="3" x2="26" y2="37" stroke="#faf8f5" strokeWidth="2.6" strokeLinecap="round"/>
+                    <line x1="26" y1="37" x2="42" y2="37" stroke="#faf8f5" strokeWidth="2.6" strokeLinecap="round"/>
+                  </svg>
+                  <span style={{ fontFamily: "Georgia, serif" }} className="text-white text-lg font-semibold">The Copper Table</span>
+                </div>
               </div>
-              <div className="absolute top-4 right-4 flex gap-2">
-                <button type="button" className="bg-white/15 text-white text-xs px-3 py-1.5 rounded-lg border border-white/20">🎨 Theme</button>
-                <button type="button" className="bg-white/15 text-white text-xs px-3 py-1.5 rounded-lg border border-white/20">↗ View menu</button>
+              {/* Action buttons top-right */}
+              <div className="absolute top-3 right-3 flex gap-1.5">
+                <span className="bg-white/10 text-white text-[11px] px-2.5 py-1.5 rounded-lg border border-white/20 font-medium flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
+                  Theme
+                </span>
+                <span className="bg-white/10 text-white text-[11px] px-2.5 py-1.5 rounded-lg border border-white/20 font-medium flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/><rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/><rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 14h3v3m4-3v3m-4 4h7"/></svg>
+                  QR Code
+                </span>
+                <span className="bg-white/10 text-white text-[11px] px-2.5 py-1.5 rounded-lg border border-white/20 font-medium flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                  View menu
+                </span>
+                <span className="bg-white/10 text-white text-[11px] px-2.5 py-1.5 rounded-lg border border-white/20 font-medium">Sign out</span>
               </div>
             </div>
-            <div className="bg-[#faf8f5] border-b border-[#2c2a26]/8 px-4 py-3 flex items-center gap-2">
-              <span className="bg-[#8b6914] text-white text-xs font-semibold px-4 py-1.5 rounded-xl">Mains</span>
-              <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl">Starters</span>
-              <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl">Desserts</span>
-              <button type="button" className="bg-[#8b6914] text-white text-xs px-4 py-1.5 rounded-xl ml-auto">+ Add item</button>
+
+            {/* Category tabs */}
+            <div className="bg-[#faf8f5]/95 border-b border-[#2c2a26]/8 px-4 py-2.5 flex items-center gap-2 overflow-x-auto">
+              <span className="bg-[#8b6914] text-white text-xs font-semibold px-4 py-1.5 rounded-xl flex-shrink-0 flex items-center gap-1.5">
+                <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16"/></svg>
+                Mains
+              </span>
+              <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl flex-shrink-0">Starters</span>
+              <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl flex-shrink-0">Desserts</span>
+              <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl flex-shrink-0">Cocktails</span>
+              <span className="border-2 border-dashed border-[#8b6914]/30 text-[#8b6914] text-xs px-3 py-1.5 rounded-xl flex-shrink-0 flex items-center gap-1 font-semibold">
+                + Add category
+              </span>
+              <span className="border border-[#2c2a26]/10 text-[#6b6560] text-xs px-3 py-1.5 rounded-xl flex-shrink-0 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                Manage
+              </span>
+              <div className="flex-1" />
+              <span className="bg-[#8b6914] text-white text-xs px-4 py-1.5 rounded-xl flex-shrink-0 font-semibold flex items-center gap-1">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
+                Add item
+              </span>
             </div>
+
+            {/* Category note */}
+            <div className="mx-4 mt-3 p-3 rounded-xl border border-[#2c2a26]/8 bg-white flex items-center gap-3">
+              <div className="flex-1">
+                <p className="text-[10px] font-semibold uppercase tracking-widest text-[#6b6560] mb-0.5">Note for &ldquo;Mains&rdquo;</p>
+                <p className="text-xs text-[#2c2a26]">All mains served with seasonal vegetables and your choice of starch.</p>
+              </div>
+              <span className="text-xs bg-[#8b6914]/10 text-[#8b6914] px-3 py-1 rounded-lg font-medium flex-shrink-0">Save note</span>
+            </div>
+
+            {/* Item rows */}
             <div className="space-y-2 mx-4 mt-3 mb-4">
               {[
-                { name: "Seared Duck Confit", price: "$24.00", img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&q=75", status: "Available", statusClass: "bg-green-50 text-green-700 border-green-200" },
-                { name: "Atlantic Salmon", price: "$22.00", img: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=200&q=75", status: "Unavailable", statusClass: "bg-red-50 text-red-600 border-red-200" },
+                { name: "Seared Duck Confit", price: "$24", desc: "24-hour confit leg, cherry jus, roasted fingerlings", img: CT_STEAK_URL, avail: true, num: 1 },
+                { name: "Atlantic Salmon", price: "$22", desc: "Pan-seared fillet, lemon beurre blanc, wilted greens", img: CT_SALMON_URL, avail: false, num: 2 },
+                { name: "Crème Brûlée", price: "$14", desc: "Classic vanilla custard, caramelised sugar top", img: CT_DESSERT_URL, avail: true, num: 3 },
               ].map((item) => (
-                <div key={item.name} className="flex items-stretch bg-white rounded-2xl border border-[#2c2a26]/8 overflow-hidden shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
-                  <div className="flex flex-col items-center justify-center px-2 gap-1 border-r border-[#2c2a26]/8 py-3">
-                    <span className="text-[#8b6914] text-xs">▲</span>
-                    <span className="text-[10px] text-[#6b6560]">1</span>
-                    <span className="text-[#8b6914] text-xs">▼</span>
+                <div key={item.name} className="flex items-stretch bg-white rounded-2xl border border-[#2c2a26]/8 overflow-hidden shadow-sm">
+                  {/* Drag handle */}
+                  <div className="flex flex-col items-center justify-center px-2 gap-0.5 border-r border-[#2c2a26]/8 py-3 bg-[#2c2a26]/3">
+                    <svg className="w-4 h-4 text-[#8b6914]/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16"/></svg>
+                    <span className="text-[9px] text-[#6b6560]">Drag</span>
                   </div>
-                  <img src={item.img} className="w-20 h-20 object-cover flex-shrink-0" alt={item.name} />
-                  <div className="p-3 flex-1">
+                  {/* Image */}
+                  <div className="w-20 h-20 overflow-hidden bg-gray-100 flex-shrink-0">
+                    <img src={item.img} className="w-full h-full object-cover" alt={item.name} />
+                  </div>
+                  {/* Details */}
+                  <div className="p-3 flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <span style={{ fontFamily: "Georgia, serif" }} className="text-sm font-semibold text-[#2c2a26]">{item.name}</span>
-                      <span className="text-[#8b6914] text-sm font-bold">{item.price}</span>
+                      <span style={{ fontFamily: "Georgia, serif" }} className={`text-sm font-semibold text-[#2c2a26] ${item.avail ? '' : 'opacity-50'}`}>{item.name}</span>
+                      <span className="text-[#8b6914] text-sm font-bold flex-shrink-0">{item.price}</span>
                     </div>
-                    <div className="mt-1.5 flex gap-1.5 flex-wrap">
-                      <span className={`text-[10px] border rounded-full px-2 py-0.5 ${item.statusClass}`}>{item.status}</span>
-                      <span className="text-[10px] bg-[#8b6914]/10 text-[#8b6914] rounded-lg px-2 py-0.5">Edit</span>
-                      <span className="text-[10px] bg-red-50 text-red-600 rounded-lg px-2 py-0.5">Delete</span>
+                    <p className="text-[#6b6560] text-xs mt-0.5 line-clamp-1">{item.desc}</p>
+                    <div className="mt-1.5 flex gap-1.5 flex-wrap items-center">
+                      <span className={`text-[10px] border rounded-full px-2 py-0.5 flex items-center gap-1 ${item.avail ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full inline-block ${item.avail ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                        {item.avail ? 'Available' : 'Unavailable'}
+                      </span>
+                      <span className="text-[10px] bg-[#8b6914] text-white rounded-lg px-2.5 py-0.5 font-semibold">Edit</span>
+                      <span className="text-[10px] text-[#6b6560] hover:text-red-600 rounded-lg px-1.5 py-0.5">Delete</span>
+                      <span className="ml-auto text-[9px] text-[#6b6560]/60">#{item.num}</span>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="bg-[#faf8f5] border-t border-[#2c2a26]/8 px-6 py-3 flex items-center justify-between">
-              <span className="text-xs text-[#6b6560]">2 items in Mains</span>
-              <span className="text-xs text-[#8b6914]">All changes saved ✓</span>
+
+            {/* Footer */}
+            <div className="bg-[#faf8f5] border-t border-[#2c2a26]/8 px-5 py-2.5 flex items-center justify-between">
+              <span className="text-xs text-[#6b6560]">3 items in Mains</span>
+              <span className="text-xs text-emerald-600 font-medium">All changes saved ✓</span>
             </div>
           </motion.div>
 
@@ -1305,34 +1366,61 @@ export default function HomePage() {
               <p className="text-xs text-[#faf8f5]/50 mb-3">Occasional advice on digital menus, hospitality ops, and growing your restaurant.</p>
               {newsletterDone ? (
                 <motion.p
-                  className="text-sm text-[#c9a030] font-medium"
+                  className="text-sm text-green-400 font-medium"
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.4 }}
                 >
-                  ✓ Thanks! We&apos;ll be in touch.
+                  You&apos;re in! ✓
                 </motion.p>
               ) : (
                 <form
-                  onSubmit={(e) => { e.preventDefault(); if (newsletterEmail.trim()) setNewsletterDone(true); }}
-                  className="flex gap-2"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!newsletterEmail.trim()) return;
+                    setNewsletterLoading(true);
+                    setNewsletterError('');
+                    try {
+                      const res = await fetch('/api/subscribe', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: newsletterEmail.trim() }),
+                      });
+                      if (res.ok) {
+                        setNewsletterDone(true);
+                      } else {
+                        setNewsletterError('Something went wrong');
+                      }
+                    } catch {
+                      setNewsletterError('Something went wrong');
+                    } finally {
+                      setNewsletterLoading(false);
+                    }
+                  }}
+                  className="flex flex-col gap-2"
                 >
-                  <input
-                    type="email"
-                    value={newsletterEmail}
-                    onChange={(e) => setNewsletterEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    required
-                    className="flex-1 rounded-xl bg-[#faf8f5]/10 border border-[#faf8f5]/15 text-[#faf8f5] placeholder:text-[#faf8f5]/30 text-sm px-4 py-2.5 focus:outline-none focus:border-[#8b6914] transition-colors"
-                  />
-                  <motion.button
-                    type="submit"
-                    className="bg-[#8b6914] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity flex-shrink-0"
-                    whileHover={rm ? {} : { scale: 1.02 }}
-                    whileTap={rm ? {} : { scale: 0.97 }}
-                  >
-                    Subscribe
-                  </motion.button>
+                  <div className="flex gap-2">
+                    <input
+                      type="email"
+                      value={newsletterEmail}
+                      onChange={(e) => setNewsletterEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      required
+                      className="flex-1 rounded-xl bg-[#faf8f5]/10 border border-[#faf8f5]/15 text-[#faf8f5] placeholder:text-[#faf8f5]/30 text-sm px-4 py-2.5 focus:outline-none focus:border-[#8b6914] transition-colors"
+                    />
+                    <motion.button
+                      type="submit"
+                      disabled={newsletterLoading}
+                      className="bg-[#8b6914] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity flex-shrink-0 disabled:opacity-60"
+                      whileHover={rm ? {} : { scale: 1.02 }}
+                      whileTap={rm ? {} : { scale: 0.97 }}
+                    >
+                      {newsletterLoading ? 'Subscribing...' : 'Subscribe'}
+                    </motion.button>
+                  </div>
+                  {newsletterError && (
+                    <p className="text-sm text-red-400">{newsletterError}</p>
+                  )}
                 </form>
               )}
             </div>
