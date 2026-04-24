@@ -141,7 +141,7 @@ const STEPS = [
       </svg>
     ),
     title: "Build your menu",
-    desc: "Add dishes, upload photos, set prices, create categories. Most restaurants finish in under 10 minutes.",
+    desc: "Add dishes, upload photos, set prices, create categories. Most restaurants finish in under 30 minutes.",
   },
   {
     num: "3",

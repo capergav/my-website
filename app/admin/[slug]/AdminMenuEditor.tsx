@@ -219,6 +219,7 @@ type Props = {
   restaurantSlug: string;
   initialGrouped: Grouped;
   initialSortedCategories: string[];
+  initialAllCategories: string[];
   initialRestaurant: Restaurant | null;
   initialCategoryNotes: Record<string, string>;
 };
@@ -228,6 +229,7 @@ export function AdminMenuEditor({
   restaurantSlug,
   initialGrouped,
   initialSortedCategories,
+  initialAllCategories,
   initialRestaurant,
   initialCategoryNotes,
 }: Props) {
@@ -247,8 +249,8 @@ export function AdminMenuEditor({
   };
 
   const [grouped, setGrouped]                   = useState<Grouped>(initialGrouped);
-  const [sortedCategories, setSortedCategories] = useState(initialSortedCategories);
-  const [activeCategory, setActiveCategory]     = useState(initialSortedCategories[0] ?? "");
+  const [sortedCategories, setSortedCategories] = useState(initialAllCategories.length > 0 ? initialAllCategories : initialSortedCategories);
+  const [activeCategory, setActiveCategory]     = useState((initialAllCategories[0] ?? initialSortedCategories[0]) ?? "");
   const [editingItem, setEditingItem]           = useState<MenuItemRow | null>(null);
   const [addingNew, setAddingNew]               = useState(false);
   const [restaurant, setRestaurant]             = useState<Restaurant | null>(initialRestaurant);
@@ -260,6 +262,7 @@ export function AdminMenuEditor({
   const [tourKey, setTourKey]                   = useState(0);
   const [showQR, setShowQR] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [showManageModal, setShowManageModal]     = useState(false);
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
@@ -319,22 +322,27 @@ export function AdminMenuEditor({
   }, []);
 
   const refreshMenu = useCallback(async () => {
-    const { data, error } = await supabase
-      .from("menu_items").select("*")
-      .eq("restaurant_id", restaurantId)
-      .order("sort_order", { ascending: true })
-      .order("name",       { ascending: true });
-    if (error) { showMsg("err", error.message); return; }
+    const [itemsResult, catsResult] = await Promise.all([
+      supabase
+        .from("menu_items").select("*")
+        .eq("restaurant_id", restaurantId)
+        .order("sort_order", { ascending: true })
+        .order("name",       { ascending: true }),
+      supabase
+        .from("restaurant_categories").select("name")
+        .eq("restaurant_id", restaurantId)
+        .order("sort_order", { ascending: true }),
+    ]);
+    if (itemsResult.error) { showMsg("err", itemsResult.error.message); return; }
     const g: Grouped = {};
-    (data ?? []).forEach((row) => {
+    (itemsResult.data ?? []).forEach((row) => {
       const cat = (row as MenuItemRow).category || "Other";
       if (!g[cat]) g[cat] = [];
       g[cat].push(row as MenuItemRow);
     });
-    const sorted = [
-      ...CATEGORY_ORDER.filter((c) => g[c]),
-      ...Object.keys(g).filter((c) => !(CATEGORY_ORDER as readonly string[]).includes(c)),
-    ];
+    const dbCats = (catsResult.data ?? []).map((r: { name: string }) => r.name);
+    const orphanCats = Object.keys(g).filter((c) => !dbCats.includes(c));
+    const sorted = [...dbCats, ...orphanCats];
     setGrouped(g);
     setSortedCategories(sorted);
     setActiveCategory((prev) => sorted.includes(prev) ? prev : sorted[0] ?? "");
@@ -355,7 +363,7 @@ export function AdminMenuEditor({
       if (error) showMsg("err", error.message);
       else { showMsg("ok", "Item updated."); setEditingItem(null); await refreshMenu(); }
     } else {
-      const catItems = grouped[payload.category ?? "Other"] ?? [];
+      const catItems = (payload.category && grouped[payload.category]) ? grouped[payload.category] : [];
       const { error } = await supabase.from("menu_items").insert({
         ...payload, restaurant_id: restaurantId, sort_order: catItems.length,
       });
@@ -719,14 +727,14 @@ export function AdminMenuEditor({
         </div>
       )}
 
-      {/* Empty state */}
+      {/* Empty state — no categories at all */}
       {isEmpty && (
         <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-          <h3 className="text-xl font-semibold text-[var(--foreground)] font-serif">No items yet</h3>
-          <p className="text-sm text-[var(--muted)] mt-2 max-w-xs">Start by adding your first item. You can always add categories and photos later.</p>
-          <button type="button" onClick={() => { setAddingNew(true); setEditingItem(null); }}
-            className="mt-6 bg-[var(--accent)] text-white font-semibold rounded-xl px-6 py-3 hover:opacity-90 transition-opacity flex items-center gap-2">
-            <Plus size={16} /> Add your first item
+          <h3 className="text-xl font-semibold text-[var(--foreground)] font-serif">No categories yet</h3>
+          <p className="text-sm text-[var(--muted)] mt-2 max-w-xs">Start by creating a category (e.g. &ldquo;Mains&rdquo;), then add items to it.</p>
+          <button type="button" onClick={() => setShowCategoryModal(true)}
+            className="mt-6 bg-[var(--main-color)] text-white font-semibold rounded-xl px-6 py-3 hover:opacity-90 transition-opacity flex items-center gap-2">
+            <Plus size={16} /> Add first category
           </button>
         </div>
       )}
@@ -747,7 +755,7 @@ export function AdminMenuEditor({
                           onClick={() => setActiveCategory(cat)}
                           className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all select-none font-sans ${
                             activeCategory === cat
-                              ? "bg-[var(--accent)] text-white shadow-sm"
+                              ? "bg-[var(--main-color)] text-white shadow-sm"
                               : "bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted)] hover:text-[var(--foreground)]"
                           }`}>
                           {cat}
@@ -760,6 +768,19 @@ export function AdminMenuEditor({
                       onClick={() => setShowCategoryModal(true)}
                       className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold font-sans text-[var(--main-color)] border-2 border-dashed border-[var(--main-color)]/30 rounded-xl px-3 py-1.5 hover:bg-[var(--main-color)]/5 transition-colors">
                       <Plus size={14} /> Add category
+                    </button>
+                    <button
+                      type="button"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={() => setShowManageModal(true)}
+                      className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold font-sans text-[var(--muted)] border border-[var(--card-border)] rounded-xl px-3 py-1.5 hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 transition-colors"
+                      title="Manage categories"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Manage
                     </button>
                   </div>
                 </SortableContext>
@@ -787,6 +808,17 @@ export function AdminMenuEditor({
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleItemDragEnd}>
               <SortableContext items={items.map(i => i.id)} strategy={verticalListSortingStrategy}>
                 <div className="space-y-3 mt-6">
+                  {items.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-12 px-4 text-center rounded-2xl border-2 border-dashed border-[var(--card-border)]">
+                      <p className="text-sm text-[var(--muted)]">
+                        Add your first item to{" "}
+                        <span className="font-semibold" style={{ color: "var(--main-color)" }}>
+                          &ldquo;{activeCategory}&rdquo;
+                        </span>
+                        {" "}— click &ldquo;+ Add item&rdquo; to get started.
+                      </p>
+                    </div>
+                  )}
                   {items.map((item, idx) => (
                     <SortableMenuItem key={item.id} item={item}>
                       <div className={`bg-[var(--card)] rounded-2xl border border-[var(--card-border)] overflow-hidden shadow-sm ${
@@ -860,7 +892,7 @@ export function AdminMenuEditor({
       {(editingItem || addingNew) && (
         <ItemForm
           item={editingItem ?? undefined}
-          categories={sortedCategories.length > 0 ? sortedCategories : CATEGORY_ORDER.slice()}
+          categories={sortedCategories}
           restaurantSlug={restaurantSlug}
           onSave={handleSaveItem}
           onCancel={() => { setEditingItem(null); setAddingNew(false); }}
@@ -891,6 +923,21 @@ export function AdminMenuEditor({
             setActiveCategory(name);
           }}
           onClose={() => setShowCategoryModal(false)}
+        />
+      )}
+
+      {/* Manage Categories Modal */}
+      {showManageModal && (
+        <ManageCategoriesModal
+          restaurantId={restaurantId}
+          categories={sortedCategories}
+          grouped={grouped}
+          onClose={() => setShowManageModal(false)}
+          onUpdated={async (newCats) => {
+            setSortedCategories(newCats);
+            setActiveCategory((prev) => newCats.includes(prev) ? prev : newCats[0] ?? "");
+            await refreshMenu();
+          }}
         />
       )}
     </main>
@@ -947,16 +994,17 @@ type ThemeModalProps = {
 };
 
 function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget }: ThemeModalProps) {
-  const [open, setOpen]           = useState(false);
-  const [card, setCard]           = useState(D_CARD);
-  const [accent, setAccent]       = useState(D_ACCENT);
-  const [bg, setBg]               = useState(D_BG);
-  const [fontColor, setFontColor] = useState(D_TEXT);
-  const [font, setFont]           = useState("sans");
-  const [name, setName]           = useState("");
-  const [heroUrl, setHeroUrl]     = useState("");
-  const [logoUrl, setLogoUrl]     = useState("");
-  const [fontOpen, setFontOpen]   = useState(false);
+  const [open, setOpen]                   = useState(false);
+  const [card, setCard]                   = useState(D_CARD);
+  const [accent, setAccent]               = useState(D_ACCENT);
+  const [bg, setBg]                       = useState(D_BG);
+  const [fontColor, setFontColor]         = useState(D_TEXT);
+  const [font, setFont]                   = useState("sans");
+  const [name, setName]                   = useState("");
+  const [heroUrl, setHeroUrl]             = useState("");
+  const [logoUrl, setLogoUrl]             = useState("");
+  const [fontOpen, setFontOpen]           = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
@@ -970,6 +1018,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       setHeroUrl(restaurant.hero_image_url ?? "");
       setLogoUrl((restaurant as Restaurant & { logo_url?: string | null }).logo_url ?? "");
       setFontOpen(false);
+      setSelectedPreset(null);
     }
     // initialise form fields when modal opens — setState-in-effect is intentional here
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1042,30 +1091,45 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
               <section>
                 <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-3">Preset themes</h3>
                 <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
-                  {PRESET_THEMES.map((preset) => (
-                    <button
-                      key={preset.name}
-                      type="button"
-                      onClick={() => {
-                        setCard(preset.main_color);
-                        setAccent(preset.accent_color);
-                        setBg(preset.background_color);
-                        setFontColor(preset.font_color);
-                        setFont(FONT_NAME_TO_VALUE[preset.font_family] ?? 'sans');
-                      }}
-                      className="flex flex-col gap-2 p-3 rounded-xl border border-[var(--card-border)] text-left hover:border-[var(--accent)]/50 transition-all hover:shadow-sm"
-                    >
-                      <div className="flex items-center gap-1">
-                        <span className="w-6 h-6 rounded-md shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.main_color }} />
-                        <span className="w-6 h-6 rounded-md shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.background_color }} />
-                        <span className="w-4 h-4 rounded-full shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.accent_color }} />
-                      </div>
-                      <div>
-                        <p className="text-xs font-semibold font-sans text-[var(--foreground)] leading-tight">{preset.name}</p>
-                        <p className="text-[10px] font-sans text-[var(--muted)] mt-0.5 leading-tight">{preset.description}</p>
-                      </div>
-                    </button>
-                  ))}
+                  {PRESET_THEMES.map((preset) => {
+                    const isSelected = selectedPreset === preset.name;
+                    return (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => {
+                          setCard(preset.main_color);
+                          setAccent(preset.accent_color);
+                          setBg(preset.background_color);
+                          setFontColor(preset.font_color);
+                          setFont(FONT_NAME_TO_VALUE[preset.font_family] ?? 'sans');
+                          setSelectedPreset(preset.name);
+                        }}
+                        className={`relative flex flex-col gap-2 p-3 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/40 shadow-md"
+                            : "border-[var(--card-border)] hover:border-[var(--accent)]/50 hover:shadow-sm"
+                        }`}
+                      >
+                        {isSelected && (
+                          <span className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: preset.main_color }}>
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                            </svg>
+                          </span>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <span className="w-6 h-6 rounded-md shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.main_color }} />
+                          <span className="w-6 h-6 rounded-md shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.background_color }} />
+                          <span className="w-4 h-4 rounded-full shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.accent_color }} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold font-sans text-[var(--foreground)] leading-tight">{preset.name}</p>
+                          <p className="text-[10px] font-sans text-[var(--muted)] mt-0.5 leading-tight">{preset.description}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </section>
 
@@ -1227,7 +1291,7 @@ function ItemForm({
   const [desc, setDesc]           = useState(item?.description ?? "");
   const [price, setPrice]         = useState(item != null ? String(Number(item.price)) : "");
   const [imgUrl, setImgUrl]       = useState(item?.image_url ?? "");
-  const [category, setCategory]   = useState(item?.category ?? "Other");
+  const [category, setCategory]   = useState(item?.category ?? "");
   const [available, setAvailable] = useState<boolean>(item?.available ?? true);
   const [chefs, setChefs]         = useState<boolean>(item?.chefs_favorite ?? false);
   const [gluten, setGluten]       = useState<boolean>(item?.gluten_free ?? false);
@@ -1240,7 +1304,7 @@ function ItemForm({
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     const p = Number.parseFloat(price);
-    if (!name.trim() || Number.isNaN(p) || p < 0) return;
+    if (!name.trim() || Number.isNaN(p) || p < 0 || !category) return;
     onSave({
       name: name.trim(), description: desc.trim() || null, price: p,
       image_url: imgUrl.trim() || null, category: category || "Other",
@@ -1282,43 +1346,26 @@ function ItemForm({
                   className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
               </div>
               <div>
-                <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Category</label>
-                <input
-                  type="text"
-                  list="cat-suggestions"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="e.g. Mains"
-                  className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
-                />
-                <datalist id="cat-suggestions">
-                  {categories.map((c) => <option key={c} value={c} />)}
-                </datalist>
-                {(() => {
-                  const matched = categories.find(c => c.toLowerCase() === category.toLowerCase());
-                  if (matched) {
-                    return (
-                      <p className="mt-1 text-xs text-green-600 flex items-center gap-1">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/></svg>
-                        Adding to existing &ldquo;{matched}&rdquo;
-                      </p>
-                    );
-                  }
-                  const suggestions = categories.filter(c => category.trim() && c.toLowerCase().includes(category.toLowerCase())).slice(0, 3);
-                  if (category.trim() && !matched && suggestions.length > 0) {
-                    return (
-                      <div className="mt-1 flex gap-1 flex-wrap">
-                        {suggestions.map(c => (
-                          <button key={c} type="button" onClick={() => setCategory(c)}
-                            className="text-xs bg-[#8b6914]/10 text-[#8b6914] rounded-lg px-2 py-1 hover:bg-[#8b6914]/20">
-                            Use &ldquo;{c}&rdquo;
-                          </button>
-                        ))}
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
+                <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Category *</label>
+                {categories.length === 0 ? (
+                  <select disabled
+                    className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--muted)] text-sm cursor-not-allowed">
+                    <option>Create a category first</option>
+                  </select>
+                ) : (
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    required
+                    className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  >
+                    <option value="" disabled>Select a category…</option>
+                    {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                )}
+                {!category && categories.length > 0 && (
+                  <p className="mt-1 text-xs text-[var(--muted)]">Category is required.</p>
+                )}
               </div>
             </div>
             <div>
@@ -1433,6 +1480,144 @@ function AddCategoryModal({
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Manage Categories Modal ───────────────────────────────────────────────────
+
+function SortableCategoryManageRow({
+  name, itemCount, onDelete,
+}: { name: string; itemCount: number; onDelete: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: name });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
+      className="flex items-center gap-3 p-3 rounded-xl border border-[var(--card-border)] bg-[var(--background)]"
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing touch-none text-[var(--muted)] hover:text-[var(--foreground)] transition-colors flex-shrink-0"
+      >
+        <GripVertical size={16} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-[var(--foreground)] truncate">{name}</p>
+        <p className="text-xs text-[var(--muted)]">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
+      </div>
+      <button
+        type="button"
+        onClick={onDelete}
+        className="flex-shrink-0 p-1.5 rounded-lg text-[var(--muted)] hover:text-red-600 hover:bg-red-50 transition-colors"
+        title="Delete category"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+function ManageCategoriesModal({
+  restaurantId, categories, grouped, onClose, onUpdated,
+}: {
+  restaurantId: string;
+  categories: string[];
+  grouped: Grouped;
+  onClose: () => void;
+  onUpdated: (newCats: string[]) => Promise<void>;
+}) {
+  const [cats, setCats] = useState(categories);
+  const [busy, setBusy] = useState(false);
+  const supabase = createSupabaseClient();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const oldIndex = cats.indexOf(active.id as string);
+    const newIndex = cats.indexOf(over.id as string);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(cats, oldIndex, newIndex);
+    setCats(reordered);
+    setBusy(true);
+    for (let i = 0; i < reordered.length; i++) {
+      await supabase.from('restaurant_categories')
+        .upsert({ restaurant_id: restaurantId, name: reordered[i], sort_order: i }, { onConflict: 'restaurant_id,name' });
+    }
+    setBusy(false);
+  };
+
+  const handleDelete = async (catName: string) => {
+    const itemsInCat = grouped[catName] ?? [];
+    if (itemsInCat.length > 0) {
+      const confirmed = confirm(
+        `This will unassign ${itemsInCat.length} item${itemsInCat.length > 1 ? 's' : ''} from "${catName}". They will still exist but won't appear in any tab until reassigned. Continue?`
+      );
+      if (!confirmed) return;
+      await supabase.from('menu_items')
+        .update({ category: null })
+        .in('id', itemsInCat.map((i) => i.id));
+    }
+    await supabase.from('restaurant_categories')
+      .delete()
+      .eq('restaurant_id', restaurantId)
+      .eq('name', catName);
+    const newCats = cats.filter((c) => c !== catName);
+    setCats(newCats);
+    await onUpdated(newCats);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" style={{ animation: 'fadeIn 0.15s ease-out' }}>
+      <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-sm" style={{ animation: 'modalIn 0.15s ease-out' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--card-border)]">
+          <div>
+            <h3 className="font-serif text-lg font-semibold text-[var(--foreground)]">Manage categories</h3>
+            <p className="text-xs text-[var(--muted)] mt-0.5">Drag to reorder · tap trash to delete</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
+          {busy && <p className="text-xs text-[var(--muted)] mb-2 font-sans">Saving order…</p>}
+          {cats.length === 0 ? (
+            <p className="text-center text-[var(--muted)] text-sm py-6 font-sans">No categories yet.</p>
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={cats} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2">
+                  {cats.map((cat) => (
+                    <SortableCategoryManageRow
+                      key={cat}
+                      name={cat}
+                      itemCount={grouped[cat]?.length ?? 0}
+                      onDelete={() => handleDelete(cat)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
+        </div>
+        <div className="px-6 py-4 border-t border-[var(--card-border)]">
+          <button type="button" onClick={onClose}
+            className="font-sans w-full py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
+            Done
+          </button>
+        </div>
       </div>
     </div>
   );

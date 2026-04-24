@@ -24,9 +24,10 @@ export default async function AdminSlugPage({ params }: Props) {
 
   if (!restaurant) notFound();
 
-  const [{ data: menuItems, error: menuError }, { data: categoryNotesRows }] = await Promise.all([
+  const [{ data: menuItems, error: menuError }, { data: categoryNotesRows }, { data: dbCategories }] = await Promise.all([
     supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }).order("name", { ascending: true }),
     supabase.from("category_notes").select("category, note").eq("restaurant_id", restaurant.id),
+    supabase.from("restaurant_categories").select("name").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }),
   ]);
 
   if (menuError) {
@@ -44,10 +45,12 @@ export default async function AdminSlugPage({ params }: Props) {
     return acc;
   }, {});
 
-  const sortedCategories = [
-    ...CATEGORY_ORDER.filter((c) => grouped[c]),
-    ...Object.keys(grouped).filter((c) => !(CATEGORY_ORDER as readonly string[]).includes(c)),
-  ];
+  // DB categories are source of truth for order; include orphaned item categories too
+  const dbCategoryNames = (dbCategories ?? []).map((r: { name: string }) => r.name);
+  const orphanCats = Object.keys(grouped).filter((c) => !dbCategoryNames.includes(c));
+  const allCategories = [...dbCategoryNames, ...orphanCats];
+
+  const sortedCategories = allCategories;
 
   const initialCategoryNotes: Record<string, string> = {};
   for (const row of (categoryNotesRows ?? []) as Pick<CategoryNote, "category" | "note">[]) {
@@ -81,6 +84,7 @@ export default async function AdminSlugPage({ params }: Props) {
         restaurantSlug={slug}
         initialGrouped={grouped}
         initialSortedCategories={sortedCategories}
+        initialAllCategories={allCategories}
         initialRestaurant={restaurant}
         initialCategoryNotes={initialCategoryNotes}
       />
