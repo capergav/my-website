@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import { DietaryIcons, DietaryLegend } from "./DietaryIcons";
 import { TranslatedText } from "./TranslatedText";
@@ -185,11 +186,11 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
           <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-r from-[var(--background)] to-transparent" />
           <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-l from-[var(--background)] to-transparent" />
           <div className="tabs-scroll flex gap-3 overflow-x-auto py-4 scrollbar-none px-1 snap-x snap-mandatory">
-            {sortedCategories.map((category) => {
+            {sortedCategories.map((category, idx) => {
               const firstImg = (grouped[category] ?? [])[0]?.image_url ?? null;
               const isActive = activeCategory === category;
               return (
-                <button
+                <motion.button
                   key={category}
                   type="button"
                   onClick={() => { setActiveCategory(category); setDietFilter("all"); }}
@@ -198,6 +199,10 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                       ? "ring-2 ring-[var(--main-color)] ring-offset-2 ring-offset-[var(--background)] shadow-md"
                       : "opacity-70 hover:opacity-100"
                   }`}
+                  initial={{ opacity: 0, x: -16 }}
+                  animate={{ opacity: isActive ? 1 : 0.7, x: 0 }}
+                  transition={{ duration: 0.35, delay: idx * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                  whileTap={{ scale: 0.94 }}
                 >
                   {/* Thumbnail */}
                   <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden flex-shrink-0 transition-all duration-200">
@@ -215,7 +220,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                   >
                     {getCategoryLabel(category)}
                   </span>
-                </button>
+                </motion.button>
               );
             })}
           </div>
@@ -254,14 +259,22 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
         <DietaryLegend items={rawItems} />
 
         {/* Items */}
-        <div className="space-y-3 sm:space-y-4 mt-4" key={activeCategory}>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeCategory}
+            className="space-y-3 sm:space-y-4 mt-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+          >
           {items.length === 0 && (
             <p className="text-center text-[var(--muted)] py-12 text-sm">
               No items match this filter.
             </p>
           )}
           {items.map((item, idx) => (
-            <article
+            <motion.article
               key={item.id}
               role="button"
               tabIndex={0}
@@ -272,16 +285,22 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                   setSelectedItem(item);
                 }
               }}
-              style={{ animationDelay: `${idx * 50}ms`, animationFillMode: "both" }}
-              className="menu-item-enter bg-[var(--card)] rounded-2xl overflow-hidden border border-[var(--card-border)] shadow-sm hover:shadow-lg hover:border-[var(--accent)]/20 transition-all duration-300 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 touch-manipulation flex flex-row"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.38, delay: idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -2, boxShadow: '0 8px 24px -6px rgba(0,0,0,0.12)' }}
+              whileTap={{ scale: 0.99 }}
+              className="bg-[var(--card)] rounded-2xl overflow-hidden border border-[var(--card-border)] shadow-sm hover:border-[var(--accent)]/20 transition-colors duration-300 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 touch-manipulation flex flex-row"
             >
               {/* Image on the left — only when present */}
               {item.image_url && (
                 <div className="w-28 sm:w-36 flex-shrink-0 overflow-hidden bg-[var(--card-border)]">
-                  <img
+                  <motion.img
                     src={item.image_url}
                     alt={item.name}
-                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                    className="w-full h-full object-cover"
+                    whileHover={{ scale: 1.04 }}
+                    transition={{ duration: 0.4 }}
                   />
                 </div>
               )}
@@ -292,9 +311,19 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                   <h3 className="font-serif text-lg sm:text-xl font-semibold text-[var(--foreground)] min-w-0 text-wrap-balance">
                     <TranslatedText text={item.name} />
                   </h3>
-                  <span className="font-semibold text-[var(--accent)] whitespace-nowrap flex-shrink-0 tabular-nums">
-                    {formatPrice(Number(item.price))}
-                  </span>
+                  {item.chefs_favorite ? (
+                    <motion.span
+                      className="font-semibold text-[var(--accent)] whitespace-nowrap flex-shrink-0 tabular-nums"
+                      animate={{ scale: [1, 1.06, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', repeatDelay: 1 }}
+                    >
+                      {formatPrice(Number(item.price))}
+                    </motion.span>
+                  ) : (
+                    <span className="font-semibold text-[var(--accent)] whitespace-nowrap flex-shrink-0 tabular-nums">
+                      {formatPrice(Number(item.price))}
+                    </span>
+                  )}
                 </div>
                 <DietaryIcons item={item} />
                 {item.description && (
@@ -306,9 +335,10 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {} }: Menu
                   {t("ui.tapToReadMore")} →
                 </p>
               </div>
-            </article>
+            </motion.article>
           ))}
-        </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
     </>
   );

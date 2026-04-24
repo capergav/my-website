@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import { createSupabaseClient } from "@/app/lib/supabase";
@@ -188,7 +189,7 @@ function SortableMenuItem({ item, children }: { item: MenuItemRow; children: Rea
     <div ref={setNodeRef} style={style} {...attributes}>
       <div
         {...listeners}
-        className="absolute left-0 top-0 bottom-0 w-9 flex flex-col items-center justify-center gap-0.5 cursor-grab active:cursor-grabbing touch-none z-10 rounded-l-xl bg-[var(--card-border)]/30 hover:bg-[var(--main-color)]/10 group transition-colors"
+        className="absolute left-0 top-0 bottom-0 w-9 flex flex-col items-center justify-center gap-0.5 cursor-grab active:cursor-grabbing touch-none z-10 rounded-l-xl bg-[var(--card-border)]/30 hover:bg-[var(--main-color)]/10 group transition-colors admin-drag-handle"
         title="Drag to reorder"
       >
         <GripVertical size={18} className="text-[var(--muted)] group-hover:text-[var(--main-color)] transition-colors" />
@@ -791,11 +792,14 @@ export function AdminMenuEditor({
           <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
             <div className="flex justify-between items-center mb-5">
               <h2 className="font-serif text-xl sm:text-2xl font-semibold">{activeCategory}</h2>
-              <button data-tour="tour-add-item" type="button"
+              <motion.button data-tour="tour-add-item" type="button"
                 onClick={() => { setAddingNew(true); setEditingItem(null); }}
-                className="px-4 py-2 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity shadow-sm">
+                className="px-4 py-2 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity shadow-sm"
+                whileTap={{ scale: 0.96 }}
+                transition={{ duration: 0.1 }}
+              >
                 + Add item
-              </button>
+              </motion.button>
             </div>
 
             <CategoryNoteEditor
@@ -821,9 +825,13 @@ export function AdminMenuEditor({
                   )}
                   {items.map((item, idx) => (
                     <SortableMenuItem key={item.id} item={item}>
-                      <div className={`bg-[var(--card)] rounded-2xl border border-[var(--card-border)] overflow-hidden shadow-sm ${
-                        item.available === false ? "opacity-50" : ""
-                      }`}>
+                      <motion.div
+                        className={`bg-[var(--card)] rounded-2xl border border-[var(--card-border)] overflow-hidden shadow-sm ${
+                          item.available === false ? "opacity-50" : ""
+                        }`}
+                        whileHover={{ y: -2, boxShadow: '0 6px 20px -4px rgba(0,0,0,0.12)', borderColor: 'var(--main-color)' }}
+                        transition={{ duration: 0.2 }}
+                      >
                         <div className="flex items-stretch">
                           {/* Item image */}
                           {item.image_url && (
@@ -864,22 +872,28 @@ export function AdminMenuEditor({
                                   setSaving(false);
                                 }}
                               />
-                              <button type="button"
+                              <motion.button type="button"
                                 onClick={() => { setEditingItem(item); setAddingNew(false); }}
-                                className="px-3 py-1.5 rounded-lg bg-[var(--main-color)] text-white text-xs font-semibold font-sans hover:opacity-90 transition-opacity">
+                                className="px-3 py-1.5 rounded-lg bg-[var(--main-color)] text-white text-xs font-semibold font-sans hover:opacity-90 transition-opacity"
+                                whileTap={{ scale: 0.95 }}
+                                transition={{ duration: 0.08 }}
+                              >
                                 Edit
-                              </button>
-                              <button type="button"
+                              </motion.button>
+                              <motion.button type="button"
                                 onClick={() => handleDelete(item.id, item.image_url)}
                                 disabled={saving}
-                                className="px-2 py-1.5 text-[var(--muted)] hover:text-red-600 text-xs font-sans disabled:opacity-50 transition-colors">
+                                className="px-2 py-1.5 text-[var(--muted)] hover:text-red-600 text-xs font-sans disabled:opacity-50 transition-colors"
+                                whileTap={{ scale: 0.95 }}
+                                transition={{ duration: 0.08 }}
+                              >
                                 Delete
-                              </button>
+                              </motion.button>
                               <span className="ml-auto text-[10px] text-[var(--muted)] tabular-nums">#{idx + 1}</span>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     </SortableMenuItem>
                   ))}
                 </div>

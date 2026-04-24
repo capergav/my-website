@@ -117,3 +117,16 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .menu-item-enter { animation: none; }
 }
+
+/* Admin drag handle wiggle on hover */
+@keyframes admin-drag-wiggle {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(2px); }
+  75% { transform: translateX(-2px); }
+}
+.admin-drag-handle:hover {
+  animation: admin-drag-wiggle 0.35s ease-in-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-drag-handle:hover { animation: none; }
+}
