@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { trackEvent, detectDevice } from "@/lib/analytics";
 import { useLanguage } from "@/app/context/LanguageContext";
 import { DietaryIcons, DietaryLegend } from "./DietaryIcons";
 import { TranslatedText } from "./TranslatedText";
@@ -42,7 +43,9 @@ export type MenuTabsProps = {
   grouped: Record<string, MenuItem[]>;
   sortedCategories: string[];
   categoryNotes?: Record<string, string>;
-  categoryImageMap?: Record<string, { show: boolean; url: string | null }>;
+  categoryImageMap?: Record<string, { show: boolean; url: string | null; useBanner?: boolean; bannerUrl?: string | null }>;
+  restaurantId?: string;
+  language?: string;
 };
 
 // Lucide icon map for category thumbnails
@@ -103,11 +106,32 @@ function formatPrice(price: number): string {
   return `$${price.toFixed(2)}`;
 }
 
-export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, categoryImageMap = {} }: MenuTabsProps) {
+export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, categoryImageMap = {}, restaurantId, language }: MenuTabsProps) {
   const { t, getCategoryLabel } = useLanguage();
   const [activeCategory, setActiveCategory] = useState(sortedCategories[0] ?? "");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [dietFilter, setDietFilter] = useState<string>("all");
+
+  const getSession = useCallback(() => {
+    if (typeof window === "undefined") return "";
+    let s = sessionStorage.getItem("dl_session");
+    if (!s) { s = crypto.randomUUID(); sessionStorage.setItem("dl_session", s); }
+    return s;
+  }, []);
+
+  const fireTrack = useCallback((type: "item_click" | "category_view" | "language_change", extra?: { item_id?: string; category?: string; language?: string }) => {
+    if (!restaurantId) return;
+    const sessionId = getSession();
+    trackEvent({
+      restaurant_id: restaurantId,
+      event_type: type,
+      session_id: sessionId,
+      device_type: detectDevice(),
+      user_agent: navigator.userAgent,
+      referrer: document.referrer,
+      ...extra,
+    });
+  }, [restaurantId, getSession]);
 
   if (sortedCategories.length === 0) {
     return (
@@ -194,7 +218,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                 <motion.button
                   key={category}
                   type="button"
-                  onClick={() => { setActiveCategory(category); setDietFilter("all"); }}
+                  onClick={() => { setActiveCategory(category); setDietFilter("all"); fireTrack("category_view", { category }); }}
                   className={`flex-shrink-0 w-[72px] sm:w-24 flex flex-col items-center gap-1.5 rounded-2xl transition-all duration-200 touch-manipulation py-2 snap-start ${
                     isActive
                       ? "ring-2 ring-[var(--main-color)] ring-offset-2 ring-offset-[var(--background)] shadow-md"
@@ -228,17 +252,25 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
         </div>
       </div>}
 
-      {/* Category banner image — only when show_image === true and image exists */}
-      {categoryImageMap[activeCategory]?.show && categoryImageMap[activeCategory]?.url && (
-        <div className="w-full overflow-hidden" style={{ maxHeight: 220 }}>
-          <img
-            src={categoryImageMap[activeCategory].url!}
-            alt={activeCategory}
-            className="w-full h-full object-cover"
-            style={{ maxHeight: 220 }}
-          />
-        </div>
-      )}
+      {/* Category banner image */}
+      {(() => {
+        const mapEntry = categoryImageMap[activeCategory];
+        // use_banner controls whether banner is shown
+        const useBanner = mapEntry?.useBanner !== false; // default true if not set
+        // bannerUrl is the resolved image to display
+        const bannerUrl = mapEntry?.bannerUrl ?? mapEntry?.url ?? null;
+        if (!useBanner || !bannerUrl) return null;
+        return (
+          <div className="w-full overflow-hidden" style={{ maxHeight: 220 }}>
+            <img
+              src={bannerUrl}
+              alt={activeCategory}
+              className="w-full h-full object-cover"
+              style={{ maxHeight: 220 }}
+            />
+          </div>
+        );
+      })()}
 
       {/* Category content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-[env(safe-area-inset-bottom)]">
@@ -291,11 +323,12 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
               key={item.id}
               role="button"
               tabIndex={0}
-              onClick={() => setSelectedItem(item)}
+              onClick={() => { setSelectedItem(item); fireTrack("item_click", { item_id: item.id, category: item.category ?? activeCategory }); }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   setSelectedItem(item);
+                  fireTrack("item_click", { item_id: item.id, category: item.category ?? activeCategory });
                 }
               }}
               initial={{ opacity: 0, y: 18 }}

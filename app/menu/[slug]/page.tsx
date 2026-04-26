@@ -7,6 +7,7 @@ import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
 import { MenuTabs } from "@/app/components/MenuTabs";
 import { HeroWithLang } from "@/app/components/HeroWithLang";
+import { MenuTracker } from "@/app/components/MenuTracker";
 import { Clock } from "lucide-react";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -73,12 +74,29 @@ export default async function PublicMenuPage({ params }: Props) {
   const [{ data: menuItems }, { data: categoryNotesRows }, { data: categoryRows }] = await Promise.all([
     supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).eq("available", true).order("sort_order", { ascending: true }).order("name", { ascending: true }),
     supabase.from("category_notes").select("category, note").eq("restaurant_id", restaurant.id),
-    supabase.from("restaurant_categories").select("name, show_image, image_url").eq("restaurant_id", restaurant.id),
+    supabase.from("restaurant_categories").select("name, show_image, image_url, banner_item_id, use_banner").eq("restaurant_id", restaurant.id),
   ]);
 
-  const categoryImageMap: Record<string, { show: boolean; url: string | null }> = {};
-  for (const row of (categoryRows ?? []) as { name: string; show_image: boolean; image_url: string | null }[]) {
-    categoryImageMap[row.name] = { show: row.show_image ?? false, url: row.image_url ?? null };
+  // Build a lookup of item images for banner_item_id resolution
+  const itemImageById: Record<string, string> = {};
+  for (const item of (menuItems ?? []) as MenuItemRow[]) {
+    if (item.image_url) itemImageById[item.id] = item.image_url;
+  }
+
+  const categoryImageMap: Record<string, { show: boolean; url: string | null; useBanner: boolean; bannerUrl: string | null }> = {};
+  for (const row of (categoryRows ?? []) as { name: string; show_image: boolean; image_url: string | null; banner_item_id: string | null; use_banner: boolean | null }[]) {
+    const useBanner = row.use_banner !== false; // default true
+    // Resolve banner URL: banner_item_id → first item with image → null
+    let bannerUrl: string | null = null;
+    if (useBanner) {
+      if (row.banner_item_id && itemImageById[row.banner_item_id]) {
+        bannerUrl = itemImageById[row.banner_item_id];
+      } else {
+        // fallback: first item in this category with an image
+        bannerUrl = null; // will be resolved via existing url field or item scan
+      }
+    }
+    categoryImageMap[row.name] = { show: row.show_image ?? false, url: row.image_url ?? null, useBanner, bannerUrl };
   }
 
   const categoryNotes: Record<string, string> = {};
@@ -97,6 +115,14 @@ export default async function PublicMenuPage({ params }: Props) {
     ...CATEGORY_ORDER.filter((c) => grouped[c]),
     ...Object.keys(grouped).filter((c) => !(CATEGORY_ORDER as readonly string[]).includes(c)),
   ];
+
+  // Fallback: if banner is on but no banner_item_id, use first item image in category
+  for (const [catName, entry] of Object.entries(categoryImageMap)) {
+    if (entry.useBanner && !entry.bannerUrl) {
+      const firstWithImg = (grouped[catName] ?? []).find((i) => i.image_url);
+      if (firstWithImg?.image_url) entry.bannerUrl = firstWithImg.image_url;
+    }
+  }
 
   const fontColor = restaurant.font_color ?? "#2c2a26";
   const accent    = restaurant.accent_color ?? "#8b6914";
@@ -163,6 +189,8 @@ export default async function PublicMenuPage({ params }: Props) {
         </div>
       )}
 
+      <MenuTracker restaurantId={restaurant.id} />
+
       <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
         <HeroWithLang
           restaurantName={restaurant.name ?? undefined}
@@ -170,7 +198,7 @@ export default async function PublicMenuPage({ params }: Props) {
           logoUrl={(restaurant as { logo_url?: string | null }).logo_url ?? undefined}
         />
         {hasItems ? (
-          <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} categoryImageMap={categoryImageMap} />
+          <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} categoryImageMap={categoryImageMap} restaurantId={restaurant.id} />
         ) : (
           <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
             <h2 className="text-2xl font-serif font-semibold text-[var(--foreground)]">No items yet</h2>

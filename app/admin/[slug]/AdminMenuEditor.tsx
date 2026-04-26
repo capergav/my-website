@@ -44,94 +44,112 @@ const FONT_NAME_TO_VALUE: Record<string, string> = {
 
 const PRESET_THEMES = [
   {
-    name: 'The Copper Table',
-    description: 'Warm upscale bistro',
+    name: 'Classic Gold',
+    description: 'Timeless upscale dining',
     main_color: '#8b6914',
     accent_color: '#c9a030',
-    background_color: '#faf8f5',
-    font_color: '#2c2a26',
+    background_color: '#ffffff',
+    font_color: '#1a1a1a',
     font_family: 'Playfair Display',
   },
   {
-    name: 'Midnight Brasserie',
-    description: 'Dark & elegant French',
-    main_color: '#c9963a',
-    accent_color: '#e8b84b',
-    background_color: '#1a0a0a',
-    font_color: '#faf0e0',
+    name: 'Midnight Brass',
+    description: 'Dark elegant brasserie',
+    main_color: '#d4a84b',
+    accent_color: '#f0c674',
+    background_color: '#0f0f10',
+    font_color: '#fafafa',
     font_family: 'Playfair Display',
   },
   {
-    name: 'Sakura Modern',
-    description: 'Clean Japanese minimalist',
-    main_color: '#00d4aa',
-    accent_color: '#00b894',
-    background_color: '#0d0d0d',
-    font_color: '#ffffff',
+    name: 'Forest Trattoria',
+    description: 'Rustic Italian',
+    main_color: '#1f5132',
+    accent_color: '#3d8b54',
+    background_color: '#fdfcf7',
+    font_color: '#1a1a1a',
+    font_family: 'Cormorant Garamond',
+  },
+  {
+    name: 'Cherry Blossom',
+    description: 'Soft modern Japanese',
+    main_color: '#c2185b',
+    accent_color: '#ec407a',
+    background_color: '#fffafc',
+    font_color: '#1a1a1a',
     font_family: 'Geist Sans',
   },
   {
-    name: 'Sol Café',
-    description: 'Bright & sunny café',
-    main_color: '#f97316',
-    accent_color: '#fb923c',
-    background_color: '#fff8ed',
-    font_color: '#2c2a26',
+    name: 'Sunlit Café',
+    description: 'Bright cozy bakery',
+    main_color: '#d97706',
+    accent_color: '#fbbf24',
+    background_color: '#fffbeb',
+    font_color: '#1a1a1a',
     font_family: 'Pacifico',
   },
   {
-    name: 'Verde Trattoria',
-    description: 'Italian rustic green',
-    main_color: '#2d6a4f',
-    accent_color: '#40916c',
-    background_color: '#f8fdf9',
-    font_color: '#1b3a2d',
-    font_family: 'Playfair Display',
-  },
-  {
-    name: 'Spice Route',
-    description: 'Bold Indian & South Asian',
-    main_color: '#c0392b',
-    accent_color: '#e74c3c',
-    background_color: '#fff9f0',
-    font_color: '#2c1810',
-    font_family: 'Cinzel',
-  },
-  {
-    name: 'Ocean Blue',
-    description: 'Fresh seafood & coastal',
-    main_color: '#0077b6',
-    accent_color: '#00b4d8',
-    background_color: '#f0f8ff',
-    font_color: '#03045e',
+    name: 'Coastal Blue',
+    description: 'Fresh seafood',
+    main_color: '#1e40af',
+    accent_color: '#3b82f6',
+    background_color: '#f8fafc',
+    font_color: '#1a1a1a',
     font_family: 'Geist Sans',
   },
   {
-    name: 'Urban Grill',
-    description: 'Industrial steakhouse',
-    main_color: '#e63946',
-    accent_color: '#ff6b6b',
-    background_color: '#1a1a1a',
-    font_color: '#f1faee',
+    name: 'Spice Bazaar',
+    description: 'Bold South Asian',
+    main_color: '#9a1f1f',
+    accent_color: '#dc2626',
+    background_color: '#fffaf3',
+    font_color: '#1a1a1a',
+    font_family: 'Cinzel',
+  },
+  {
+    name: 'Steak House',
+    description: 'Industrial grill',
+    main_color: '#7f1d1d',
+    accent_color: '#dc2626',
+    background_color: '#0a0a0a',
+    font_color: '#fafafa',
     font_family: 'Bebas Neue',
   },
   {
-    name: 'Lavender Garden',
-    description: 'Soft brunch & bakery',
-    main_color: '#7c3aed',
-    accent_color: '#a78bfa',
+    name: 'Lavender Brunch',
+    description: 'Soft elegant café',
+    main_color: '#6b21a8',
+    accent_color: '#a855f7',
     background_color: '#faf5ff',
-    font_color: '#3b0764',
+    font_color: '#1a1a1a',
     font_family: 'Cormorant Garamond',
   },
   {
     name: 'Terracotta',
     description: 'Mediterranean warmth',
-    main_color: '#c1440e',
-    accent_color: '#e8652a',
+    main_color: '#9a3412',
+    accent_color: '#ea580c',
     background_color: '#fdf6f0',
-    font_color: '#3d1a0a',
+    font_color: '#1a1a1a',
     font_family: 'Cinzel',
+  },
+  {
+    name: 'Charcoal Modern',
+    description: 'Minimalist contemporary',
+    main_color: '#525252',
+    accent_color: '#a3a3a3',
+    background_color: '#ffffff',
+    font_color: '#1a1a1a',
+    font_family: 'Geist Sans',
+  },
+  {
+    name: 'Emerald Lounge',
+    description: 'Sophisticated cocktail bar',
+    main_color: '#10b981',
+    accent_color: '#34d399',
+    background_color: '#0c1814',
+    font_color: '#f0fdf4',
+    font_family: 'Playfair Display',
   },
 ];
 
@@ -618,6 +636,15 @@ export function AdminMenuEditor({
           >
             <CreditCard size={16} /> Billing
           </button>
+          <a
+            href={`/admin/${restaurantSlug}/analytics`}
+            className="min-h-[40px] px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-medium border border-white/25 flex items-center gap-1.5 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Analytics
+          </a>
           <button
             data-tour="qr-btn"
             type="button"
@@ -696,6 +723,14 @@ export function AdminMenuEditor({
               <CreditCard size={16} className="text-gray-500" />
               Billing
             </button>
+            <a href={`/admin/${restaurantSlug}/analytics`}
+              onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
+              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Analytics
+            </a>
             <a data-tour="view-menu-mobile" href={`/menu/${restaurantSlug}`} target="_blank" rel="noopener noreferrer"
               onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
@@ -1539,9 +1574,20 @@ function AddCategoryModal({
 // ── Manage Categories Modal ───────────────────────────────────────────────────
 
 function SortableCategoryManageRow({
-  name, itemCount, showImage, onDelete, onToggleShowImage,
-}: { name: string; itemCount: number; showImage: boolean; onDelete: () => void; onToggleShowImage: (val: boolean) => void }) {
+  name, itemCount, useBanner, bannerItemId, categoryItems, onDelete, onToggleUseBanner, onSelectBannerItem,
+}: {
+  name: string;
+  itemCount: number;
+  useBanner: boolean;
+  bannerItemId: string | null;
+  categoryItems: MenuItemRow[];
+  onDelete: () => void;
+  onToggleUseBanner: (val: boolean) => void;
+  onSelectBannerItem: (itemId: string | null) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: name });
+  const itemsWithImages = categoryItems.filter((i) => i.image_url);
+
   return (
     <div
       ref={setNodeRef}
@@ -1571,20 +1617,60 @@ function SortableCategoryManageRow({
           </svg>
         </button>
       </div>
-      {/* Show image toggle */}
+      {/* Banner toggle */}
       <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]/50">
         <div>
-          <p className="text-xs font-medium text-[var(--foreground)] font-sans">Show image on category</p>
-          <p className="text-[10px] text-[var(--muted)] font-sans">Display a banner image at the top of this category</p>
+          <p className="text-xs font-medium text-[var(--foreground)] font-sans">Show banner image</p>
+          <p className="text-[10px] text-[var(--muted)] font-sans">Display an image banner above this category&apos;s items</p>
         </div>
         <button
           type="button"
-          onClick={() => onToggleShowImage(!showImage)}
-          className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${showImage ? 'bg-[#8b6914]' : 'bg-gray-200'}`}
+          onClick={() => onToggleUseBanner(!useBanner)}
+          className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${useBanner ? 'bg-[#8b6914]' : 'bg-gray-200'}`}
         >
-          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${showImage ? 'translate-x-4' : 'translate-x-0.5'}`} />
+          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${useBanner ? 'translate-x-4' : 'translate-x-0.5'}`} />
         </button>
       </div>
+      {/* Banner item picker — shown when use_banner is ON */}
+      {useBanner && (
+        <div className="px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]/30">
+          <p className="text-[10px] font-semibold font-sans text-[var(--muted)] uppercase tracking-wide mb-2">Choose banner image</p>
+          {itemsWithImages.length === 0 ? (
+            <p className="text-[11px] text-[var(--muted)] font-sans italic">Add an image to a menu item to use it as a banner</p>
+          ) : (
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {/* "No banner" option */}
+              <button
+                type="button"
+                onClick={() => onSelectBannerItem(null)}
+                className={`flex-shrink-0 w-12 h-12 rounded-lg border-2 flex items-center justify-center text-[10px] font-sans font-medium transition-all ${
+                  bannerItemId === null
+                    ? 'border-[#8b6914] ring-2 ring-[#8b6914]/30 bg-[#8b6914]/10 text-[#8b6914]'
+                    : 'border-[var(--card-border)] text-[var(--muted)] hover:border-[var(--muted)]'
+                }`}
+                title="Use first item image (default)"
+              >
+                Auto
+              </button>
+              {itemsWithImages.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => onSelectBannerItem(item.id)}
+                  title={item.name}
+                  className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
+                    bannerItemId === item.id
+                      ? 'border-[#8b6914] ring-2 ring-[#8b6914]/40'
+                      : 'border-[var(--card-border)] hover:border-[var(--muted)] opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <img src={item.image_url!} alt={item.name} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1599,23 +1685,27 @@ function ManageCategoriesModal({
   onUpdated: (newCats: string[]) => Promise<void>;
 }) {
   const [cats, setCats] = useState(categories);
-  const [showImageMap, setShowImageMap] = useState<Record<string, boolean>>({});
+  const [useBannerMap, setUseBannerMap] = useState<Record<string, boolean>>({});
+  const [bannerItemMap, setBannerItemMap] = useState<Record<string, string | null>>({});
   const [busy, setBusy] = useState(false);
   const supabase = createSupabaseClient();
 
-  // Load show_image values for existing categories
+  // Load banner settings for existing categories
   useEffect(() => {
     supabase
       .from('restaurant_categories')
-      .select('name, show_image')
+      .select('name, use_banner, banner_item_id')
       .eq('restaurant_id', restaurantId)
       .then(({ data }) => {
         if (data) {
-          const map: Record<string, boolean> = {};
-          for (const row of data as { name: string; show_image: boolean }[]) {
-            map[row.name] = row.show_image ?? false;
+          const bannerMap: Record<string, boolean> = {};
+          const itemMap: Record<string, string | null> = {};
+          for (const row of data as { name: string; use_banner: boolean | null; banner_item_id: string | null }[]) {
+            bannerMap[row.name] = row.use_banner !== false; // default true
+            itemMap[row.name] = row.banner_item_id ?? null;
           }
-          setShowImageMap(map);
+          setUseBannerMap(bannerMap);
+          setBannerItemMap(itemMap);
         }
       });
   }, [restaurantId, supabase]);
@@ -1689,12 +1779,21 @@ function ManageCategoriesModal({
                       key={cat}
                       name={cat}
                       itemCount={grouped[cat]?.length ?? 0}
-                      showImage={showImageMap[cat] ?? false}
+                      useBanner={useBannerMap[cat] !== false}
+                      bannerItemId={bannerItemMap[cat] ?? null}
+                      categoryItems={grouped[cat] ?? []}
                       onDelete={() => handleDelete(cat)}
-                      onToggleShowImage={async (val) => {
-                        setShowImageMap((prev) => ({ ...prev, [cat]: val }));
+                      onToggleUseBanner={async (val) => {
+                        setUseBannerMap((prev) => ({ ...prev, [cat]: val }));
                         await supabase.from('restaurant_categories')
-                          .update({ show_image: val })
+                          .update({ use_banner: val })
+                          .eq('restaurant_id', restaurantId)
+                          .eq('name', cat);
+                      }}
+                      onSelectBannerItem={async (itemId) => {
+                        setBannerItemMap((prev) => ({ ...prev, [cat]: itemId }));
+                        await supabase.from('restaurant_categories')
+                          .update({ banner_item_id: itemId })
                           .eq('restaurant_id', restaurantId)
                           .eq('name', cat);
                       }}

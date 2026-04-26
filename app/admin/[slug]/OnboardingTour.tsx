@@ -270,7 +270,7 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
       <div
         className="fixed inset-0 pointer-events-none"
         style={{
-          zIndex: 9999,
+          zIndex: 9998,
           background: "rgba(0,0,0,0.6)",
           WebkitMaskImage: pos.hasSpt
             ? `radial-gradient(circle at ${spotCx}px ${spotCy}px, transparent ${radius + 8}px, black ${radius + 12}px)`
@@ -283,42 +283,49 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
 
       {/* Tooltip */}
       <div
-        className="fixed w-80 max-w-[calc(100vw-32px)] bg-white rounded-2xl shadow-2xl border border-gray-100 p-5"
+        className="fixed bg-white rounded-2xl border border-gray-100 p-6"
         style={{
           zIndex: 10000,
           top: 0,
           left: 0,
+          minWidth: 320,
+          maxWidth: 400,
+          width: "min(400px, calc(100vw - 32px))",
           willChange: "transform, opacity",
           transform: `translate3d(${pos.x}px, ${pos.y}px, 0)`,
           opacity: isReady ? 1 : 0,
           transition: `opacity 150ms ease-out, transform 250ms ease-out`,
+          boxShadow: "0 25px 60px -12px rgba(139,105,20,0.18), 0 8px 24px -4px rgba(0,0,0,0.12)",
+          color: "#2c2a26",
         }}
       >
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <h3 className="font-serif text-[17px] font-semibold text-gray-900 leading-snug">{current.title}</h3>
-          <button type="button" onClick={finish} aria-label="Skip tour" className="shrink-0 text-gray-400 hover:text-gray-600 text-lg leading-none mt-0.5">✕</button>
-        </div>
-        <p className="text-sm text-gray-500 leading-relaxed mb-4">{current.description}</p>
+        {/* Step counter */}
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50 mb-2">
+          Step {step + 1} of {total}
+        </p>
 
-        {/* Progress + buttons */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {/* Dot progress */}
-            <div className="flex gap-1 items-center">
-              {STEPS.map((_, i) => (
-                <span key={i} className="inline-block rounded-full transition-all duration-200"
-                  style={{ width: i === step ? 18 : 6, height: 6, background: i === step ? "#8b6914" : "#e5e7eb" }} />
-              ))}
-            </div>
-            <span className="text-[10px] text-gray-400 ml-1">{step + 1}/{total}</span>
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="font-serif text-lg font-semibold text-[#2c2a26] leading-snug mb-0">{current.title}</h3>
+          <button type="button" onClick={finish} aria-label="Skip tour" className="shrink-0 text-[#2c2a26]/40 hover:text-[#2c2a26]/70 text-xl leading-none mt-0.5 transition-colors">✕</button>
+        </div>
+
+        <p className="text-base text-[#2c2a26]/65 leading-relaxed mt-2">{current.description}</p>
+
+        {/* Progress dots + buttons */}
+        <div className="flex items-center justify-between mt-4 gap-3">
+          <div className="flex gap-1 items-center">
+            {STEPS.map((_, i) => (
+              <span key={i} className="inline-block rounded-full transition-all duration-200"
+                style={{ width: i === step ? 18 : 6, height: 6, background: i === step ? "#8b6914" : "#e5e7eb" }} />
+            ))}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             {isFirst ? (
-              <button type="button" onClick={finish} className="px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-700 rounded-lg">Skip</button>
+              <button type="button" onClick={finish} className="px-3 py-2 text-sm font-medium text-[#2c2a26]/50 hover:text-[#2c2a26]/80 rounded-lg transition-colors">Skip</button>
             ) : (
-              <button type="button" onClick={back} className="px-3 py-1.5 text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 rounded-lg">Back</button>
+              <button type="button" onClick={back} className="px-3 py-2 text-sm font-medium border border-gray-200 text-[#2c2a26]/70 hover:bg-gray-50 rounded-lg transition-colors">Back</button>
             )}
-            <button type="button" onClick={next} className="px-4 py-1.5 text-sm font-medium bg-[#8b6914] text-white rounded-lg hover:opacity-90">
+            <button type="button" onClick={next} className="px-5 py-2 text-sm font-medium bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
               {isLast ? "Done" : "Next →"}
             </button>
           </div>

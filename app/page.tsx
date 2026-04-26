@@ -577,10 +577,10 @@ export default function HomePage() {
             </motion.h1>
 
             <p className="text-lg sm:text-xl text-[#6b6560] max-w-xl mt-5 leading-relaxed">
-              Create a stunning digital menu in minutes. Share it with a link or QR code. Update items and prices instantly — no reprints, no delays, no app needed.
+              Stop reprinting menus. Customers scan a QR code and see your menu instantly — translated into 10 languages, updated in real time, and beautifully designed.
             </p>
-            <p className="text-sm text-[#6b6560]/80 mt-2 font-medium">
-              Built for independent restaurants, cafés, bistros, and food trucks — not chains.
+            <p className="text-sm text-[#6b6560]/80 mt-3 leading-relaxed max-w-lg">
+              Whether you&apos;re swapping the soup of the day or rebranding for the season, your menu updates the moment you save. No more outdated PDFs taped to walls. No more printer runs. Just a clean QR code on every table.
             </p>
 
             <div className="flex gap-4 mt-8 flex-wrap">
