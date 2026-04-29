@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { WheatOff, Leaf } from "lucide-react";
+import { WheatOff, Leaf, BarChart3 } from "lucide-react";
 import {
   motion, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence,
 } from 'motion/react';
@@ -296,13 +296,9 @@ const FEATURES = [
     desc: "Mark dishes as vegan, gluten-free, spicy, nut-free, and more. Guests filter in one tap.",
   },
   {
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    ),
-    title: "Beautiful photos",
-    desc: "Upload dish photos that display in elegant horizontal cards. Make guests hungry before they arrive.",
+    icon: <BarChart3 className="w-5 h-5" />,
+    title: "Built-in analytics",
+    desc: "See exactly how customers use your menu — top items, peak hours, language preferences, and device breakdown. Make data-driven decisions about your menu.",
   },
   {
     icon: (
@@ -368,13 +364,6 @@ const LANGUAGES = [
   { flag: "🇭🇰", name: "廣東話" },
   { flag: "🇵🇭", name: "Filipino" },
   { flag: "🇮🇳", name: "हिन्दी" },
-];
-
-const WHO_ITS_FOR = [
-  { icon: "🍽️", name: "Independent restaurants", desc: "Full-service dining with a story to tell" },
-  { icon: "☕", name: "Cafés & bakeries", desc: "Pastry lists and daily specials, always fresh" },
-  { icon: "🍜", name: "Ethnic & multicultural", desc: "Reach every guest in their native language" },
-  { icon: "🚚", name: "Food trucks & ghost kitchens", desc: "Lean menus that change daily — no reprints" },
 ];
 
 const BEFORE_ITEMS = [
@@ -756,41 +745,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ── SECTION DIVIDER: dark → cream ─────────────────────────────────────── */}
-      <SectionDivider from="#2c2a26" to="#faf8f5" />
-
-      {/* ── WHO IT'S FOR ──────────────────────────────────────────────────────── */}
-      <section className="bg-[#faf8f5] pt-8 pb-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <motion.div {...enter()}>
-            <p className="text-xs font-semibold tracking-widest text-[#8b6914] uppercase mb-3">WHO IT&apos;S FOR</p>
-            <h2 style={{ fontFamily: "Georgia, serif" }} className="text-4xl sm:text-5xl font-semibold text-[#2c2a26] max-w-2xl">
-              Built for restaurants like yours
-            </h2>
-            <motion.div className="h-0.5 bg-[#8b6914] mt-4 origin-left" style={{ width: 80 }} {...underline()} />
-          </motion.div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-12">
-            {WHO_ITS_FOR.map((item, i) => (
-              <motion.div
-                key={item.name}
-                className="bg-white rounded-2xl border border-[#2c2a26]/8 p-6 text-center hover:shadow-lg hover:border-[#8b6914]/30 transition-all duration-300 cursor-default"
-                initial={rm ? undefined : { opacity: 0, y: 20 }}
-                whileInView={rm ? undefined : { opacity: 1, y: 0 }}
-                viewport={rm ? undefined : { once: true }}
-                transition={rm ? undefined : { duration: 0.5, delay: i * 0.1 }}
-                whileHover={rm ? undefined : { y: -8, boxShadow: '0 12px 32px -8px rgba(139,105,20,0.18)' }}
-              >
-                <div className="w-14 h-14 rounded-full bg-[#8b6914]/12 flex items-center justify-center text-2xl mx-auto mb-4">
-                  {item.icon}
-                </div>
-                <h3 style={{ fontFamily: "Georgia, serif" }} className="text-base font-semibold text-[#2c2a26] mb-2">{item.name}</h3>
-                <p className="text-sm text-[#6b6560] leading-relaxed">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* ── SECTION DIVIDER: dark → white ─────────────────────────────────────── */}
+      <SectionDivider from="#2c2a26" to="#ffffff" />
 
       {/* ── BEFORE VS AFTER ───────────────────────────────────────────────────── */}
       <section className="bg-white py-24">
@@ -903,6 +859,127 @@ export default function HomePage() {
               <FeatureCard3D key={f.title} feature={f} delay={i * 0.08} rm={rm} />
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── ANALYTICS SECTION ─────────────────────────────────────────────────── */}
+      <section className="bg-white py-24">
+        <div className="max-w-6xl mx-auto px-6">
+          <motion.div className="text-center mb-14" {...enter()}>
+            <p className="text-xs font-semibold tracking-widest text-[#8b6914] uppercase mb-3">ANALYTICS</p>
+            <h2 style={{ fontFamily: "Georgia, serif" }} className="text-4xl sm:text-5xl font-semibold text-[#2c2a26]">
+              Know what your customers love
+            </h2>
+            <p className="text-lg text-[#6b6560] max-w-2xl mx-auto mt-4">
+              Every scan, click, and language switch is logged. See peak hours, most-viewed items, top-performing categories, and which languages your customers actually use — all in a beautiful dashboard.
+            </p>
+            <motion.div className="h-0.5 bg-[#8b6914] mt-4 mx-auto origin-left" style={{ width: 80 }} {...underline()} />
+          </motion.div>
+
+          <motion.div
+            className="max-w-2xl mx-auto"
+            {...(rm ? {} : { initial: { opacity: 0, y: 40 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } })}
+          >
+            {/* Analytics dashboard mockup */}
+            <div className="rounded-2xl border border-[#8b6914]/20 bg-[#faf8f5] shadow-xl overflow-hidden">
+              {/* Header bar */}
+              <div className="bg-[#2c2a26] px-5 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4 text-[#c9a030]" />
+                  <span className="text-white text-sm font-semibold" style={{ fontFamily: "Georgia, serif" }}>Analytics — The Copper Table</span>
+                </div>
+                <span className="text-white/40 text-xs">Last 30 days</span>
+              </div>
+
+              {/* Stat tiles */}
+              <div className="grid grid-cols-3 gap-px bg-[#8b6914]/10 border-b border-[#8b6914]/10">
+                {[
+                  { label: "Menu scans", to: 247, suffix: "" },
+                  { label: "Unique visitors", to: 89, suffix: "" },
+                  { label: "Items / visit", to: 4.2, suffix: "" },
+                ].map((stat) => (
+                  <div key={stat.label} className="bg-[#faf8f5] px-5 py-4 text-center">
+                    <p className="text-2xl font-bold text-[#8b6914]">
+                      <CountUp to={stat.to} duration={1.8} suffix={stat.suffix} />
+                    </p>
+                    <p className="text-xs text-[#6b6560] mt-1">{stat.label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Chart area */}
+              <div className="px-5 py-5">
+                <p className="text-xs font-semibold text-[#6b6560] uppercase tracking-widest mb-3">Scans over time</p>
+                <div className="relative h-24">
+                  <svg className="w-full h-full" viewBox="0 0 400 96" preserveAspectRatio="none">
+                    {/* Grid lines */}
+                    {[24, 48, 72].map((y) => (
+                      <line key={y} x1="0" y1={y} x2="400" y2={y} stroke="#8b6914" strokeOpacity="0.1" strokeWidth="1" />
+                    ))}
+                    {/* Chart fill */}
+                    <motion.path
+                      d="M0 80 C40 75, 60 60, 80 55 C100 50, 120 65, 140 58 C160 52, 180 35, 200 30 C220 25, 240 40, 260 32 C280 24, 300 15, 320 12 C340 9, 360 20, 380 14 L400 10 L400 96 L0 96 Z"
+                      fill="url(#analyticsGrad)"
+                      opacity="0.3"
+                      {...(rm ? {} : { initial: { opacity: 0 }, whileInView: { opacity: 0.3 }, viewport: { once: true }, transition: { duration: 1.2, ease: "easeOut" } })}
+                    />
+                    {/* Chart line */}
+                    <motion.path
+                      d="M0 80 C40 75, 60 60, 80 55 C100 50, 120 65, 140 58 C160 52, 180 35, 200 30 C220 25, 240 40, 260 32 C280 24, 300 15, 320 12 C340 9, 360 20, 380 14 L400 10"
+                      fill="none"
+                      stroke="#c9a030"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      pathLength={1}
+                      {...(rm ? {} : { initial: { pathLength: 0, opacity: 0 }, whileInView: { pathLength: 1, opacity: 1 }, viewport: { once: true }, transition: { duration: 1.4, ease: [0.22, 1, 0.36, 1] } })}
+                    />
+                    <defs>
+                      <linearGradient id="analyticsGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#c9a030" />
+                        <stop offset="100%" stopColor="#c9a030" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                </div>
+                {/* X-axis labels */}
+                <div className="flex justify-between mt-1">
+                  {["Apr 1", "Apr 8", "Apr 15", "Apr 22", "Apr 29"].map((d) => (
+                    <span key={d} className="text-[10px] text-[#6b6560]/60">{d}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Top items */}
+              <div className="border-t border-[#8b6914]/10 px-5 py-4">
+                <p className="text-xs font-semibold text-[#6b6560] uppercase tracking-widest mb-3">Top items this month</p>
+                <div className="space-y-2">
+                  {[
+                    { name: "Seared Duck Confit", pct: 82 },
+                    { name: "Atlantic Salmon", pct: 68 },
+                    { name: "Crème Brûlée", pct: 51 },
+                  ].map((item, i) => (
+                    <div key={item.name} className="flex items-center gap-3">
+                      <span className="text-xs text-[#6b6560] w-4 text-right">{i + 1}</span>
+                      <div className="flex-1">
+                        <div className="flex justify-between mb-1">
+                          <span className="text-xs font-medium text-[#2c2a26]">{item.name}</span>
+                          <span className="text-xs text-[#8b6914] font-semibold">{item.pct}%</span>
+                        </div>
+                        <div className="h-1.5 bg-[#8b6914]/10 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-[#c9a030] rounded-full"
+                            style={{ width: `${item.pct}%` }}
+                            {...(rm ? {} : { initial: { width: 0 }, whileInView: { width: `${item.pct}%` }, viewport: { once: true }, transition: { duration: 0.9, delay: 0.1 + i * 0.12, ease: [0.22, 1, 0.36, 1] } })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
