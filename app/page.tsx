@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { WheatOff, Leaf, BarChart3 } from "lucide-react";
+import { AnalyticsDemo } from "@/app/components/AnalyticsDemo";
 import {
   motion, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence,
 } from 'motion/react';
@@ -881,108 +882,10 @@ export default function HomePage() {
           </motion.div>
 
           <motion.div
-            className="max-w-2xl mx-auto"
+            className="max-w-4xl mx-auto"
             {...(rm ? {} : { initial: { opacity: 0, y: 40 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } })}
           >
-            {/* Analytics dashboard mockup */}
-            <div className="rounded-2xl border border-[#8b6914]/20 bg-[#faf8f5] shadow-xl overflow-hidden">
-              {/* Header bar */}
-              <div className="bg-[#2c2a26] px-5 py-3 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4 text-[#c9a030]" />
-                  <span className="text-white text-sm font-semibold" style={{ fontFamily: "Georgia, serif" }}>Analytics — The Copper Table</span>
-                </div>
-                <span className="text-white/40 text-xs">Last 30 days</span>
-              </div>
-
-              {/* Stat tiles */}
-              <div className="grid grid-cols-3 gap-px bg-[#8b6914]/10 border-b border-[#8b6914]/10">
-                {[
-                  { label: "Menu scans", to: 247, suffix: "" },
-                  { label: "Unique visitors", to: 89, suffix: "" },
-                  { label: "Items / visit", to: 4.2, suffix: "" },
-                ].map((stat) => (
-                  <div key={stat.label} className="bg-[#faf8f5] px-5 py-4 text-center">
-                    <p className="text-2xl font-bold text-[#8b6914]">
-                      <CountUp to={stat.to} duration={1.8} suffix={stat.suffix} />
-                    </p>
-                    <p className="text-xs text-[#6b6560] mt-1">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Chart area */}
-              <div className="px-5 py-5">
-                <p className="text-xs font-semibold text-[#6b6560] uppercase tracking-widest mb-3">Scans over time</p>
-                <div className="relative h-24">
-                  <svg className="w-full h-full" viewBox="0 0 400 96" preserveAspectRatio="none">
-                    {/* Grid lines */}
-                    {[24, 48, 72].map((y) => (
-                      <line key={y} x1="0" y1={y} x2="400" y2={y} stroke="#8b6914" strokeOpacity="0.1" strokeWidth="1" />
-                    ))}
-                    {/* Chart fill */}
-                    <motion.path
-                      d="M0 80 C40 75, 60 60, 80 55 C100 50, 120 65, 140 58 C160 52, 180 35, 200 30 C220 25, 240 40, 260 32 C280 24, 300 15, 320 12 C340 9, 360 20, 380 14 L400 10 L400 96 L0 96 Z"
-                      fill="url(#analyticsGrad)"
-                      opacity="0.3"
-                      {...(rm ? {} : { initial: { opacity: 0 }, whileInView: { opacity: 0.3 }, viewport: { once: true }, transition: { duration: 1.2, ease: "easeOut" } })}
-                    />
-                    {/* Chart line */}
-                    <motion.path
-                      d="M0 80 C40 75, 60 60, 80 55 C100 50, 120 65, 140 58 C160 52, 180 35, 200 30 C220 25, 240 40, 260 32 C280 24, 300 15, 320 12 C340 9, 360 20, 380 14 L400 10"
-                      fill="none"
-                      stroke="#c9a030"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      pathLength={1}
-                      {...(rm ? {} : { initial: { pathLength: 0, opacity: 0 }, whileInView: { pathLength: 1, opacity: 1 }, viewport: { once: true }, transition: { duration: 1.4, ease: [0.22, 1, 0.36, 1] } })}
-                    />
-                    <defs>
-                      <linearGradient id="analyticsGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#c9a030" />
-                        <stop offset="100%" stopColor="#c9a030" stopOpacity="0" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                </div>
-                {/* X-axis labels */}
-                <div className="flex justify-between mt-1">
-                  {["Apr 1", "Apr 8", "Apr 15", "Apr 22", "Apr 29"].map((d) => (
-                    <span key={d} className="text-[10px] text-[#6b6560]/60">{d}</span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Top items */}
-              <div className="border-t border-[#8b6914]/10 px-5 py-4">
-                <p className="text-xs font-semibold text-[#6b6560] uppercase tracking-widest mb-3">Top items this month</p>
-                <div className="space-y-2">
-                  {[
-                    { name: "Seared Duck Confit", pct: 82 },
-                    { name: "Atlantic Salmon", pct: 68 },
-                    { name: "Crème Brûlée", pct: 51 },
-                  ].map((item, i) => (
-                    <div key={item.name} className="flex items-center gap-3">
-                      <span className="text-xs text-[#6b6560] w-4 text-right">{i + 1}</span>
-                      <div className="flex-1">
-                        <div className="flex justify-between mb-1">
-                          <span className="text-xs font-medium text-[#2c2a26]">{item.name}</span>
-                          <span className="text-xs text-[#8b6914] font-semibold">{item.pct}%</span>
-                        </div>
-                        <div className="h-1.5 bg-[#8b6914]/10 rounded-full overflow-hidden">
-                          <motion.div
-                            className="h-full bg-[#c9a030] rounded-full"
-                            style={{ width: `${item.pct}%` }}
-                            {...(rm ? {} : { initial: { width: 0 }, whileInView: { width: `${item.pct}%` }, viewport: { once: true }, transition: { duration: 0.9, delay: 0.1 + i * 0.12, ease: [0.22, 1, 0.36, 1] } })}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <AnalyticsDemo />
           </motion.div>
         </div>
       </section>
