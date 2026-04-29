@@ -162,13 +162,22 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
     if (!localStorage.getItem(TOUR_KEY)) setVisible(true);
   }, []);
 
+  // Lock body scroll while tour is active
+  useEffect(() => {
+    if (visible) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [visible]);
+
   useEffect(() => {
     if (tourKey > 0) { setStep(0); setVisible(true); }
   }, [tourKey]);
 
   const current = STEPS[step];
 
-  const calculate = useCallback(() => {
+  const calculate = useCallback(async () => {
     const isMobile = window.innerWidth < 768;
     const selector = isMobile && current.mobileSelector
       ? current.mobileSelector
@@ -192,8 +201,14 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
       return;
     }
 
-    setPos(calcPos(el, current.placement));
-    requestAnimationFrame(() => setIsReady(true));
+    // Scroll target into view, then wait for scroll to settle before measuring
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    await new Promise<void>((r) => setTimeout(r, 400));
+
+    requestAnimationFrame(() => {
+      setPos(calcPos(el, current.placement));
+      requestAnimationFrame(() => setIsReady(true));
+    });
   }, [current]);
 
   useEffect(() => {
@@ -294,7 +309,7 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
           willChange: "transform, opacity",
           transform: `translate3d(${pos.x}px, ${pos.y}px, 0)`,
           opacity: isReady ? 1 : 0,
-          transition: `opacity 150ms ease-out, transform 250ms ease-out`,
+          transition: `opacity 200ms ease-out, transform 200ms ease-out`,
           boxShadow: "0 25px 60px -12px rgba(139,105,20,0.18), 0 8px 24px -4px rgba(0,0,0,0.12)",
           color: "#2c2a26",
         }}

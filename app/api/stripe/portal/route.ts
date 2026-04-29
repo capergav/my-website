@@ -4,7 +4,7 @@ import { stripe } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function POST(req: NextRequest) {
-  const { userId } = await req.json();
+  const { userId, restaurantSlug } = await req.json();
   const { data } = await supabaseAdmin
     .from('subscriptions')
     .select('stripe_customer_id')
@@ -15,9 +15,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No subscription found' }, { status: 404 });
   }
 
+  const returnUrl = restaurantSlug
+    ? `${process.env.NEXT_PUBLIC_SITE_URL}/admin/${restaurantSlug}`
+    : `${process.env.NEXT_PUBLIC_SITE_URL}/admin`;
+
   const session = await stripe.billingPortal.sessions.create({
     customer: data.stripe_customer_id,
-    return_url: `${process.env.NEXT_PUBLIC_SITE_URL}/admin`,
+    return_url: returnUrl,
   });
 
   return NextResponse.json({ url: session.url });

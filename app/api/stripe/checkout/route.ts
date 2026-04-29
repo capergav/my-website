@@ -5,7 +5,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, userEmail } = await req.json();
+    const { userId, userEmail, restaurantSlug } = await req.json();
     if (!userId || !userEmail) return NextResponse.json({ error: 'Missing user info' }, { status: 400 });
 
     const { data: existing } = await supabaseAdmin
@@ -31,8 +31,12 @@ export async function POST(req: NextRequest) {
         trial_period_days: 60,
         metadata: { supabase_user_id: userId }
       },
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/admin?subscribed=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/pricing`,
+      success_url: restaurantSlug
+        ? `${process.env.NEXT_PUBLIC_SITE_URL}/admin/${restaurantSlug}?subscription=success`
+        : `${process.env.NEXT_PUBLIC_SITE_URL}/admin?subscribed=true`,
+      cancel_url: restaurantSlug
+        ? `${process.env.NEXT_PUBLIC_SITE_URL}/admin/${restaurantSlug}`
+        : `${process.env.NEXT_PUBLIC_SITE_URL}/admin`,
       allow_promotion_codes: true,
     });
 

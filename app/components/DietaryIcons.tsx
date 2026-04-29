@@ -1,6 +1,7 @@
 "use client";
 
 import { Star, WheatOff, ShieldCheck, Leaf, Sprout, MilkOff, Flame } from "lucide-react";
+import { useLanguage } from "@/app/context/LanguageContext";
 
 export type DietaryFlags = {
   chefs_favorite?: boolean | null;
@@ -15,16 +16,18 @@ export type DietaryFlags = {
 export const DIETARY_META: {
   key: keyof DietaryFlags;
   Icon: React.ComponentType<{ size?: number; className?: string }>;
+  labelKey: string;
   label: string;
-  abbr: string;
+  color: string;
+  bg: string;
 }[] = [
-  { key: "chefs_favorite", Icon: Star,        label: "Chef's Favourite", abbr: "★"  },
-  { key: "gluten_free",    Icon: WheatOff,    label: "Gluten Free",      abbr: "GF" },
-  { key: "nut_free",       Icon: ShieldCheck, label: "Nut Free",         abbr: "NF" },
-  { key: "vegan",          Icon: Leaf,        label: "Vegan",            abbr: "VG" },
-  { key: "vegetarian",     Icon: Sprout,      label: "Vegetarian",       abbr: "V"  },
-  { key: "dairy_free",     Icon: MilkOff,     label: "Dairy Free",       abbr: "DF" },
-  { key: "spicy",          Icon: Flame,       label: "Spicy",            abbr: "🌶" },
+  { key: "chefs_favorite", Icon: Star,        labelKey: "dietary.chefsFavorite", label: "Chef's Favourite", color: "text-amber-500",  bg: "bg-amber-50"  },
+  { key: "gluten_free",    Icon: WheatOff,    labelKey: "dietary.glutenFree",    label: "Gluten Free",      color: "text-stone-600",  bg: "bg-stone-100" },
+  { key: "nut_free",       Icon: ShieldCheck, labelKey: "dietary.nutFree",       label: "Nut Free",         color: "text-orange-600", bg: "bg-orange-50" },
+  { key: "vegan",          Icon: Leaf,        labelKey: "dietary.vegan",         label: "Vegan",            color: "text-green-600",  bg: "bg-green-50"  },
+  { key: "vegetarian",     Icon: Sprout,      labelKey: "dietary.vegetarian",    label: "Vegetarian",       color: "text-green-500",  bg: "bg-green-50"  },
+  { key: "dairy_free",     Icon: MilkOff,     labelKey: "dietary.dairyFree",     label: "Dairy Free",       color: "text-blue-500",   bg: "bg-blue-50"   },
+  { key: "spicy",          Icon: Flame,       labelKey: "dietary.spicy",         label: "Spicy",            color: "text-red-500",    bg: "bg-red-50"    },
 ];
 
 export function DietaryIcons({ item }: { item: DietaryFlags }) {
@@ -32,10 +35,14 @@ export function DietaryIcons({ item }: { item: DietaryFlags }) {
   if (active.length === 0) return null;
   return (
     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap" role="group" aria-label="Dietary information">
-      {active.map(({ key, Icon, label, abbr }) => (
-        <span key={key} aria-label={label} title={label} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${key === 'chefs_favorite' ? 'bg-[var(--accent)]/10 text-[var(--accent)]' : 'bg-[var(--main-color)]/10 text-[var(--main-color)]'}`}>
-          <Icon size={10} aria-hidden />
-          {abbr}
+      {active.map(({ key, Icon, label, color, bg }) => (
+        <span
+          key={key}
+          aria-label={label}
+          title={label}
+          className={`inline-flex items-center justify-center w-7 h-7 rounded-full ${bg} flex-shrink-0`}
+        >
+          <Icon size={16} className={color} aria-hidden />
         </span>
       ))}
     </div>
@@ -43,6 +50,7 @@ export function DietaryIcons({ item }: { item: DietaryFlags }) {
 }
 
 export function DietaryLegend({ items }: { items: DietaryFlags[] }) {
+  const { t } = useLanguage();
   const usedKeys = new Set<keyof DietaryFlags>();
   for (const item of items) {
     for (const { key } of DIETARY_META) {
@@ -53,12 +61,14 @@ export function DietaryLegend({ items }: { items: DietaryFlags[] }) {
   if (visible.length === 0) return null;
   return (
     <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3 mb-2">
-      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-2">Key</p>
-      <div className="flex flex-wrap gap-x-5 gap-y-1.5">
-        {visible.map(({ key, Icon, label }) => (
+      <p className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-2">{t("dietary.key")}</p>
+      <div className="flex flex-wrap gap-x-4 gap-y-2">
+        {visible.map(({ key, Icon, labelKey, label, color, bg }) => (
           <div key={key} className="flex items-center gap-1.5">
-            <Icon size={13} className="text-[var(--muted)] shrink-0" aria-hidden />
-            <span className="text-xs text-[var(--muted)]">{label}</span>
+            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full ${bg} flex-shrink-0`}>
+              <Icon size={14} className={color} aria-hidden />
+            </span>
+            <span className="text-xs text-[var(--muted)]">{t(labelKey) || label}</span>
           </div>
         ))}
       </div>

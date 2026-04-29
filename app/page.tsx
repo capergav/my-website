@@ -183,7 +183,11 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
                   {activeLang.length > 6 ? activeLang.slice(0,5)+'…' : activeLang} ▾
                 </div>
               </div>
-              <div className="space-y-2 mx-3 mt-3 mb-3">
+              <div className="mx-3 mt-3 mb-1">
+                <p className="text-[10px] font-bold text-[#2c2a26] uppercase tracking-widest mb-0.5">Mains</p>
+                <p className="text-[9px] italic text-gray-400 mb-2">All entrées served with soup or salad and house bread.</p>
+              </div>
+              <div className="space-y-2 mx-3 mb-3">
                 {names.map((name, idx) => (
                   <div key={`${activeLang}-${idx}`} className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
                     <img src={DEMO_IMAGES[idx]} alt={name} className="w-16 h-16 object-cover flex-shrink-0" />

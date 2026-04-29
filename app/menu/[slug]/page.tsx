@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseServerClient } from "@/app/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
 import { MenuTabs } from "@/app/components/MenuTabs";
@@ -24,8 +25,8 @@ export default async function PublicMenuPage({ params }: Props) {
 
   if (!restaurant) notFound();
 
-  // Check subscription status — pause menu if trial expired or canceled
-  const { data: sub } = await supabase
+  // Check subscription status using service role (bypasses RLS — anonymous visitors can't read subscriptions)
+  const { data: sub } = await supabaseAdmin
     .from("subscriptions")
     .select("status, trial_end")
     .eq("user_id", (restaurant as { owner_id?: string }).owner_id ?? "")
@@ -205,6 +206,25 @@ export default async function PublicMenuPage({ params }: Props) {
             <p className="text-sm mt-2 max-w-xs" style={{ color: `${fontColor}99` }}>This menu is still being set up. Check back soon.</p>
           </div>
         )}
+        {/* Powered by DineLinks footer — always hardcoded brand colors */}
+        <footer className="py-6 text-center">
+          <a
+            href="https://dinelinks.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 transition-colors"
+            style={{ color: `${fontColor}40`, fontFamily: "system-ui, sans-serif", fontSize: 12 }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#8b6914")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = `${fontColor}40`)}
+          >
+            <svg width="12" height="11" viewBox="0 0 44 40" fill="none">
+              <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
+              <line x1="26" y1="3" x2="26" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+              <line x1="26" y1="37" x2="42" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+            <span>Powered by DineLinks</span>
+          </a>
+        </footer>
       </main>
     </>
   );

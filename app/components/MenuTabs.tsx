@@ -252,34 +252,29 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
         </div>
       </div>}
 
-      {/* Category banner image */}
-      {(() => {
-        const mapEntry = categoryImageMap[activeCategory];
-        // use_banner controls whether banner is shown
-        const useBanner = mapEntry?.useBanner !== false; // default true if not set
-        // bannerUrl is the resolved image to display
-        const bannerUrl = mapEntry?.bannerUrl ?? mapEntry?.url ?? null;
-        if (!useBanner || !bannerUrl) return null;
-        return (
-          <div className="w-full overflow-hidden" style={{ maxHeight: 220 }}>
-            <img
-              src={bannerUrl}
-              alt={activeCategory}
-              className="w-full h-full object-cover"
-              style={{ maxHeight: 220 }}
-            />
-          </div>
-        );
-      })()}
-
       {/* Category content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-[env(safe-area-inset-bottom)]">
         {/* Header + filter */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
           <div className="min-w-0">
-            <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-[var(--foreground)]">
-              {getCategoryLabel(activeCategory)}
-            </h2>
+            {/* Category heading with optional inline thumbnail */}
+            {(() => {
+              const mapEntry = categoryImageMap[activeCategory];
+              const useBanner = mapEntry?.useBanner !== false;
+              const thumbUrl = (mapEntry?.bannerUrl ?? mapEntry?.url) ?? null;
+              return (
+                <div className="flex items-center gap-3">
+                  {useBanner && thumbUrl && (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-[var(--card-border)] shadow-sm">
+                      <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-[var(--foreground)]">
+                    {getCategoryLabel(activeCategory)}
+                  </h2>
+                </div>
+              );
+            })()}
             {categoryNotes[activeCategory] && (
               <p className="text-sm text-[var(--muted)] mt-1 leading-relaxed">
                 <TranslatedText text={categoryNotes[activeCategory]} as="span" />

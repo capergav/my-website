@@ -303,7 +303,7 @@ export function AdminMenuEditor({
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, userEmail: user.email }),
+        body: JSON.stringify({ userId: user.id, userEmail: user.email, restaurantSlug }),
       });
       const { url } = await res.json();
       if (url) window.location.href = url;
@@ -315,11 +315,26 @@ export function AdminMenuEditor({
     const res = await fetch('/api/stripe/portal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id }),
+      body: JSON.stringify({ userId: user.id, restaurantSlug }),
     });
-    const { url } = await res.json();
-    if (url) window.location.href = url;
+    const data = await res.json();
+    if (data.url) window.location.href = data.url;
+    else if (data.error === 'No subscription found') {
+      // No Stripe customer yet — fall through to checkout
+      startCheckout();
+    }
   };
+
+  // Smart billing: trialing without payment method → checkout; else → portal
+  const handleBilling = () => {
+    if (subStatus === 'trialing' || subStatus === 'none') {
+      startCheckout();
+    } else {
+      openPortal();
+    }
+  };
+
+  const billingLabel = (subStatus === 'trialing' || subStatus === 'none') ? 'Start subscription' : 'Manage billing';
 
   // ── Live theme — no reload needed ────────────────────────────────────────
   useEffect(() => {
@@ -653,10 +668,11 @@ export function AdminMenuEditor({
           <ThemeModal restaurant={restaurant} onSave={handleSaveTheme} saving={saving} tourTarget="theme-btn-desktop" />
           <button
             type="button"
-            onClick={openPortal}
-            className="min-h-[40px] px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-medium border border-white/25 flex items-center gap-1.5 transition-colors"
+            onClick={handleBilling}
+            disabled={checkoutLoading}
+            className="min-h-[40px] px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-medium border border-white/25 flex items-center gap-1.5 transition-colors disabled:opacity-50"
           >
-            <CreditCard size={16} /> Billing
+            <CreditCard size={16} /> {billingLabel}
           </button>
           <a
             href={`/admin/${restaurantSlug}/analytics`}
@@ -750,10 +766,10 @@ export function AdminMenuEditor({
             <SheetThemeButton restaurant={restaurant} onSave={handleSaveTheme} saving={saving}
               onClose={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
               tourTarget="theme-btn-mobile" />
-            <button type="button" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; openPortal(); }}
+            <button type="button" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; handleBilling(); }}
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
               <CreditCard size={16} className="text-gray-500" />
-              Billing
+              {billingLabel}
             </button>
             <a href={`/admin/${restaurantSlug}/analytics`}
               onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
@@ -1350,21 +1366,78 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                 </div>
               </section>
 
-              {/* Contrast warning */}
+              {/* Contrast panel */}
               {(() => {
-                const c1 = getContrast(fontColor, card);
-                const c2 = getContrast(fontColor, bg);
-                const minContrast = Math.min(c1, c2);
-                if (minContrast < 4.5) {
-                  return (
-                    <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs font-sans text-red-700 flex items-center gap-2 -mt-3">
-                      <AlertTriangle size={14} className="flex-shrink-0" />
-                      Your text may be hard to read. Pick a darker or lighter text color. (Contrast: {minContrast.toFixed(1)}, minimum: 4.5)
+                const textOnCard = getContrast(fontColor, card);
+                const textOnBg = getContrast(fontColor, bg);
+                const accentOnBg = getContrast(accent, bg);
+                const criticalFail = textOnCard < 4.5 || textOnBg < 4.5;
+                const pairs = [
+                  { label: "Text on card", ratio: textOnCard, min: 4.5 },
+                  { label: "Text on page", ratio: textOnBg, min: 4.5 },
+                  { label: "Accent on page", ratio: accentOnBg, min: 3.0 },
+                ];
+                if (!criticalFail && accentOnBg >= 3.0) return null;
+                return (
+                  <div className={`rounded-lg border px-3 py-3 text-xs font-sans -mt-3 ${criticalFail ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <AlertTriangle size={13} className={criticalFail ? 'text-red-600 flex-shrink-0' : 'text-amber-600 flex-shrink-0'} />
+                      <span className={`font-semibold ${criticalFail ? 'text-red-700' : 'text-amber-700'}`}>
+                        {criticalFail ? 'Low contrast — customers may struggle to read the menu' : 'Accent contrast below recommended'}
+                      </span>
                     </div>
-                  );
-                }
-                return null;
+                    <div className="space-y-1">
+                      {pairs.filter(p => p.ratio < p.min).map(p => (
+                        <div key={p.label} className="flex items-center justify-between gap-2">
+                          <span className={criticalFail ? 'text-red-600' : 'text-amber-600'}>{p.label}</span>
+                          <span className="font-mono font-semibold">
+                            {p.ratio.toFixed(1)}:1 <span className="opacity-60 font-normal">(min {p.min}:1)</span>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
               })()}
+
+              {/* Live preview */}
+              <section>
+                <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-3">Live preview</h3>
+                <div
+                  className="rounded-2xl overflow-hidden border border-[var(--card-border)] shadow-sm"
+                  style={{ background: bg || '#faf8f5' }}
+                >
+                  {/* Mini hero bar */}
+                  <div className="h-10 w-full flex items-center px-3" style={{ background: card }}>
+                    <span className="text-[11px] font-bold truncate" style={{ color: fontColor, fontFamily: FONT_OPTIONS.find(o => o.value === font)?.cls?.includes('font-') ? undefined : 'inherit' }}>
+                      {name || "Your Restaurant"}
+                    </span>
+                  </div>
+                  {/* Category heading */}
+                  <div className="px-3 pt-3 pb-1">
+                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: fontColor, opacity: 0.5 }}>Appetizers</p>
+                  </div>
+                  {/* Sample item card */}
+                  {[
+                    { n: "Seared Duck Confit", d: "Slow-cooked duck leg, golden crust", p: "$24" },
+                    { n: "Atlantic Salmon", d: "Pan-seared with lemon butter", p: "$22" },
+                  ].map((item) => (
+                    <div key={item.n} className="mx-3 mb-2 rounded-xl overflow-hidden flex border" style={{ borderColor: `${fontColor}18`, background: card }}>
+                      <div className="w-12 h-12 flex-shrink-0 bg-gray-200" />
+                      <div className="p-2 flex-1 min-w-0">
+                        <div className="flex justify-between items-baseline gap-1">
+                          <p className="text-[11px] font-semibold truncate" style={{ color: fontColor }}>{item.n}</p>
+                          <p className="text-[11px] font-bold flex-shrink-0" style={{ color: accent }}>{item.p}</p>
+                        </div>
+                        <p className="text-[9px] mt-0.5 truncate" style={{ color: `${fontColor}80` }}>{item.d}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="px-3 pb-3 pt-1 text-center">
+                    <p className="text-[9px]" style={{ color: `${fontColor}30` }}>Powered by DineLinks</p>
+                  </div>
+                </div>
+              </section>
 
               {/* Font */}
               <section>
@@ -1396,10 +1469,20 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 
             </div>
             <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)]">
-              <button type="button" onClick={save} disabled={saving}
-                className="font-sans w-full py-3.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity shadow-sm">
-                {saving ? "Saving…" : "Save theme"}
-              </button>
+              {(() => {
+                const contrastBlocked = getContrast(fontColor, card) < 4.5 || getContrast(fontColor, bg) < 4.5;
+                return (
+                  <>
+                    <button type="button" onClick={save} disabled={saving || contrastBlocked}
+                      className="font-sans w-full py-3.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity shadow-sm">
+                      {saving ? "Saving…" : "Save theme"}
+                    </button>
+                    {contrastBlocked && (
+                      <p className="text-xs font-sans text-red-600 text-center mt-2">Fix text contrast before saving</p>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           </div>
         </div>
@@ -1703,11 +1786,11 @@ function SortableCategoryManageRow({
           </svg>
         </button>
       </div>
-      {/* Banner toggle */}
+      {/* Thumbnail toggle */}
       <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]/50">
         <div>
-          <p className="text-xs font-medium text-[var(--foreground)] font-sans">Show banner image</p>
-          <p className="text-[10px] text-[var(--muted)] font-sans">Display an image banner above this category&apos;s items</p>
+          <p className="text-xs font-medium text-[var(--foreground)] font-sans">Show image next to category name</p>
+          <p className="text-[10px] text-[var(--muted)] font-sans">Displays a small 40px thumbnail inline with the category heading</p>
         </div>
         <button
           type="button"
@@ -1717,10 +1800,10 @@ function SortableCategoryManageRow({
           <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${useBanner ? 'translate-x-4' : 'translate-x-0.5'}`} />
         </button>
       </div>
-      {/* Banner item picker — shown when use_banner is ON */}
+      {/* Thumbnail item picker — shown when use_banner is ON */}
       {useBanner && (
         <div className="px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]/30">
-          <p className="text-[10px] font-semibold font-sans text-[var(--muted)] uppercase tracking-wide mb-2">Choose banner image</p>
+          <p className="text-[10px] font-semibold font-sans text-[var(--muted)] uppercase tracking-wide mb-2">Choose thumbnail image</p>
           {itemsWithImages.length === 0 ? (
             <p className="text-[11px] text-[var(--muted)] font-sans italic">Add an image to a menu item to use it as a banner</p>
           ) : (
