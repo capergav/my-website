@@ -1,7 +1,6 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import { createSupabaseServerClient } from "@/app/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
@@ -11,8 +10,25 @@ import { HeroWithLang } from "@/app/components/HeroWithLang";
 import { MenuTracker } from "@/app/components/MenuTracker";
 import { PoweredByFooter } from "@/app/components/PoweredByFooter";
 import { Clock } from "lucide-react";
+import type { Metadata } from "next";
 
 type Props = { params: Promise<{ slug: string }> };
+
+// ── Dynamic tab title per restaurant ─────────────────────────────────────────
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createSupabaseServerClient();
+  const { data: restaurant } = await supabase
+    .from("restaurants")
+    .select("name")
+    .eq("slug", slug)
+    .maybeSingle();
+  return {
+    title: restaurant?.name ?? "Menu",
+    description: restaurant?.name ? `View the menu for ${restaurant.name}` : "Digital menu",
+    icons: { icon: "/favicon.svg" },
+  };
+}
 
 export default async function PublicMenuPage({ params }: Props) {
   const { slug } = await params;
@@ -43,35 +59,36 @@ export default async function PublicMenuPage({ params }: Props) {
   const pausedAccent    = restaurant.accent_color ?? "#8b6914";
   const pausedBg        = restaurant.background_color ?? "#faf8f5";
   const pausedCard      = restaurant.main_color ?? "#ffffff";
-  const pausedThemeStyle = `:root{--foreground:${pausedFontColor};--accent:${pausedAccent};--background:${pausedBg};--card:${pausedCard};--muted:${pausedFontColor}99;--card-border:${pausedFontColor}26;--main-color:${pausedCard};--accent-color:${pausedAccent};--background-color:${pausedBg};--font-color:${pausedFontColor};}`;
 
   if (isPaused) {
     return (
-      <>
-        <style dangerouslySetInnerHTML={{ __html: pausedThemeStyle }} />
-        <main className="min-h-screen bg-[var(--background)] flex items-center justify-center px-4 text-center">
-          <div className="max-w-md">
-            <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4" style={{ background: `${pausedCard}1a` }}>
-              <Clock size={28} style={{ color: pausedCard }} />
-            </div>
-            <h1 className="text-2xl font-semibold text-[var(--foreground)]">
-              Menu temporarily unavailable
-            </h1>
-            <p className="text-[var(--muted)] mt-2 text-sm">
-              This restaurant&apos;s digital menu is currently paused. Please check back soon.
-            </p>
+      <div
+        className="min-h-screen flex items-center justify-center px-4 text-center"
+        style={{
+          "--foreground": pausedFontColor,
+          "--accent": pausedAccent,
+          "--background": pausedBg,
+          "--card": pausedCard,
+          "--muted": `${pausedFontColor}99`,
+          "--card-border": `${pausedFontColor}26`,
+          backgroundColor: pausedBg,
+          color: pausedFontColor,
+        } as React.CSSProperties}
+      >
+        <div className="max-w-md">
+          <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center mb-4" style={{ background: `${pausedCard}1a` }}>
+            <Clock size={28} style={{ color: pausedCard }} />
           </div>
-        </main>
-      </>
+          <h1 className="text-2xl font-semibold" style={{ color: pausedFontColor }}>
+            Menu temporarily unavailable
+          </h1>
+          <p className="mt-2 text-sm" style={{ color: `${pausedFontColor}99` }}>
+            This restaurant&apos;s digital menu is currently paused. Please check back soon.
+          </p>
+        </div>
+      </div>
     );
   }
-
-  // Trial banner — only shown when actively trialing (not expired)
-  const now = new Date();
-  const trialEnd = sub?.trial_end ? new Date(sub.trial_end) : null;
-  const daysLeft = trialEnd ? Math.ceil((trialEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
-  const showTrialBanner = sub?.status === "trialing" && trialEnd !== null && trialEnd > now;
-  const trialWindingDown = showTrialBanner && daysLeft !== null && daysLeft <= 7;
 
   const [{ data: menuItems }, { data: categoryNotesRows }, { data: categoryRows }] = await Promise.all([
     supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).eq("available", true).order("sort_order", { ascending: true }).order("name", { ascending: true }),
@@ -87,15 +104,11 @@ export default async function PublicMenuPage({ params }: Props) {
 
   const categoryImageMap: Record<string, { show: boolean; url: string | null; useBanner: boolean; bannerUrl: string | null }> = {};
   for (const row of (categoryRows ?? []) as { name: string; show_image: boolean; image_url: string | null; banner_item_id: string | null; use_banner: boolean | null }[]) {
-    const useBanner = row.use_banner !== false; // default true
-    // Resolve banner URL: banner_item_id → first item with image → null
+    const useBanner = row.use_banner !== false;
     let bannerUrl: string | null = null;
     if (useBanner) {
       if (row.banner_item_id && itemImageById[row.banner_item_id]) {
         bannerUrl = itemImageById[row.banner_item_id];
-      } else {
-        // fallback: first item in this category with an image
-        bannerUrl = null; // will be resolved via existing url field or item scan
       }
     }
     categoryImageMap[row.name] = { show: row.show_image ?? false, url: row.image_url ?? null, useBanner, bannerUrl };
@@ -143,73 +156,46 @@ export default async function PublicMenuPage({ params }: Props) {
     case "cinzel":   fontFamily = "var(--font-cinzel), serif"; break;
   }
 
-  const themeStyle = `:root{--foreground:${fontColor};--accent:${accent};--background:${bg};--card:${card};--muted:${fontColor}99;--card-border:${fontColor}26;--main-color:${card};--accent-color:${accent};--background-color:${bg};--font-color:${fontColor};}body{color:var(--foreground);font-family:${fontFamily};}`;
-
   const hasItems = sortedCategories.length > 0;
 
   return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: themeStyle }} />
-
-      {/* ── DineLinks trial banner — always hardcoded brand colors, never restaurant theme ── */}
-      {showTrialBanner && (
-        <div
-          style={{ background: "#ffffff", fontFamily: "system-ui, -apple-system, sans-serif" }}
-          className="py-2 px-4 text-center shadow-lg border-b border-gray-200"
-        >
-          {trialWindingDown ? (
-            <p className="text-sm text-[#111111] flex items-center justify-center gap-2 flex-wrap">
-              <span style={{ color: "#8b6914", fontWeight: 700 }}>DineLinks</span>
-              <span style={{ color: "#8b6914" }}>·</span>
-              <span>
-                Free trial ends in{" "}
-                <strong>{daysLeft} day{daysLeft !== 1 ? "s" : ""}</strong>
-              </span>
-              <Link
-                href="/signup"
-                style={{ background: "#8b6914", color: "#ffffff" }}
-                className="inline-block rounded-lg px-3 py-0.5 text-xs font-semibold hover:opacity-90 transition-opacity"
-              >
-                Subscribe to keep this menu live →
-              </Link>
-            </p>
-          ) : (
-            <p className="text-sm text-[#111111] flex items-center justify-center gap-2 flex-wrap">
-              <span style={{ color: "#8b6914", fontWeight: 700 }}>DineLinks</span>
-              <span style={{ color: "#8b6914" }}>✦</span>
-              <span>Powered by DineLinks — Get your own digital menu</span>
-              <span style={{ color: "#8b6914", fontWeight: 600 }}>2 months free</span>
-              <Link
-                href="/signup"
-                style={{ background: "#8b6914", color: "#ffffff" }}
-                className="inline-block rounded-lg px-3 py-0.5 text-xs font-semibold hover:opacity-90 transition-opacity"
-              >
-                Start free →
-              </Link>
-            </p>
-          )}
-        </div>
-      )}
-
+    // CSS vars scoped to this wrapper — never bleeds into the DineLinks navbar
+    <div
+      style={{
+        "--foreground": fontColor,
+        "--accent": accent,
+        "--background": bg,
+        "--card": card,
+        "--muted": `${fontColor}99`,
+        "--card-border": `${fontColor}26`,
+        "--main-color": card,
+        "--accent-color": accent,
+        "--background-color": bg,
+        "--font-color": fontColor,
+        fontFamily,
+        color: fontColor,
+        backgroundColor: bg,
+        minHeight: "100vh",
+      } as React.CSSProperties}
+    >
       <MenuTracker restaurantId={restaurant.id} />
 
-      <main className="min-h-screen bg-[var(--background)] text-[var(--foreground)]">
-        <HeroWithLang
-          restaurantName={restaurant.name ?? undefined}
-          heroImageUrl={restaurant.hero_image_url ?? undefined}
-          logoUrl={(restaurant as { logo_url?: string | null }).logo_url ?? undefined}
-        />
-        {hasItems ? (
-          <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} categoryImageMap={categoryImageMap} restaurantId={restaurant.id} />
-        ) : (
-          <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
-            <h2 className="text-2xl font-serif font-semibold text-[var(--foreground)]">No items yet</h2>
-            <p className="text-sm mt-2 max-w-xs" style={{ color: `${fontColor}99` }}>This menu is still being set up. Check back soon.</p>
-          </div>
-        )}
-        {/* Powered by DineLinks footer */}
-        <PoweredByFooter fontColor={fontColor} />
-      </main>
-    </>
+      <HeroWithLang
+        restaurantName={restaurant.name ?? undefined}
+        heroImageUrl={restaurant.hero_image_url ?? undefined}
+        logoUrl={(restaurant as { logo_url?: string | null }).logo_url ?? undefined}
+        restaurantId={restaurant.id}
+      />
+      {hasItems ? (
+        <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} categoryImageMap={categoryImageMap} restaurantId={restaurant.id} />
+      ) : (
+        <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
+          <h2 className="text-2xl font-serif font-semibold" style={{ color: fontColor }}>No items yet</h2>
+          <p className="text-sm mt-2 max-w-xs" style={{ color: `${fontColor}99` }}>This menu is still being set up. Check back soon.</p>
+        </div>
+      )}
+      {/* Powered by DineLinks footer */}
+      <PoweredByFooter fontColor={fontColor} />
+    </div>
   );
 }

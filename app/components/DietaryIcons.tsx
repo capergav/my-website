@@ -18,37 +18,37 @@ export const DIETARY_META: {
   Icon: React.ComponentType<{ size?: number; className?: string }>;
   labelKey: string;
   label: string;
-  color: string;
-  bg: string;
 }[] = [
-  { key: "chefs_favorite", Icon: Star,        labelKey: "dietary.chefsFavorite", label: "Chef's Favourite", color: "text-amber-500",  bg: "bg-amber-50"  },
-  { key: "gluten_free",    Icon: WheatOff,    labelKey: "dietary.glutenFree",    label: "Gluten Free",      color: "text-stone-600",  bg: "bg-stone-100" },
-  { key: "nut_free",       Icon: ShieldCheck, labelKey: "dietary.nutFree",       label: "Nut Free",         color: "text-orange-600", bg: "bg-orange-50" },
-  { key: "vegan",          Icon: Leaf,        labelKey: "dietary.vegan",         label: "Vegan",            color: "text-green-600",  bg: "bg-green-50"  },
-  { key: "vegetarian",     Icon: Sprout,      labelKey: "dietary.vegetarian",    label: "Vegetarian",       color: "text-green-500",  bg: "bg-green-50"  },
-  { key: "dairy_free",     Icon: MilkOff,     labelKey: "dietary.dairyFree",     label: "Dairy Free",       color: "text-blue-500",   bg: "bg-blue-50"   },
-  { key: "spicy",          Icon: Flame,       labelKey: "dietary.spicy",         label: "Spicy",            color: "text-red-500",    bg: "bg-red-50"    },
+  { key: "chefs_favorite", Icon: Star,       labelKey: "dietary.chefsFavorite", label: "Chef's Favourite" },
+  { key: "gluten_free",    Icon: WheatOff,   labelKey: "dietary.glutenFree",    label: "Gluten Free"      },
+  { key: "nut_free",       Icon: ShieldCheck,labelKey: "dietary.nutFree",       label: "Nut Free"         },
+  { key: "vegan",          Icon: Leaf,       labelKey: "dietary.vegan",         label: "Vegan"            },
+  { key: "vegetarian",     Icon: Sprout,     labelKey: "dietary.vegetarian",    label: "Vegetarian"       },
+  { key: "dairy_free",     Icon: MilkOff,    labelKey: "dietary.dairyFree",     label: "Dairy Free"       },
+  { key: "spicy",          Icon: Flame,      labelKey: "dietary.spicy",         label: "Spicy"            },
 ];
 
+/** Inline dietary icons on a menu item card — no circles, inherit text color */
 export function DietaryIcons({ item }: { item: DietaryFlags }) {
   const active = DIETARY_META.filter(({ key }) => item[key]);
   if (active.length === 0) return null;
   return (
-    <div className="flex items-center gap-1.5 mt-1.5 flex-wrap" role="group" aria-label="Dietary information">
-      {active.map(({ key, Icon, label, color, bg }) => (
+    <div className="flex items-center gap-2 mt-1.5 flex-wrap" role="group" aria-label="Dietary information">
+      {active.map(({ key, Icon, label }) => (
         <span
           key={key}
           aria-label={label}
           title={label}
-          className={`inline-flex items-center justify-center w-7 h-7 rounded-full ${bg} flex-shrink-0`}
+          className="inline-flex items-center justify-center flex-shrink-0 opacity-60 text-current"
         >
-          <Icon size={16} className={color} aria-hidden />
+          <Icon size={14} aria-hidden />
         </span>
       ))}
     </div>
   );
 }
 
+/** Legend shown above the item list — icon + full label, no circles */
 export function DietaryLegend({ items }: { items: DietaryFlags[] }) {
   const { t } = useLanguage();
   const usedKeys = new Set<keyof DietaryFlags>();
@@ -63,11 +63,9 @@ export function DietaryLegend({ items }: { items: DietaryFlags[] }) {
     <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] px-4 py-3 mb-2">
       <p className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-2">{t("dietary.key")}</p>
       <div className="flex flex-wrap gap-x-4 gap-y-2">
-        {visible.map(({ key, Icon, labelKey, label, color, bg }) => (
+        {visible.map(({ key, Icon, labelKey, label }) => (
           <div key={key} className="flex items-center gap-1.5">
-            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full ${bg} flex-shrink-0`}>
-              <Icon size={14} className={color} aria-hidden />
-            </span>
+            <Icon size={13} className="text-[var(--muted)] flex-shrink-0" aria-hidden />
             <span className="text-xs text-[var(--muted)]">{t(labelKey) || label}</span>
           </div>
         ))}

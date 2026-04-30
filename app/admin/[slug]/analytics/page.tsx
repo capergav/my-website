@@ -157,7 +157,6 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
       totalItemViews={totalItemViews}
       langData={langData}
       hourData={hourData}
-      deviceData={deviceData}
       hasData={allEvents.length > 0}
     />
   );

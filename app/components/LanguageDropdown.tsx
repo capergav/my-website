@@ -4,8 +4,9 @@ import { useState, useRef, useEffect, useCallback, type CSSProperties } from "re
 import ReactDOM from "react-dom";
 import { useLanguage } from "@/app/context/LanguageContext";
 import { locales, type Locale } from "@/app/lib/translations";
+import { trackEvent, detectDevice } from "@/lib/analytics";
 
-export function LanguageDropdown() {
+export function LanguageDropdown({ trackRestaurantId }: { trackRestaurantId?: string } = {}) {
   const { locale, setLocale } = useLanguage();
   const [open, setOpen] = useState(false);
   const [popupStyle, setPopupStyle] = useState<CSSProperties>({});
@@ -99,7 +100,23 @@ export function LanguageDropdown() {
             <li key={opt.value} role="option" aria-selected={locale === opt.value}>
               <button
                 type="button"
-                onClick={() => { setLocale(opt.value as Locale); setOpen(false); }}
+                onClick={() => {
+                  const newLocale = opt.value as Locale;
+                  setLocale(newLocale);
+                  setOpen(false);
+                  if (trackRestaurantId) {
+                    const sessionId = sessionStorage.getItem("dl_session") ?? crypto.randomUUID();
+                    trackEvent({
+                      restaurant_id: trackRestaurantId,
+                      event_type: "language_change",
+                      language: newLocale,
+                      session_id: sessionId,
+                      device_type: detectDevice(),
+                      user_agent: navigator.userAgent,
+                      referrer: document.referrer,
+                    });
+                  }
+                }}
                 className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors touch-manipulation ${
                   locale === opt.value
                     ? "bg-[var(--accent)]/15 text-[var(--accent)]"

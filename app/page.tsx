@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { WheatOff, Leaf, BarChart3 } from "lucide-react";
+import { WheatOff, Leaf, BarChart3, Star, Flame } from "lucide-react";
 import { AnalyticsDemo } from "@/app/components/AnalyticsDemo";
 import {
   motion, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence,
@@ -153,7 +153,7 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
 
   return (
     <section id="languages" className="bg-white py-24">
-      <div className="max-w-6xl mx-auto px-6">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <motion.div className="text-center mb-14"
           {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } })}
         >
@@ -397,6 +397,7 @@ export default function HomePage() {
   const [scrolled, setScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [ctaHovered, setCtaHovered] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState('');
   const [newsletterDone, setNewsletterDone] = useState(false);
   const [newsletterLoading, setNewsletterLoading] = useState(false);
@@ -510,12 +511,42 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {!isLoggedIn && <Link href="/login" className="text-sm transition-colors text-foreground/70 hover:text-foreground">Sign in</Link>}
-            <Link href={isLoggedIn ? '/admin' : '/signup'} className="rounded-xl px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity bg-[#8b6914] text-white">
-              {isLoggedIn ? 'Go to my menu' : 'Start free trial'}
+            {!isLoggedIn && <Link href="/login" className="hidden sm:block text-sm transition-colors text-foreground/70 hover:text-foreground">Sign in</Link>}
+            <Link href={isLoggedIn ? '/admin' : '/signup'} className="rounded-xl px-4 sm:px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity bg-[#8b6914] text-white">
+              {isLoggedIn ? 'Go to my menu' : 'Start free'}
             </Link>
+            {/* Hamburger — mobile only */}
+            <button
+              type="button"
+              className="md:hidden flex flex-col gap-1.5 p-1.5 rounded-lg text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors"
+              onClick={() => setMobileMenuOpen((o) => !o)}
+              aria-label="Toggle menu"
+            >
+              <span className={`block w-5 h-0.5 bg-current transition-all ${mobileMenuOpen ? "rotate-45 translate-y-2" : ""}`} />
+              <span className={`block w-5 h-0.5 bg-current transition-all ${mobileMenuOpen ? "opacity-0" : ""}`} />
+              <span className={`block w-5 h-0.5 bg-current transition-all ${mobileMenuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
+            </button>
           </div>
         </div>
+
+        {/* Mobile dropdown menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-foreground/10 bg-background/98 px-6 py-4 flex flex-col gap-4">
+            {[
+              { label: "Features", id: "features" },
+              { label: "How it works", id: "how-it-works" },
+              { label: "Languages", id: "languages" },
+              { label: "Pricing", id: "pricing" },
+            ].map(({ label, id }) => (
+              <button key={id} type="button" onClick={() => { scrollTo(id); setMobileMenuOpen(false); }}
+                className="text-sm transition-colors text-foreground/70 hover:text-foreground text-left">
+                {label}
+              </button>
+            ))}
+            <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="text-sm transition-colors text-foreground/70 hover:text-foreground">Contact</Link>
+            {!isLoggedIn && <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="text-sm transition-colors text-foreground/70 hover:text-foreground">Sign in</Link>}
+          </div>
+        )}
       </nav>
 
       {/* ── HERO ──────────────────────────────────────────────────────────────── */}
@@ -543,7 +574,7 @@ export default function HomePage() {
           </>
         )}
 
-        <div className="max-w-6xl mx-auto px-6 w-full flex flex-col lg:flex-row items-center gap-16 relative z-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 w-full flex flex-col lg:flex-row items-center gap-10 lg:gap-16 relative z-10">
           {/* Left column */}
           <motion.div
             className="flex-1"
@@ -562,7 +593,7 @@ export default function HomePage() {
 
             <motion.h1
               style={{ fontFamily: "Georgia, serif" }}
-              className="text-5xl sm:text-6xl lg:text-7xl font-semibold text-[#2c2a26] leading-tight mt-6"
+              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold text-[#2c2a26] leading-tight mt-6"
               initial={rm ? {} : { opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: rm ? 0 : 0.7, ease: [0.22, 1, 0.36, 1], delay: rm ? 0 : 0.1 }}
@@ -683,33 +714,34 @@ export default function HomePage() {
                       { name: "Desserts", img: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=150&q=70", active: false },
                     ].map(cat => (
                       <button key={cat.name} type="button" className="flex flex-col items-center gap-1 flex-shrink-0">
-                        <div className={`w-12 h-12 rounded-xl overflow-hidden ${cat.active ? "ring-2 ring-[#b45309] ring-offset-2" : ""}`}>
+                        <div className={`w-12 h-12 rounded-xl overflow-hidden ${cat.active ? "ring-2 ring-[#8b6914] ring-offset-2" : ""}`}>
                           <img src={cat.img} className="w-full h-full object-cover" alt={cat.name} />
                         </div>
-                        <span className={`text-[10px] font-semibold uppercase tracking-wide ${cat.active ? "text-[#b45309]" : "text-gray-400"}`}>{cat.name}</span>
+                        <span className={`text-[10px] font-semibold uppercase tracking-wide ${cat.active ? "text-[#8b6914]" : "text-gray-400"}`}>{cat.name}</span>
                       </button>
                     ))}
                   </div>
                   <div className="mx-3 mt-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 flex gap-3 text-xs text-gray-400 items-center">
-                    <span className="flex items-center gap-1"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Chef&apos;s pick</span>
-                    <span className="flex items-center gap-1"><WheatOff size={12} /> GF</span>
-                    <span className="flex items-center gap-1"><Leaf size={12} /> Veg</span>
+                    <span className="flex items-center gap-1"><Star size={11} /> Chef&apos;s pick</span>
+                    <span className="flex items-center gap-1"><WheatOff size={11} /> Gluten-free</span>
+                    <span className="flex items-center gap-1"><Leaf size={11} /> Vegan</span>
+                    <span className="flex items-center gap-1"><Flame size={11} /> Spicy</span>
                   </div>
                   <div className="space-y-2 mx-3 mt-2 mb-3">
                     <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
                       <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-20 h-20 object-cover flex-shrink-0" />
                       <div className="p-2.5">
                         <p className="text-sm font-serif font-semibold text-[#2c2a26]">Seared Duck Confit</p>
-                        <p className="text-[#b45309] text-sm font-bold">$24.00</p>
-                        <span className="text-[10px] text-gray-400 flex items-center gap-0.5"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg> Chef&apos;s pick</span>
+                        <p className="text-[#8b6914] text-sm font-bold">$24</p>
+                        <span className="text-[10px] text-[#2c2a26]/40 flex items-center gap-0.5"><Star size={11} /> Chef&apos;s pick</span>
                       </div>
                     </div>
                     <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
                       <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-20 h-20 object-cover flex-shrink-0" />
                       <div className="p-2.5">
                         <p className="text-sm font-serif font-semibold text-[#2c2a26]">Atlantic Salmon</p>
-                        <p className="text-[#b45309] text-sm font-bold">$22.00</p>
-                        <span className="text-[10px] text-gray-400 flex items-center gap-0.5"><WheatOff size={12} /> GF</span>
+                        <p className="text-[#8b6914] text-sm font-bold">$22</p>
+                        <span className="text-[10px] text-[#2c2a26]/40 flex items-center gap-0.5"><WheatOff size={11} /> Gluten-free</span>
                       </div>
                     </div>
                   </div>
@@ -724,7 +756,7 @@ export default function HomePage() {
 
       {/* ── STATS BAR ─────────────────────────────────────────────────────────── */}
       <section className="bg-[#2c2a26] py-14">
-        <div className="max-w-4xl mx-auto px-6">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { target: 30,       suffix: " min", label: "Average setup time" },
@@ -755,7 +787,7 @@ export default function HomePage() {
 
       {/* ── BEFORE VS AFTER ───────────────────────────────────────────────────── */}
       <section className="bg-white py-24">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <motion.div className="text-center mb-14" {...enter()}>
             <p className="text-xs font-semibold tracking-widest text-[#8b6914] uppercase mb-3">WHY GO DIGITAL</p>
             <h2 style={{ fontFamily: "Georgia, serif" }} className="text-4xl sm:text-5xl font-semibold text-[#2c2a26]">
@@ -849,7 +881,7 @@ export default function HomePage() {
 
       {/* ── FEATURES ──────────────────────────────────────────────────────────── */}
       <section id="features" className="bg-[#faf8f5] py-24">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <motion.div {...enter()}>
             <p className="text-xs font-semibold tracking-widest text-[#8b6914] uppercase mb-3">FEATURES</p>
             <h2 style={{ fontFamily: "Georgia, serif" }} className="text-4xl sm:text-5xl font-semibold text-[#2c2a26] max-w-2xl">
@@ -869,7 +901,7 @@ export default function HomePage() {
 
       {/* ── ANALYTICS SECTION ─────────────────────────────────────────────────── */}
       <section className="bg-white py-24">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <motion.div className="text-center mb-14" {...enter()}>
             <p className="text-xs font-semibold tracking-widest text-[#8b6914] uppercase mb-3">ANALYTICS</p>
             <h2 style={{ fontFamily: "Georgia, serif" }} className="text-4xl sm:text-5xl font-semibold text-[#2c2a26]">
@@ -895,7 +927,7 @@ export default function HomePage() {
 
       {/* ── ADMIN SHOWCASE ────────────────────────────────────────────────────── */}
       <section className="bg-[#faf8f5] py-24">
-        <div className="max-w-6xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <motion.div {...enter()}>
             <p className="text-xs font-semibold tracking-widest text-[#8b6914] uppercase mb-3">ADMIN PANEL</p>
             <h2 style={{ fontFamily: "Georgia, serif" }} className="text-4xl font-semibold text-[#2c2a26]">
@@ -1037,7 +1069,7 @@ export default function HomePage() {
 
       {/* ── HOW IT WORKS ──────────────────────────────────────────────────────── */}
       <section id="how-it-works" className="bg-white py-24">
-        <div className="max-w-6xl mx-auto px-6 text-center">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
           <motion.div {...enter()}>
             <p className="text-xs font-semibold tracking-widest text-[#8b6914] uppercase mb-3">HOW IT WORKS</p>
             <h2 style={{ fontFamily: "Georgia, serif" }} className="text-4xl font-semibold text-[#2c2a26]">
@@ -1064,7 +1096,7 @@ export default function HomePage() {
 
       {/* ── THEMES ────────────────────────────────────────────────────────────── */}
       <section className="bg-[#2c2a26] py-24">
-        <div className="max-w-6xl mx-auto px-6 text-center">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
           <motion.div {...enter()}>
             <p className="text-xs font-semibold tracking-widest text-[#c9a030] uppercase mb-3">FULLY CUSTOMIZABLE</p>
             <h2 style={{ fontFamily: "Georgia, serif" }} className="text-4xl font-semibold text-[#faf8f5]">Make it yours</h2>
@@ -1173,7 +1205,7 @@ export default function HomePage() {
 
       {/* ── PRICING ───────────────────────────────────────────────────────────── */}
       <section id="pricing" className="bg-[#faf8f5] pt-8 pb-24">
-        <div className="max-w-6xl mx-auto px-6 text-center">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 text-center">
           <motion.div {...enter()}>
             <p className="text-xs font-semibold tracking-widest text-[#8b6914] uppercase mb-3">PRICING</p>
             <h2 style={{ fontFamily: "Georgia, serif" }} className="text-4xl font-semibold text-[#2c2a26]">Simple, honest pricing</h2>
@@ -1246,7 +1278,7 @@ export default function HomePage() {
 
       {/* ── TRUST METRICS BAR ─────────────────────────────────────────────────── */}
       <section className="bg-[#2c2a26] py-16">
-        <div className="max-w-4xl mx-auto px-6">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
             {[
               { display: "30", suffix: " sec", label: "Average customer scan time", isNum: true, target: 30 },
@@ -1278,7 +1310,7 @@ export default function HomePage() {
 
       {/* ── FINAL CTA ─────────────────────────────────────────────────────────── */}
       <section className="bg-[#8b6914] pt-6 pb-28 text-center">
-        <div className="max-w-2xl mx-auto px-6">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6">
           <motion.h2
             style={{ fontFamily: "Georgia, serif" }}
             className="text-4xl sm:text-5xl font-semibold text-white"
@@ -1324,7 +1356,7 @@ export default function HomePage() {
           />
         )}
 
-        <div className="max-w-6xl mx-auto px-6 pt-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10">
           {/* Top row: logo + newsletter */}
           <div className="flex flex-col lg:flex-row items-start justify-between gap-10 pb-10 border-b border-[#faf8f5]/10">
             {/* Logo + tagline */}

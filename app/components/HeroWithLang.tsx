@@ -7,12 +7,14 @@ type HeroWithLangProps = {
   restaurantName?: string;
   heroImageUrl?: string;
   logoUrl?: string;
+  restaurantId?: string;
 };
 
 export function HeroWithLang({
   restaurantName,
   heroImageUrl,
   logoUrl,
+  restaurantId,
 }: HeroWithLangProps) {
   const { t } = useLanguage();
 
@@ -28,7 +30,7 @@ export function HeroWithLang({
           {title}
         </h1>
         <div className="flex-shrink-0">
-          <LanguageDropdown />
+          <LanguageDropdown trackRestaurantId={restaurantId} />
         </div>
         <style>{`
           @keyframes heroFadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -47,7 +49,7 @@ export function HeroWithLang({
       />
       <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, var(--background-color, #000000) 0%, rgba(0,0,0,0.35) 45%, transparent 100%)' }} />
       <div className="absolute top-4 end-4 sm:top-5 sm:end-5 z-10">
-        <LanguageDropdown />
+        <LanguageDropdown trackRestaurantId={restaurantId} />
       </div>
       <div className="absolute inset-0 flex flex-col items-center justify-end pb-8 px-4 text-center">
         {logoUrl && (

@@ -17,9 +17,17 @@ const CHART_COLORS = [
   "#4682b4", "#cd853f", "#8b4513", "#708090", "#2f4f4f",
 ];
 
-const LANG_FLAGS: Record<string, string> = {
-  en: "🇬🇧", fr: "🇫🇷", zh: "🇨🇳", ar: "🇸🇦", es: "🇪🇸",
-  ko: "🇰🇷", pa: "🇮🇳", yue: "🇭🇰", tl: "🇵🇭", hi: "🇮🇳",
+const LANGUAGE_NAMES: Record<string, string> = {
+  en: "English",
+  fr: "Français",
+  es: "Español",
+  ar: "العربية",
+  zh: "中文",
+  ko: "한국어",
+  pa: "ਪੰਜਾਬੀ",
+  yue: "廣東話",
+  tl: "Filipino",
+  hi: "हिन्दी",
 };
 
 type Props = {
@@ -39,7 +47,6 @@ type Props = {
   totalItemViews: number;
   langData: { lang: string; count: number }[];
   hourData: { hour: string; count: number }[];
-  deviceData: { device: string; count: number }[];
   hasData: boolean;
 };
 
@@ -65,7 +72,6 @@ function StatCard({
 }) {
   return (
     <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm overflow-hidden">
-      {/* Gold accent line */}
       <div className="h-1 w-full" style={{ background: `linear-gradient(90deg, ${GOLD}, ${GOLD_LIGHT})` }} />
       <div className="p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-widest text-[#2c2a26]/50 mb-2">{label}</p>
@@ -86,13 +92,13 @@ function StatCard({
 
 export function AnalyticsClient({
   slug, restaurantName, days, stats, dailyScans, topItems, totalItemViews,
-  langData, hourData, deviceData, hasData,
+  langData, hourData, hasData,
 }: Props) {
   const router = useRouter();
 
   const rangeLabel = days === 7 ? "Last 7 days" : days === 30 ? "Last 30 days" : "Last 90 days";
 
-  const flag = LANG_FLAGS[stats.topLang] ?? "🌐";
+  const topLangName = LANGUAGE_NAMES[stats.topLang] ?? stats.topLang.toUpperCase();
 
   // Empty state
   if (!hasData) {
@@ -183,7 +189,7 @@ export function AnalyticsClient({
           />
           <StatCard
             label="Top Language"
-            value={`${flag} ${stats.topLang.toUpperCase()}`}
+            value={topLangName}
             subtitle="most used language"
           />
         </div>
@@ -193,26 +199,28 @@ export function AnalyticsClient({
           <h2 className="text-sm font-semibold text-[#2c2a26] uppercase tracking-widest mb-5 opacity-60">
             Scans over time — {rangeLabel}
           </h2>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={dailyScans} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke={`${DARK}10`} vertical={false} />
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: `${DARK}60` }} tickLine={false} axisLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: `${DARK}60` }} tickLine={false} axisLine={false} allowDecimals={false} />
-              <Tooltip
-                contentStyle={{ borderRadius: 12, border: `1px solid ${DARK}15`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)", fontSize: 12 }}
-                labelStyle={{ color: DARK, fontWeight: 600 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="count"
-                name="Scans"
-                stroke={GOLD}
-                strokeWidth={2.5}
-                dot={false}
-                activeDot={{ r: 5, fill: GOLD }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <div style={{ height: 220 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={dailyScans} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={`${DARK}10`} vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: `${DARK}60` }} tickLine={false} axisLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: `${DARK}60` }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{ borderRadius: 12, border: `1px solid ${DARK}15`, boxShadow: "0 4px 12px rgba(0,0,0,0.1)", fontSize: 12 }}
+                  labelStyle={{ color: DARK, fontWeight: 600 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  name="Scans"
+                  stroke={GOLD}
+                  strokeWidth={2.5}
+                  dot={false}
+                  activeDot={{ r: 5, fill: GOLD }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
         {/* Charts row 2: top items + languages */}
@@ -223,34 +231,36 @@ export function AnalyticsClient({
               Most viewed items
             </h2>
             {topItems.slice(0, 10).length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart
-                  data={topItems.slice(0, 10)}
-                  layout="vertical"
-                  margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke={`${DARK}10`} horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 10, fill: `${DARK}60` }} tickLine={false} axisLine={false} allowDecimals={false} />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    tick={{ fontSize: 11, fill: `${DARK}80` }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={100}
-                    tickFormatter={(v: string) => v.length > 14 ? v.slice(0, 14) + "…" : v}
-                  />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 12, border: `1px solid ${DARK}15`, fontSize: 12 }}
-                    cursor={{ fill: `${GOLD}10` }}
-                  />
-                  <Bar dataKey="views" name="Views" radius={[0, 4, 4, 0]}>
-                    {topItems.slice(0, 10).map((_, idx) => (
-                      <Cell key={idx} fill={idx === 0 ? GOLD : idx < 3 ? GOLD_LIGHT : `${GOLD}60`} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <div style={{ height: 280 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={topItems.slice(0, 10)}
+                    layout="vertical"
+                    margin={{ top: 0, right: 10, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke={`${DARK}10`} horizontal={false} />
+                    <XAxis type="number" tick={{ fontSize: 10, fill: `${DARK}60` }} tickLine={false} axisLine={false} allowDecimals={false} />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tick={{ fontSize: 11, fill: `${DARK}80` }}
+                      tickLine={false}
+                      axisLine={false}
+                      width={100}
+                      tickFormatter={(v: string) => v.length > 14 ? v.slice(0, 14) + "…" : v}
+                    />
+                    <Tooltip
+                      contentStyle={{ borderRadius: 12, border: `1px solid ${DARK}15`, fontSize: 12 }}
+                      cursor={{ fill: `${GOLD}10` }}
+                    />
+                    <Bar dataKey="views" name="Views" radius={[0, 4, 4, 0]}>
+                      {topItems.slice(0, 10).map((_, idx) => (
+                        <Cell key={idx} fill={idx === 0 ? GOLD : idx < 3 ? GOLD_LIGHT : `${GOLD}60`} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             ) : (
               <p className="text-sm text-[#2c2a26]/40 py-8 text-center">No item clicks recorded yet</p>
             )}
@@ -262,50 +272,51 @@ export function AnalyticsClient({
               Language preferences
             </h2>
             {langData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={langData}
-                    dataKey="count"
-                    nameKey="lang"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={2}
-                    label={({ lang, percent }) => `${(LANG_FLAGS[lang as string] ?? "🌐")} ${((percent as number) * 100).toFixed(0)}%`}
-                    labelLine={false}
-                  >
-                    {langData.map((_, idx) => (
-                      <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{ borderRadius: 12, border: `1px solid ${DARK}15`, fontSize: 12 }}
-                    formatter={(value, name) => [value, `${LANG_FLAGS[name as string] ?? "🌐"} ${(name as string).toUpperCase()}`]}
-                  />
-                  <Legend
-                    formatter={(value) => `${LANG_FLAGS[value] ?? "🌐"} ${value.toUpperCase()}`}
-                    iconType="circle"
-                    iconSize={8}
-                    wrapperStyle={{ fontSize: 11 }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              <div style={{ height: 280 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={langData}
+                      dataKey="count"
+                      nameKey="lang"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={2}
+                      label={({ lang, percent }) => `${LANGUAGE_NAMES[lang as string] ?? lang} ${((percent as number) * 100).toFixed(0)}%`}
+                      labelLine={false}
+                    >
+                      {langData.map((_, idx) => (
+                        <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{ borderRadius: 12, border: `1px solid ${DARK}15`, fontSize: 12 }}
+                      formatter={(value, name) => [value, LANGUAGE_NAMES[name as string] ?? (name as string)]}
+                    />
+                    <Legend
+                      formatter={(value) => LANGUAGE_NAMES[value] ?? value}
+                      iconType="circle"
+                      iconSize={8}
+                      wrapperStyle={{ fontSize: 11 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             ) : (
               <p className="text-sm text-[#2c2a26]/40 py-8 text-center">No language data yet</p>
             )}
           </div>
         </div>
 
-        {/* Charts row 3: peak hours + devices */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Peak hours */}
-          <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-5 sm:p-6">
-            <h2 className="text-sm font-semibold text-[#2c2a26] uppercase tracking-widest mb-5 opacity-60">
-              Peak hours
-            </h2>
-            <ResponsiveContainer width="100%" height={200}>
+        {/* Peak hours — full width */}
+        <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-5 sm:p-6">
+          <h2 className="text-sm font-semibold text-[#2c2a26] uppercase tracking-widest mb-5 opacity-60">
+            Peak hours
+          </h2>
+          <div style={{ height: 200 }}>
+            <ResponsiveContainer width="100%" height="100%">
               <BarChart data={hourData} margin={{ top: 0, right: 5, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={`${DARK}10`} vertical={false} />
                 <XAxis
@@ -322,39 +333,6 @@ export function AnalyticsClient({
                 />
                 <Bar dataKey="count" name="Scans" fill={GOLD} radius={[3, 3, 0, 0]} />
               </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Device breakdown */}
-          <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-5 sm:p-6">
-            <h2 className="text-sm font-semibold text-[#2c2a26] uppercase tracking-widest mb-5 opacity-60">
-              Device breakdown
-            </h2>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={deviceData.filter((d) => d.count > 0)}
-                  dataKey="count"
-                  nameKey="device"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={75}
-                  paddingAngle={3}
-                  label={({ name, percent }) => `${(percent as number) > 0.05 ? `${name} ${((percent as number) * 100).toFixed(0)}%` : ""}`}
-                  labelLine={false}
-                >
-                  {deviceData.map((entry, idx) => (
-                    <Cell
-                      key={entry.device}
-                      fill={idx === 0 ? GOLD : idx === 1 ? GOLD_LIGHT : DARK}
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: `1px solid ${DARK}15`, fontSize: 12 }}
-                />
-                <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 11 }} />
-              </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
