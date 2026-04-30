@@ -132,24 +132,26 @@ function FeatureCard3D({ feature, delay, rm }: { feature: typeof FEATURES[0]; de
 }
 
 // ── Live Translation Demo ──────────────────────────────────────────────────────
-const DEMO_TRANSLATIONS: Record<string, [string, string, string]> = {
-  "English":  ["Seared Duck Confit", "Atlantic Salmon", "Crème Brûlée"],
-  "Français": ["Confit de Canard Saisi", "Saumon de l'Atlantique", "Crème Brûlée"],
-  "Español":  ["Pato Confitado Dorado", "Salmón del Atlántico", "Crema Catalana"],
-  "العربية":  ["بط كونفيت مقلي", "سلمون أطلنطي", "كريم بروليه"],
-  "中文":     ["煎鸭腿肉", "大西洋三文鱼", "焦糖布丁"],
-  "한국어":   ["구운 오리 콩피", "대서양 연어", "크렘 브륄레"],
-  "ਪੰਜਾਬੀ":  ["ਸੀਅਰਡ ਡੱਕ ਕੌਂਫਿਟ", "ਅਟਲਾਂਟਿਕ ਸੈਲਮਨ", "ਕ੍ਰੇਮ ਬਰੂਲੀ"],
-  "廣東話":   ["煎鴨腿", "大西洋三文魚", "焦糖布甸"],
-  "Filipino": ["Inihaw na Pato", "Atlantikong Salmon", "Krema Brulée"],
-  "हिन्दी":   ["सीयर्ड डक कॉन्फिट", "अटलांटिक सालमन", "क्रेम ब्रूले"],
+type DemoLang = { categoryName: string; categoryNote: string; items: [string, string, string] };
+const DEMO_TRANSLATIONS: Record<string, DemoLang> = {
+  "English":  { categoryName: "Mains", categoryNote: "All entrées served with soup or salad and house bread.", items: ["Seared Duck Confit", "Atlantic Salmon", "Crème Brûlée"] },
+  "Français": { categoryName: "Plats principaux", categoryNote: "Tous les plats sont servis avec soupe ou salade et pain maison.", items: ["Confit de Canard Saisi", "Saumon de l'Atlantique", "Crème Brûlée"] },
+  "Español":  { categoryName: "Platos principales", categoryNote: "Todos los platos se sirven con sopa o ensalada y pan de la casa.", items: ["Pato Confitado Dorado", "Salmón del Atlántico", "Crema Catalana"] },
+  "العربية":  { categoryName: "الأطباق الرئيسية", categoryNote: "تقدم جميع الأطباق الرئيسية مع الحساء أو السلطة وخبز البيت.", items: ["بط كونفيت مقلي", "سلمون أطلنطي", "كريم بروليه"] },
+  "中文":     { categoryName: "主菜", categoryNote: "所有主菜均配汤或沙拉以及自制面包。", items: ["煎鸭腿肉", "大西洋三文鱼", "焦糖布丁"] },
+  "한국어":   { categoryName: "메인 요리", categoryNote: "모든 메인 요리는 수프 또는 샐러드와 홈메이드 빵과 함께 제공됩니다.", items: ["구운 오리 콩피", "대서양 연어", "크렘 브륄레"] },
+  "ਪੰਜਾਬੀ":  { categoryName: "ਮੁੱਖ ਪਕਵਾਨ", categoryNote: "ਸਾਰੇ ਮੁੱਖ ਪਕਵਾਨ ਸੂਪ ਜਾਂ ਸਲਾਦ ਅਤੇ ਘਰੇਲੂ ਰੋਟੀ ਨਾਲ ਪਰੋਸੇ ਜਾਂਦੇ ਹਨ।", items: ["ਸੀਅਰਡ ਡੱਕ ਕੌਂਫਿਟ", "ਅਟਲਾਂਟਿਕ ਸੈਲਮਨ", "ਕ੍ਰੇਮ ਬਰੂਲੀ"] },
+  "廣東話":   { categoryName: "主菜", categoryNote: "所有主菜均配湯或沙律及自家製麵包。", items: ["煎鴨腿", "大西洋三文魚", "焦糖布甸"] },
+  "Filipino": { categoryName: "Pangunahing Putahe", categoryNote: "Lahat ng pangunahing putahe ay may kasamang sopas o salad at tinapay.", items: ["Inihaw na Pato", "Atlantikong Salmon", "Krema Brulée"] },
+  "हिन्दी":   { categoryName: "मुख्य व्यंजन", categoryNote: "सभी मुख्य व्यंजन सूप या सलाद और घर की बनी रोटी के साथ परोसे जाते हैं।", items: ["सीयर्ड डक कॉन्फिट", "अटलांटिक सालमन", "क्रेम ब्रूले"] },
 };
 const DEMO_PRICES = ["$24", "$22", "$14"];
 const DEMO_IMAGES = [CT_STEAK_URL, CT_SALMON_URL, CT_DESSERT_URL];
 
 function LiveTranslationDemo({ rm }: { rm: boolean }) {
   const [activeLang, setActiveLang] = useState("English");
-  const names = DEMO_TRANSLATIONS[activeLang] ?? DEMO_TRANSLATIONS["English"];
+  const langData = DEMO_TRANSLATIONS[activeLang] ?? DEMO_TRANSLATIONS["English"];
+  const { categoryName, categoryNote, items: names } = langData;
 
   return (
     <section id="languages" className="bg-white py-24">
@@ -185,8 +187,32 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
                 </div>
               </div>
               <div className="mx-3 mt-3 mb-1">
-                <p className="text-[10px] font-bold text-[#2c2a26] uppercase tracking-widest mb-0.5">Mains</p>
-                <p className="text-[9px] italic text-gray-400 mb-2">All entrées served with soup or salad and house bread.</p>
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={`${activeLang}-cat`}
+                    className="text-[10px] font-bold text-[#2c2a26] uppercase tracking-widest mb-0.5"
+                    initial={rm ? {} : { rotateX: -60, opacity: 0 }}
+                    animate={{ rotateX: 0, opacity: 1 }}
+                    exit={rm ? {} : { rotateX: 60, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 250, damping: 25 }}
+                    style={{ display: 'inline-block', transformStyle: 'preserve-3d', transformOrigin: 'center' }}
+                  >
+                    {categoryName}
+                  </motion.p>
+                </AnimatePresence>
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={`${activeLang}-note`}
+                    className="text-[9px] italic text-gray-400 mb-2"
+                    initial={rm ? {} : { rotateX: -60, opacity: 0 }}
+                    animate={{ rotateX: 0, opacity: 1 }}
+                    exit={rm ? {} : { rotateX: 60, opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 250, damping: 25, delay: 0.03 }}
+                    style={{ display: 'block', transformStyle: 'preserve-3d', transformOrigin: 'center' }}
+                  >
+                    {categoryNote}
+                  </motion.p>
+                </AnimatePresence>
               </div>
               <div className="space-y-2 mx-3 mb-3">
                 {names.map((name, idx) => (
@@ -206,12 +232,26 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
                           {name}
                         </motion.p>
                       </AnimatePresence>
-                      <p className="text-[#b45309] text-sm font-bold">{DEMO_PRICES[idx]}</p>
+                      <p className="text-[#8b6914] text-sm font-bold">{DEMO_PRICES[idx]}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5 opacity-60 text-[#2c2a26]">
+                        {idx === 0 && <><Star size={11} /><WheatOff size={11} /></>}
+                        {idx === 1 && <><WheatOff size={11} /><Leaf size={11} /></>}
+                        {idx === 2 && <Star size={11} />}
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
-              <p className="pb-3 text-center text-[10px] text-gray-300">Menu updates instantly</p>
+              <div className="pb-3 text-center">
+                <span className="inline-flex items-center gap-1.5 text-[10px] text-gray-300">
+                  <svg width="10" height="9" viewBox="0 0 44 40" fill="none">
+                    <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
+                    <line x1="26" y1="3" x2="26" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                    <line x1="26" y1="37" x2="42" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                  </svg>
+                  Powered by DineLinks
+                </span>
+              </div>
             </div>
           </motion.div>
 
@@ -727,13 +767,19 @@ export default function HomePage() {
                     <span className="flex items-center gap-1"><Leaf size={11} /> Vegan</span>
                     <span className="flex items-center gap-1"><Flame size={11} /> Spicy</span>
                   </div>
-                  <div className="space-y-2 mx-3 mt-2 mb-3">
+                  <div className="mx-3 mt-2 mb-1">
+                    <p className="text-[9px] italic text-[#2c2a26]/40">All entrées served with soup or salad and house bread.</p>
+                  </div>
+                  <div className="space-y-2 mx-3 mb-3">
                     <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
                       <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-20 h-20 object-cover flex-shrink-0" />
                       <div className="p-2.5">
                         <p className="text-sm font-serif font-semibold text-[#2c2a26]">Seared Duck Confit</p>
                         <p className="text-[#8b6914] text-sm font-bold">$24</p>
-                        <span className="text-[10px] text-[#2c2a26]/40 flex items-center gap-0.5"><Star size={11} /> Chef&apos;s pick</span>
+                        <div className="flex items-center gap-1.5 mt-0.5 opacity-60 text-[#2c2a26]">
+                          <Star size={11} aria-label="Chef's pick" />
+                          <WheatOff size={11} aria-label="Gluten-free" />
+                        </div>
                       </div>
                     </div>
                     <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -741,11 +787,23 @@ export default function HomePage() {
                       <div className="p-2.5">
                         <p className="text-sm font-serif font-semibold text-[#2c2a26]">Atlantic Salmon</p>
                         <p className="text-[#8b6914] text-sm font-bold">$22</p>
-                        <span className="text-[10px] text-[#2c2a26]/40 flex items-center gap-0.5"><WheatOff size={11} /> Gluten-free</span>
+                        <div className="flex items-center gap-1.5 mt-0.5 opacity-60 text-[#2c2a26]">
+                          <WheatOff size={11} aria-label="Gluten-free" />
+                          <Leaf size={11} aria-label="Dairy-free" />
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <p className="px-3 pb-3 text-center text-[10px] text-gray-300">Tap any item to see details</p>
+                  <div className="pb-3 text-center">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] text-gray-300 hover:text-[#8b6914] transition-colors">
+                      <svg width="10" height="9" viewBox="0 0 44 40" fill="none">
+                        <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
+                        <line x1="26" y1="3" x2="26" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                        <line x1="26" y1="37" x2="42" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                      </svg>
+                      Powered by DineLinks
+                    </span>
+                  </div>
                 </div>
               </motion.div>
             </motion.div>
@@ -1009,9 +1067,9 @@ export default function HomePage() {
             {/* Item rows */}
             <div className="space-y-2 mx-4 mt-3 mb-4">
               {[
-                { name: "Seared Duck Confit", price: "$24", desc: "24-hour confit leg, cherry jus, roasted fingerlings", img: CT_STEAK_URL, avail: true, num: 1 },
-                { name: "Atlantic Salmon", price: "$22", desc: "Pan-seared fillet, lemon beurre blanc, wilted greens", img: CT_SALMON_URL, avail: false, num: 2 },
-                { name: "Crème Brûlée", price: "$14", desc: "Classic vanilla custard, caramelised sugar top", img: CT_DESSERT_URL, avail: true, num: 3 },
+                { name: "Seared Duck Confit", price: "$24", desc: "24-hour confit leg, cherry jus, roasted fingerlings", img: CT_STEAK_URL, avail: true, num: 1, icons: [<Star key="s" size={11} />, <WheatOff key="w" size={11} />] },
+                { name: "Atlantic Salmon", price: "$22", desc: "Pan-seared fillet, lemon beurre blanc, wilted greens", img: CT_SALMON_URL, avail: false, num: 2, icons: [<WheatOff key="w" size={11} />, <Leaf key="l" size={11} />] },
+                { name: "Crème Brûlée", price: "$14", desc: "Classic vanilla custard, caramelised sugar top", img: CT_DESSERT_URL, avail: true, num: 3, icons: [<Star key="s" size={11} />] },
               ].map((item) => (
                 <div key={item.name} className="flex items-stretch bg-white rounded-2xl border border-[#2c2a26]/8 overflow-hidden shadow-sm">
                   {/* Drag handle */}
@@ -1030,6 +1088,9 @@ export default function HomePage() {
                       <span className="text-[#8b6914] text-sm font-bold flex-shrink-0">{item.price}</span>
                     </div>
                     <p className="text-[#6b6560] text-xs mt-0.5 line-clamp-1">{item.desc}</p>
+                    <div className="flex items-center gap-1.5 mt-1 opacity-60 text-[#2c2a26]">
+                      {item.icons}
+                    </div>
                     <div className="mt-1.5 flex gap-1.5 flex-wrap items-center">
                       <span className={`text-[10px] border rounded-full px-2 py-0.5 flex items-center gap-1 ${item.avail ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
                         <span className={`w-1.5 h-1.5 rounded-full inline-block ${item.avail ? 'bg-emerald-500' : 'bg-gray-400'}`} />

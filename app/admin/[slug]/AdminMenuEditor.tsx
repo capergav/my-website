@@ -565,18 +565,18 @@ export function AdminMenuEditor({
           <span className="text-sm text-[#2c2a26]">
             🎉 You&apos;re on a free 2-month trial — {daysLeftInTrial} days left
           </span>
-          <button onClick={startCheckout} className="text-xs bg-[var(--main-color)] text-white px-4 py-1.5 rounded-lg font-semibold hover:opacity-90 flex-shrink-0">
+          <button onClick={startCheckout} className="text-xs bg-[#2c2a26] text-white px-4 py-1.5 rounded-lg font-semibold hover:opacity-90 flex-shrink-0">
             Start subscription
           </button>
         </div>
       )}
       {subStatus === 'trialing' && daysLeftInTrial !== null && daysLeftInTrial <= 7 && daysLeftInTrial > 0 && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between gap-3">
-          <span className="text-sm text-amber-900 flex items-center gap-2">
-            <AlertTriangle size={16} className="text-amber-600 flex-shrink-0" />
+        <div className="bg-[#c9a030]/10 border-b border-[#c9a030]/30 px-4 py-2.5 flex items-center justify-between gap-3">
+          <span className="text-sm text-[#2c2a26] flex items-center gap-2">
+            <AlertTriangle size={16} className="text-[#c9a030] flex-shrink-0" />
             Your trial ends in {daysLeftInTrial} {daysLeftInTrial === 1 ? 'day' : 'days'}. Your menu will pause when it expires.
           </span>
-          <button onClick={startCheckout} className="text-xs bg-amber-600 text-white px-4 py-1.5 rounded-lg font-semibold hover:bg-amber-700 flex-shrink-0">
+          <button onClick={startCheckout} className="text-xs bg-[#8b6914] text-white px-4 py-1.5 rounded-lg font-semibold hover:bg-[#7a5c12] flex-shrink-0">
             Add payment method
           </button>
         </div>
@@ -2034,8 +2034,9 @@ async function composeQR(opts: {
   header: string;
   logoUrl: string | null;
   canvas: HTMLCanvasElement;
+  skipText?: boolean;
 }) {
-  const { slug, style, template, size, includeLogo, logoBg, logoBgShape, logoBgColor, tagline, header, logoUrl, canvas } = opts;
+  const { slug, style, template, size, includeLogo, logoBg, logoBgShape, logoBgColor, tagline, header, logoUrl, canvas, skipText } = opts;
   const px = SIZES_MAP[size];
   const st = QR_STYLES_MAP[style];
   const url = window.location.origin + "/menu/" + slug;
@@ -2061,10 +2062,12 @@ async function composeQR(opts: {
   let y = padding;
 
   if (template === "table") {
-    ctx.fillStyle = st.fg;
-    ctx.font = `bold ${px * 0.07}px Georgia, serif`;
-    ctx.textAlign = "center";
-    ctx.fillText(header, canvas.width / 2, y + px * 0.08);
+    if (!skipText) {
+      ctx.fillStyle = st.fg;
+      ctx.font = `bold ${px * 0.07}px Georgia, serif`;
+      ctx.textAlign = "center";
+      ctx.fillText(header, canvas.width / 2, y + px * 0.08);
+    }
     y += headerH + padding;
   }
 
@@ -2099,10 +2102,12 @@ async function composeQR(opts: {
   y += px + padding;
 
   if (template === "tagline" || template === "table") {
-    ctx.fillStyle = st.fg;
-    ctx.font = `${px * 0.04}px Georgia, serif`;
-    ctx.textAlign = "center";
-    ctx.fillText(tagline, canvas.width / 2, y + px * 0.04);
+    if (!skipText) {
+      ctx.fillStyle = st.fg;
+      ctx.font = `${px * 0.04}px Georgia, serif`;
+      ctx.textAlign = "center";
+      ctx.fillText(tagline, canvas.width / 2, y + px * 0.04);
+    }
     y += taglineH;
   }
 
@@ -2170,16 +2175,16 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     logoUrl,
   }), [slug, qrStyle, qrTemplate, qrSize, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrTagline, qrHeader, logoUrl]);
 
-  // Live preview at ~400px wide
+  // Live preview — rendered at 4× display size for crisp text, no text drawn (inputs overlay instead)
   useEffect(() => {
     const canvas = previewCanvasRef.current;
     if (!canvas) return;
-    const previewCanvas = document.createElement("canvas");
-    composeQR({ ...commonOpts(), size: "small", canvas: previewCanvas }).then(() => {
+    const offscreen = document.createElement("canvas");
+    composeQR({ ...commonOpts(), size: "small", canvas: offscreen, skipText: true }).then(() => {
       const ctx = canvas.getContext("2d")!;
-      canvas.width = previewCanvas.width;
-      canvas.height = previewCanvas.height;
-      ctx.drawImage(previewCanvas, 0, 0);
+      canvas.width = offscreen.width;
+      canvas.height = offscreen.height;
+      ctx.drawImage(offscreen, 0, 0);
     }).catch(() => {});
   }, [commonOpts]);
 
@@ -2231,13 +2236,48 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
 
-          {/* Live preview */}
+          {/* Live preview with inline-editable text overlays */}
           <div className="flex justify-center">
-            <canvas
-              ref={previewCanvasRef}
-              className="max-w-[220px] w-full rounded-xl border border-[var(--card-border)] shadow-sm"
-              style={{ imageRendering: "pixelated" }}
-            />
+            <div className="relative" style={{ width: 280 }}>
+              <canvas
+                ref={previewCanvasRef}
+                className="w-full rounded-xl border border-[var(--card-border)] shadow-sm"
+                style={{ display: 'block' }}
+              />
+              {/* Header overlay — table template only */}
+              {qrTemplate === 'table' && (
+                <input
+                  type="text"
+                  value={qrHeader}
+                  onChange={e => setQrHeader(e.target.value)}
+                  title="Click to edit header"
+                  className="absolute left-0 w-full text-center font-serif font-bold bg-transparent border-2 border-transparent hover:border-dashed hover:border-amber-400 focus:border-solid focus:border-amber-500 focus:outline-none rounded transition-colors cursor-text"
+                  style={{
+                    top: '3.5%',
+                    fontSize: 13,
+                    color: QR_STYLES_MAP[qrStyle].fg,
+                    padding: '2px 4px',
+                  }}
+                />
+              )}
+              {/* Tagline overlay — tagline + table templates */}
+              {(qrTemplate === 'tagline' || qrTemplate === 'table') && (
+                <input
+                  type="text"
+                  value={qrTagline}
+                  onChange={e => setQrTagline(e.target.value)}
+                  title="Click to edit tagline"
+                  className="absolute left-0 w-full text-center bg-transparent border-2 border-transparent hover:border-dashed hover:border-amber-400 focus:border-solid focus:border-amber-500 focus:outline-none rounded transition-colors cursor-text"
+                  style={{
+                    bottom: qrTemplate === 'table' ? '8%' : '7%',
+                    fontSize: 10,
+                    color: QR_STYLES_MAP[qrStyle].fg,
+                    padding: '2px 4px',
+                    fontFamily: 'Georgia, serif',
+                  }}
+                />
+              )}
+            </div>
           </div>
 
           {/* Style */}
@@ -2270,15 +2310,11 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                   className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all ${qrTemplate === t.id ? "border-[#8b6914]" : "border-[var(--card-border)] hover:border-[#8b6914]/40"}`}>
                   <div className="bg-white rounded-lg p-2 mb-2 flex flex-col items-center gap-1 min-h-[80px] justify-center border border-gray-100">
                     {t.id === "table" && (
-                      <input type="text" value={qrHeader} onChange={e => setQrHeader(e.target.value)}
-                        onClick={e => e.stopPropagation()}
-                        className="w-full text-center text-[9px] border border-gray-200 rounded px-1 py-0.5 mb-1 font-bold" />
+                      <div className="w-full text-center text-[8px] text-[#6b6560] font-bold truncate px-1">Header text</div>
                     )}
                     <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-[8px] text-gray-400">QR</div>
                     {(t.id === "tagline" || t.id === "table") && (
-                      <input type="text" value={qrTagline} onChange={e => setQrTagline(e.target.value)}
-                        onClick={e => e.stopPropagation()}
-                        className="w-full text-center text-[9px] border border-gray-200 rounded px-1 py-0.5 mt-1" />
+                      <div className="w-full text-center text-[8px] text-[#6b6560] truncate px-1">Tagline text</div>
                     )}
                   </div>
                   <span className="text-xs text-[var(--muted)]">{t.label}</span>
