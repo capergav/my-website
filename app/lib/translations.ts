@@ -1,16 +1,16 @@
 export type Locale = "en" | "fr" | "zh" | "ar" | "es" | "ko" | "pa" | "yue" | "tl" | "hi";
 
-export const locales: { value: Locale; label: string }[] = [
-  { value: "en",  label: "English" },
-  { value: "fr",  label: "Français" },
-  { value: "zh",  label: "中文" },
-  { value: "ar",  label: "العربية" },
-  { value: "es",  label: "Español" },
-  { value: "ko",  label: "한국어" },
-  { value: "pa",  label: "ਪੰਜਾਬੀ" },
-  { value: "yue", label: "廣東話" },
-  { value: "tl",  label: "Filipino" },
-  { value: "hi",  label: "हिन्दी" },
+export const locales: { value: Locale; label: string; flag: string }[] = [
+  { value: "en",  label: "English",   flag: "🇺🇸" },
+  { value: "fr",  label: "Français",  flag: "🇫🇷" },
+  { value: "zh",  label: "中文",      flag: "🇨🇳" },
+  { value: "ar",  label: "العربية",   flag: "🇸🇦" },
+  { value: "es",  label: "Español",   flag: "🇪🇸" },
+  { value: "ko",  label: "한국어",    flag: "🇰🇷" },
+  { value: "pa",  label: "ਪੰਜਾਬੀ",    flag: "🇮🇳" },
+  { value: "yue", label: "廣東話",    flag: "🇭🇰" },
+  { value: "tl",  label: "Filipino",  flag: "🇵🇭" },
+  { value: "hi",  label: "हिन्दी",    flag: "🇮🇳" },
 ];
 
 const categoryKeys = [

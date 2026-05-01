@@ -283,16 +283,46 @@ export function AdminMenuEditor({
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showManageModal, setShowManageModal]     = useState(false);
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
+  const [hasCompletedTour, setHasCompletedTour] = useState(true); // default true: don't flash tour before we know
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
 
+  const refreshMenuRef = useRef<(() => Promise<void>) | null>(null);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUser({ id: data.user.id, email: data.user.email ?? '' });
+      if (!data.user) return;
+      const u = data.user;
+      setUser({ id: u.id, email: u.email ?? '' });
+      setHasCompletedTour(u.user_metadata?.has_completed_tour === true);
+
+      // Seed a sample menu item for brand-new accounts with empty menus
+      const isEmpty = Object.keys(initialGrouped).length === 0;
+      const ageMs = Date.now() - new Date(u.created_at).getTime();
+      const isNew = ageMs < 5 * 60 * 1000; // account < 5 minutes old
+      if (isEmpty && isNew) {
+        (async () => {
+          await supabase.from('restaurant_categories').upsert(
+            { restaurant_id: restaurantId, name: 'Mains', sort_order: 0 },
+            { onConflict: 'restaurant_id,name' }
+          );
+          await supabase.from('menu_items').insert({
+            restaurant_id: restaurantId,
+            name: 'Sample Dish',
+            description: 'Feel free to edit or delete this item and add your real menu.',
+            price: 0,
+            category: 'Mains',
+            available: true,
+            sort_order: 0,
+          });
+          // refreshMenu is assigned after this effect runs; call via ref
+          refreshMenuRef.current?.();
+        })();
+      }
     });
-  }, [supabase]);
+  }, [supabase, restaurantId, initialGrouped]);
 
   const { status: subStatus, isActive, daysLeftInTrial, isTrialExpired } = useSubscription(user?.id);
 
@@ -384,6 +414,9 @@ export function AdminMenuEditor({
     setSortedCategories(sorted);
     setActiveCategory((prev) => sorted.includes(prev) ? prev : sorted[0] ?? "");
   }, [restaurantId, showMsg, supabase]);
+
+  // Keep ref in sync so the user-fetch effect can call refreshMenu after seeding
+  useEffect(() => { refreshMenuRef.current = refreshMenu; }, [refreshMenu]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -560,25 +593,20 @@ export function AdminMenuEditor({
     <main className={`min-h-screen bg-[var(--background)] text-[var(--foreground)] ${showTrialExpiredOverlay ? 'pointer-events-none grayscale opacity-60' : ''}`}>
 
       {/* ── Subscription banners ─────────────────────────────────────────────── */}
-      {subStatus === 'trialing' && daysLeftInTrial !== null && daysLeftInTrial > 7 && (
-        <div style={{ background: '#faf8f5', borderBottom: '1px solid rgba(139,105,20,0.25)' }} className="px-4 py-2.5 flex items-center justify-between gap-3">
-          <span className="text-sm text-[#2c2a26]">
-            🎉 You&apos;re on a free 2-month trial — {daysLeftInTrial} days left
-          </span>
-          <button onClick={startCheckout} className="text-xs bg-[#8b6914] text-white px-4 py-1.5 rounded-lg font-semibold hover:opacity-90 flex-shrink-0">
-            Start subscription
-          </button>
-        </div>
-      )}
-      {subStatus === 'trialing' && daysLeftInTrial !== null && daysLeftInTrial <= 7 && daysLeftInTrial > 0 && (
-        <div style={{ background: '#fffbeb', borderBottom: '1px solid rgba(201,160,48,0.4)' }} className="px-4 py-2.5 flex items-center justify-between gap-3">
-          <span className="text-sm text-[#2c2a26] flex items-center gap-2">
-            <AlertTriangle size={16} className="text-[#c9a030] flex-shrink-0" />
-            Your trial ends in {daysLeftInTrial} {daysLeftInTrial === 1 ? 'day' : 'days'}. Your menu will pause when it expires.
-          </span>
-          <button onClick={startCheckout} className="text-xs bg-[#8b6914] text-white px-4 py-1.5 rounded-lg font-semibold hover:bg-[#7a5c12] flex-shrink-0">
-            Add payment method
-          </button>
+      {subStatus === 'trialing' && daysLeftInTrial !== null && daysLeftInTrial > 0 && (
+        <div className="border-l-[3px] border-[#8b6914] bg-[#faf8f5] shadow-sm rounded-lg mx-4 mt-3">
+          <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div>
+              <span className="text-[10px] uppercase tracking-widest text-[#8b6914] font-semibold mr-3">Trial</span>
+              <span className="text-sm text-[#2c2a26]">You&apos;re on a free 2-month trial of DineLinks.</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`rounded-full px-3 py-1 text-xs font-medium ${daysLeftInTrial <= 7 ? 'bg-[#8b6914] text-[#faf8f5]' : 'bg-[#2c2a26] text-[#faf8f5]'}`}>
+                {daysLeftInTrial} {daysLeftInTrial === 1 ? 'day' : 'days'} left
+              </span>
+              <a href="/billing" className="text-sm text-[#8b6914] underline underline-offset-4 font-medium">Upgrade</a>
+            </div>
+          </div>
         </div>
       )}
       {subStatus === 'past_due' && (
@@ -659,7 +687,7 @@ export function AdminMenuEditor({
           <button
             data-tour="settings-btn"
             type="button"
-            onClick={() => { localStorage.removeItem("dinelinks_tour_v3_done"); setTourKey((k) => k + 1); }}
+            onClick={() => setTourKey((k) => k + 1)}
             title="Reopen tour"
             className="min-h-[40px] w-10 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-bold border border-white/20 flex items-center justify-center transition-colors"
           >
@@ -798,7 +826,7 @@ export function AdminMenuEditor({
               </svg>
               View public menu
             </a>
-            <button data-tour="settings-btn-mobile" type="button" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; localStorage.removeItem("dinelinks_tour_v3_done"); setTourKey((k) => k + 1); }}
+            <button data-tour="settings-btn-mobile" type="button" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; setTourKey((k) => k + 1); }}
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -1028,7 +1056,7 @@ export function AdminMenuEditor({
         />
       )}
 
-      <OnboardingTour tourKey={tourKey} />
+      <OnboardingTour tourKey={tourKey} hasCompletedTour={hasCompletedTour} userId={user?.id} />
 
       {/* QR Code Modal */}
       {showQR && (

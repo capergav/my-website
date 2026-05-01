@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-
-const TOUR_KEY = "dinelinks_tour_v3_done";
+import { createSupabaseClient } from "@/app/lib/supabase";
 
 type Placement = "top" | "bottom" | "left" | "right";
 
@@ -151,7 +150,7 @@ function calcDesktopPos(el: Element, placement: Placement, spot: Spot): DesktopP
   return { x, y };
 }
 
-export function OnboardingTour({ tourKey }: { tourKey: number }) {
+export function OnboardingTour({ tourKey, hasCompletedTour, userId }: { tourKey: number; hasCompletedTour?: boolean; userId?: string }) {
   const [step, setStep]         = useState(0);
   const [visible, setVisible]   = useState(false);
   const [isReady, setIsReady]   = useState(false);
@@ -168,9 +167,10 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  // Show on first load only if hasCompletedTour is explicitly false (from DB user_metadata)
   useEffect(() => {
-    if (!localStorage.getItem(TOUR_KEY)) setVisible(true);
-  }, []);
+    if (hasCompletedTour === false) setVisible(true);
+  }, [hasCompletedTour]);
 
   // Lock body scroll while tour is active
   useEffect(() => {
@@ -275,9 +275,12 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
   }, [visible, calculate]);
 
   const finish = useCallback(() => {
-    localStorage.setItem(TOUR_KEY, "1");
     setVisible(false);
-  }, []);
+    // Persist completion to user_metadata so tour never auto-plays on any device again
+    if (userId) {
+      createSupabaseClient().auth.updateUser({ data: { has_completed_tour: true } });
+    }
+  }, [userId]);
 
   const next = useCallback(() => step < STEPS.length - 1 ? setStep(s => s + 1) : finish(), [step, finish]);
   const back = useCallback(() => step > 0 && setStep(s => s - 1), [step]);

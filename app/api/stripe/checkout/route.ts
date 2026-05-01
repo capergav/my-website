@@ -23,12 +23,28 @@ export async function POST(req: NextRequest) {
       customerId = customer.id;
     }
 
+    // Trial runs 60 days from account creation, not from card addition.
+    // This way signing up on day 1 and adding a card on day 10 gives 50 remaining days, not 60 fresh.
+    const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
+    const TRIAL_DAYS = 60;
+    const now = Math.floor(Date.now() / 1000);
+    let trialEnd: number | undefined;
+    if (authUser?.created_at) {
+      const createdAtSec = Math.floor(new Date(authUser.created_at).getTime() / 1000);
+      const calculatedEnd = createdAtSec + TRIAL_DAYS * 86400;
+      // Only set trial_end if it's in the future; otherwise no trial
+      if (calculatedEnd > now) trialEnd = calculatedEnd;
+    } else {
+      // Fallback: grant 60 days from now if we can't determine account age
+      trialEnd = now + TRIAL_DAYS * 86400;
+    }
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       line_items: [{ price: process.env.STRIPE_PRICE_ID!, quantity: 1 }],
       subscription_data: {
-        trial_period_days: 60,
+        ...(trialEnd ? { trial_end: trialEnd } : {}),
         metadata: { supabase_user_id: userId }
       },
       success_url: restaurantSlug
