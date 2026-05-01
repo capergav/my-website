@@ -561,17 +561,17 @@ export function AdminMenuEditor({
 
       {/* ── Subscription banners ─────────────────────────────────────────────── */}
       {subStatus === 'trialing' && daysLeftInTrial !== null && daysLeftInTrial > 7 && (
-        <div className="bg-[#8b6914]/10 border-b border-[#8b6914]/20 px-4 py-2.5 flex items-center justify-between gap-3">
+        <div style={{ background: '#faf8f5', borderBottom: '1px solid rgba(139,105,20,0.25)' }} className="px-4 py-2.5 flex items-center justify-between gap-3">
           <span className="text-sm text-[#2c2a26]">
             🎉 You&apos;re on a free 2-month trial — {daysLeftInTrial} days left
           </span>
-          <button onClick={startCheckout} className="text-xs bg-[#2c2a26] text-white px-4 py-1.5 rounded-lg font-semibold hover:opacity-90 flex-shrink-0">
+          <button onClick={startCheckout} className="text-xs bg-[#8b6914] text-white px-4 py-1.5 rounded-lg font-semibold hover:opacity-90 flex-shrink-0">
             Start subscription
           </button>
         </div>
       )}
       {subStatus === 'trialing' && daysLeftInTrial !== null && daysLeftInTrial <= 7 && daysLeftInTrial > 0 && (
-        <div className="bg-[#c9a030]/10 border-b border-[#c9a030]/30 px-4 py-2.5 flex items-center justify-between gap-3">
+        <div style={{ background: '#fffbeb', borderBottom: '1px solid rgba(201,160,48,0.4)' }} className="px-4 py-2.5 flex items-center justify-between gap-3">
           <span className="text-sm text-[#2c2a26] flex items-center gap-2">
             <AlertTriangle size={16} className="text-[#c9a030] flex-shrink-0" />
             Your trial ends in {daysLeftInTrial} {daysLeftInTrial === 1 ? 'day' : 'days'}. Your menu will pause when it expires.
