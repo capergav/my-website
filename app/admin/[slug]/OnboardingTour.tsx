@@ -105,58 +105,68 @@ const STEPS: Step[] = [
 const TIP_W = 320;
 const GAP = 12;
 
-type Pos = {
+type Spot = {
   x: number;
   y: number;
-  spotX: number;
-  spotY: number;
-  spotW: number;
-  spotH: number;
-  hasSpt: boolean;
+  w: number;
+  h: number;
+  has: boolean;
 };
 
-function centered(): Pos {
-  const W = window.innerWidth;
-  const H = window.innerHeight;
-  return { x: W / 2 - TIP_W / 2, y: H / 2 - 110, spotX: 0, spotY: 0, spotW: 0, spotH: 0, hasSpt: false };
+function noSpot(): Spot {
+  return { x: 0, y: 0, w: 0, h: 0, has: false };
 }
 
-function calcPos(el: Element, placement: Placement): Pos {
+function spotFor(el: Element): Spot {
   const r = el.getBoundingClientRect();
+  return { x: r.left, y: r.top, w: r.width, h: r.height, has: true };
+}
+
+type DesktopPos = { x: number; y: number };
+
+function calcDesktopPos(el: Element, placement: Placement, spot: Spot): DesktopPos {
   const W = window.innerWidth;
   const H = window.innerHeight;
-  const spotX = r.left, spotY = r.top, spotW = r.width, spotH = r.height;
+  const tipH = 200;
   let x = 0, y = 0;
 
-  const tipH = 180;
   switch (placement) {
     case "bottom":
-      x = Math.max(8, Math.min(r.left, W - TIP_W - 8));
-      y = Math.min(r.bottom + GAP, H - tipH - 8);
+      x = Math.max(8, Math.min(spot.x, W - TIP_W - 8));
+      y = Math.min(spot.y + spot.h + GAP, H - tipH - 8);
       break;
     case "top":
-      x = Math.max(8, Math.min(r.left, W - TIP_W - 8));
-      y = Math.max(8, r.top - tipH - GAP);
+      x = Math.max(8, Math.min(spot.x, W - TIP_W - 8));
+      y = Math.max(8, spot.y - tipH - GAP);
       break;
     case "left":
-      x = Math.max(8, r.left - TIP_W - GAP);
-      y = Math.max(8, Math.min(r.top, H - tipH - 8));
+      x = Math.max(8, spot.x - TIP_W - GAP);
+      y = Math.max(8, Math.min(spot.y, H - tipH - 8));
       break;
     case "right":
-      x = Math.min(r.right + GAP, W - TIP_W - 8);
-      y = Math.max(8, Math.min(r.top, H - tipH - 8));
+      x = Math.min(spot.x + spot.w + GAP, W - TIP_W - 8);
+      y = Math.max(8, Math.min(spot.y, H - tipH - 8));
       break;
   }
-  return { x, y, spotX, spotY, spotW, spotH, hasSpt: true };
+  return { x, y };
 }
 
 export function OnboardingTour({ tourKey }: { tourKey: number }) {
-  const [step, setStep]       = useState(0);
-  const [visible, setVisible] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-  const [pos, setPos]         = useState<Pos>(centered);
-  const retryRef              = useRef(0);
-  const debounceRef           = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [step, setStep]         = useState(0);
+  const [visible, setVisible]   = useState(false);
+  const [isReady, setIsReady]   = useState(false);
+  const [spot, setSpot]         = useState<Spot>(noSpot);
+  const [deskPos, setDeskPos]   = useState<DesktopPos>({ x: 0, y: 0 });
+  const [isMobile, setIsMobile] = useState(false);
+  const retryRef                = useRef(0);
+  const debounceRef             = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   useEffect(() => {
     if (!localStorage.getItem(TOUR_KEY)) setVisible(true);
@@ -178,13 +188,14 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
   const current = STEPS[step];
 
   const calculate = useCallback(async () => {
-    const isMobile = window.innerWidth < 768;
-    const selector = isMobile && current.mobileSelector
+    const mobile = window.innerWidth < 768;
+    const selector = mobile && current.mobileSelector
       ? current.mobileSelector
       : current.selector;
 
     if (!selector) {
-      setPos(centered());
+      setSpot(noSpot());
+      setDeskPos({ x: window.innerWidth / 2 - TIP_W / 2, y: window.innerHeight / 2 - 110 });
       requestAnimationFrame(() => setIsReady(true));
       return;
     }
@@ -195,18 +206,22 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
         retryRef.current++;
         setTimeout(calculate, 100);
       } else {
-        setPos(centered());
+        setSpot(noSpot());
+        setDeskPos({ x: window.innerWidth / 2 - TIP_W / 2, y: window.innerHeight / 2 - 110 });
         requestAnimationFrame(() => setIsReady(true));
       }
       return;
     }
 
-    // Scroll target into view, then wait for scroll to settle before measuring
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    await new Promise<void>((r) => setTimeout(r, 400));
+    await new Promise<void>((r) => setTimeout(r, 350));
 
     requestAnimationFrame(() => {
-      setPos(calcPos(el, current.placement));
+      const s = spotFor(el);
+      setSpot(s);
+      if (!mobile) {
+        setDeskPos(calcDesktopPos(el, current.placement, s));
+      }
       requestAnimationFrame(() => setIsReady(true));
     });
   }, [current]);
@@ -216,10 +231,9 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
     retryRef.current = 0;
     setIsReady(false);
 
-    const isMobile = window.innerWidth < 768;
+    const mobile = window.innerWidth < 768;
 
-    if (isMobile && current.requiresMobileSheet) {
-      // Open mobile sheet if not already open
+    if (mobile && current.requiresMobileSheet) {
       const hamburger = document.querySelector<HTMLButtonElement>("[data-tour='hamburger']");
       const sheetOpen = document.body.dataset.mobileSheetOpen === "true";
       if (hamburger && !sheetOpen) {
@@ -227,8 +241,7 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
         setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(calculate)), 250);
         return;
       }
-    } else if (isMobile && !current.requiresMobileSheet) {
-      // Close mobile sheet if open so it doesn't block the spotlight
+    } else if (mobile && !current.requiresMobileSheet) {
       const sheetOpen = document.body.dataset.mobileSheetOpen === "true";
       if (sheetOpen) {
         document.body.dataset.mobileSheetOpen = "false";
@@ -275,9 +288,40 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
   const isLast  = step === STEPS.length - 1;
   const total   = STEPS.length;
 
-  const spotCx = pos.spotX + pos.spotW / 2;
-  const spotCy = pos.spotY + pos.spotH / 2;
-  const radius  = Math.max(pos.spotW, pos.spotH) / 2 + 4;
+  const spotCx = spot.x + spot.w / 2;
+  const spotCy = spot.y + spot.h / 2;
+  const radius  = Math.max(spot.w, spot.h) / 2 + 4;
+
+  const tooltipContent = (
+    <>
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50 mb-2">
+        Step {step + 1} of {total}
+      </p>
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="font-serif text-lg font-semibold text-[#2c2a26] leading-snug mb-0">{current.title}</h3>
+        <button type="button" onClick={finish} aria-label="Skip tour" className="shrink-0 text-[#2c2a26]/40 hover:text-[#2c2a26]/70 text-xl leading-none mt-0.5 transition-colors">✕</button>
+      </div>
+      <p className="text-base text-[#2c2a26]/65 leading-relaxed mt-2">{current.description}</p>
+      <div className="flex items-center justify-between mt-4 gap-3">
+        <div className="flex gap-1 items-center">
+          {STEPS.map((_, i) => (
+            <span key={i} className="inline-block rounded-full transition-all duration-200"
+              style={{ width: i === step ? 18 : 6, height: 6, background: i === step ? "#8b6914" : "#e5e7eb" }} />
+          ))}
+        </div>
+        <div className="flex gap-3">
+          {isFirst ? (
+            <button type="button" onClick={finish} className="px-3 py-2 text-sm font-medium text-[#2c2a26]/50 hover:text-[#2c2a26]/80 rounded-lg transition-colors">Skip</button>
+          ) : (
+            <button type="button" onClick={back} className="px-3 py-2 text-sm font-medium border border-gray-200 text-[#2c2a26]/70 hover:bg-gray-50 rounded-lg transition-colors">Back</button>
+          )}
+          <button type="button" onClick={next} className="px-5 py-2 text-sm font-medium bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
+            {isLast ? "Done" : "Next →"}
+          </button>
+        </div>
+      </div>
+    </>
+  );
 
   return (
     <>
@@ -287,65 +331,53 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
         style={{
           zIndex: 9998,
           background: "rgba(0,0,0,0.6)",
-          WebkitMaskImage: pos.hasSpt
+          WebkitMaskImage: spot.has
             ? `radial-gradient(circle at ${spotCx}px ${spotCy}px, transparent ${radius + 8}px, black ${radius + 12}px)`
             : "none",
-          maskImage: pos.hasSpt
+          maskImage: spot.has
             ? `radial-gradient(circle at ${spotCx}px ${spotCy}px, transparent ${radius + 8}px, black ${radius + 12}px)`
             : "none",
         }}
       />
 
-      {/* Tooltip */}
-      <div
-        className="fixed bg-white rounded-2xl border border-gray-100 p-6"
-        style={{
-          zIndex: 10000,
-          top: 0,
-          left: 0,
-          minWidth: 320,
-          maxWidth: 400,
-          width: "min(400px, calc(100vw - 32px))",
-          willChange: "transform, opacity",
-          transform: `translate3d(${pos.x}px, ${pos.y}px, 0)`,
-          opacity: isReady ? 1 : 0,
-          transition: `opacity 200ms ease-out, transform 200ms ease-out`,
-          boxShadow: "0 25px 60px -12px rgba(139,105,20,0.18), 0 8px 24px -4px rgba(0,0,0,0.12)",
-          color: "#2c2a26",
-        }}
-      >
-        {/* Step counter */}
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50 mb-2">
-          Step {step + 1} of {total}
-        </p>
-
-        <div className="flex items-start justify-between gap-3">
-          <h3 className="font-serif text-lg font-semibold text-[#2c2a26] leading-snug mb-0">{current.title}</h3>
-          <button type="button" onClick={finish} aria-label="Skip tour" className="shrink-0 text-[#2c2a26]/40 hover:text-[#2c2a26]/70 text-xl leading-none mt-0.5 transition-colors">✕</button>
+      {/* Desktop tooltip — positioned near spotlight */}
+      {!isMobile && (
+        <div
+          className="fixed bg-white rounded-2xl border border-gray-100 p-6"
+          style={{
+            zIndex: 10000,
+            top: 0,
+            left: 0,
+            minWidth: 320,
+            maxWidth: 400,
+            width: "min(400px, calc(100vw - 32px))",
+            willChange: "transform, opacity",
+            transform: `translate3d(${deskPos.x}px, ${deskPos.y}px, 0)`,
+            opacity: isReady ? 1 : 0,
+            transition: `opacity 200ms ease-out, transform 200ms ease-out`,
+            boxShadow: "0 25px 60px -12px rgba(139,105,20,0.18), 0 8px 24px -4px rgba(0,0,0,0.12)",
+            color: "#2c2a26",
+          }}
+        >
+          {tooltipContent}
         </div>
+      )}
 
-        <p className="text-base text-[#2c2a26]/65 leading-relaxed mt-2">{current.description}</p>
-
-        {/* Progress dots + buttons */}
-        <div className="flex items-center justify-between mt-4 gap-3">
-          <div className="flex gap-1 items-center">
-            {STEPS.map((_, i) => (
-              <span key={i} className="inline-block rounded-full transition-all duration-200"
-                style={{ width: i === step ? 18 : 6, height: 6, background: i === step ? "#8b6914" : "#e5e7eb" }} />
-            ))}
-          </div>
-          <div className="flex gap-3">
-            {isFirst ? (
-              <button type="button" onClick={finish} className="px-3 py-2 text-sm font-medium text-[#2c2a26]/50 hover:text-[#2c2a26]/80 rounded-lg transition-colors">Skip</button>
-            ) : (
-              <button type="button" onClick={back} className="px-3 py-2 text-sm font-medium border border-gray-200 text-[#2c2a26]/70 hover:bg-gray-50 rounded-lg transition-colors">Back</button>
-            )}
-            <button type="button" onClick={next} className="px-5 py-2 text-sm font-medium bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
-              {isLast ? "Done" : "Next →"}
-            </button>
-          </div>
+      {/* Mobile bottom sheet — fixed, never moves */}
+      {isMobile && (
+        <div
+          className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl p-6"
+          style={{
+            zIndex: 10000,
+            opacity: isReady ? 1 : 0,
+            transition: 'opacity 200ms ease-out',
+            boxShadow: "0 -8px 40px -4px rgba(0,0,0,0.18)",
+            color: "#2c2a26",
+          }}
+        >
+          {tooltipContent}
         </div>
-      </div>
+      )}
     </>
   );
 }

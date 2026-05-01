@@ -30,9 +30,11 @@ export const metadata: Metadata = {
   authors: [{ name: "DineLinks" }],
   creator: "DineLinks",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-    apple: "/favicon.svg",
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
   },
   openGraph: {
     type: "website",

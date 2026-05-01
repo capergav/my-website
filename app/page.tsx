@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { WheatOff, Leaf, BarChart3, Star, Flame } from "lucide-react";
 import { AnalyticsDemo } from "@/app/components/AnalyticsDemo";
+import { useIsMobile } from "@/lib/useIsMobile";
 import {
   motion, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence,
 } from 'motion/react';
@@ -171,13 +172,13 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
           />
         </motion.div>
 
-        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+        <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
           {/* Phone mockup */}
           <motion.div
-            className="flex-shrink-0"
+            className="flex-shrink-0 w-full flex justify-center"
             {...(rm ? {} : { initial: { opacity: 0, x: -30 }, whileInView: { opacity: 1, x: 0 }, viewport: { once: true }, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } })}
           >
-            <div className="rounded-3xl overflow-hidden shadow-2xl border-4 border-[#2c2a26]/10 w-72 bg-white">
+            <div className="rounded-3xl overflow-hidden shadow-2xl border-4 border-[#2c2a26]/10 w-64 sm:w-72 bg-white">
               <div className="relative h-32 overflow-hidden">
                 <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
@@ -433,6 +434,7 @@ const AFTER_ITEMS = [
 export default function HomePage() {
   const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const rm = prefersReducedMotion;
+  const isMobile = useIsMobile();
 
   const [scrolled, setScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -513,7 +515,7 @@ export default function HomePage() {
       `}</style>
 
       {/* ── Scroll progress bar ────────────────────────────────────────────────── */}
-      {!rm && (
+      {!rm && !isMobile && (
         <motion.div
           className="fixed top-0 left-0 right-0 h-[3px] bg-[#8b6914] origin-left z-[60] pointer-events-none"
           style={{ scaleX: scrollYProgress }}
@@ -585,6 +587,9 @@ export default function HomePage() {
             ))}
             <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="text-sm transition-colors text-foreground/70 hover:text-foreground">Contact</Link>
             {!isLoggedIn && <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="text-sm transition-colors text-foreground/70 hover:text-foreground">Sign in</Link>}
+            <Link href={isLoggedIn ? '/admin' : '/signup'} onClick={() => setMobileMenuOpen(false)} className="w-full text-center rounded-xl px-4 py-3 text-sm font-semibold bg-[#8b6914] text-white">
+              {isLoggedIn ? 'Go to my menu' : 'Start free trial'}
+            </Link>
           </div>
         )}
       </nav>
@@ -592,12 +597,12 @@ export default function HomePage() {
       {/* ── HERO ──────────────────────────────────────────────────────────────── */}
       <section
         ref={heroRef}
-        className="relative min-h-screen bg-[#faf8f5] flex items-center py-16 overflow-hidden"
+        className="relative bg-[#faf8f5] pt-10 pb-16 md:pt-16 md:pb-24 lg:min-h-screen lg:flex lg:items-center overflow-hidden"
         onMouseMove={handleMouseMove}
         onMouseLeave={() => { mouseX.set(0); mouseY.set(0); }}
       >
         {/* Floating blobs with parallax */}
-        {!rm && (
+        {!rm && !isMobile && (
           <>
             <motion.div
               className="absolute top-20 right-10 w-96 h-96 rounded-full bg-[#8b6914]/5 blur-3xl pointer-events-none"
@@ -614,13 +619,13 @@ export default function HomePage() {
           </>
         )}
 
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 w-full flex flex-col lg:flex-row items-center gap-10 lg:gap-16 relative z-10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 w-full flex flex-col items-center text-center lg:flex-row lg:items-center lg:text-left gap-8 lg:gap-16 relative z-10">
           {/* Left column */}
           <motion.div
-            className="flex-1"
-            initial={rm ? {} : { opacity: 0, x: -28 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: rm ? 0 : 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="flex-1 w-full"
+            initial={rm ? {} : { opacity: 0, y: isMobile ? 16 : 0, x: isMobile ? 0 : -28 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            transition={{ duration: rm ? 0 : (isMobile ? 0.3 : 0.7), ease: [0.22, 1, 0.36, 1] }}
           >
             {/* Eyebrow */}
             <p className="text-xs font-bold tracking-[0.2em] text-[#8b6914] uppercase mb-4">
@@ -648,7 +653,7 @@ export default function HomePage() {
               Whether you&apos;re swapping the soup of the day or rebranding for the season, your menu updates the moment you save. No more outdated PDFs taped to walls. No more printer runs. Just a clean QR code on every table.
             </p>
 
-            <div className="flex gap-4 mt-8 flex-wrap">
+            <div className="flex gap-4 mt-8 flex-wrap justify-center lg:justify-start">
               <div
                 className="relative"
                 onMouseEnter={() => setCtaHovered(true)}
@@ -689,7 +694,7 @@ export default function HomePage() {
             </div>
 
             {/* Trust badges */}
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-6 flex flex-wrap gap-3 justify-center lg:justify-start">
               {[
                 { icon: "🏪", text: "For independent restaurants" },
                 { icon: "🌍", text: "10 languages" },
@@ -703,12 +708,12 @@ export default function HomePage() {
               ))}
             </div>
 
-            <div className="mt-4 flex gap-5 flex-wrap text-sm text-[#6b6560]">
+            <div className="mt-4 flex gap-5 flex-wrap text-sm text-[#6b6560] justify-center lg:justify-start">
               <span>✓ No setup fee</span>
               <span>✓ Live in 30 minutes</span>
               <span className="font-bold text-[#8b6914]">✓ First 2 months free</span>
             </div>
-            <p className="mt-2 text-sm font-semibold text-[#8b6914] flex items-center gap-2">
+            <p className="mt-2 text-sm font-semibold text-[#8b6914] flex items-center gap-2 justify-center lg:justify-start">
               <span className="live-dot inline-block w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
               No credit card required — cancel anytime
             </p>
@@ -716,25 +721,25 @@ export default function HomePage() {
 
           {/* Right column — phone mockup */}
           <motion.div
-            className="flex-1 flex flex-col items-center"
-            initial={rm ? {} : { opacity: 0, x: 28 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: rm ? 0 : 0.7, ease: [0.22, 1, 0.36, 1], delay: rm ? 0 : 0.15 }}
+            className="flex-1 flex flex-col items-center w-full mt-6 lg:mt-0"
+            initial={rm ? {} : { opacity: 0, y: isMobile ? 16 : 0, x: isMobile ? 0 : 28 }}
+            animate={{ opacity: 1, x: 0, y: 0 }}
+            transition={{ duration: rm ? 0 : (isMobile ? 0.3 : 0.7), ease: [0.22, 1, 0.36, 1], delay: rm ? 0 : 0.15 }}
           >
-            <motion.div style={{ y: phoneY }}>
+            <motion.div style={{ y: isMobile ? 0 : phoneY }}>
               <motion.div
                 style={{
-                  rotateX: rm ? 0 : rotateX,
-                  rotateY: rm ? 0 : rotateY,
-                  transformPerspective: 1000,
-                  transformStyle: 'preserve-3d',
+                  rotateX: (rm || isMobile) ? 0 : rotateX,
+                  rotateY: (rm || isMobile) ? 0 : rotateY,
+                  transformPerspective: isMobile ? 'none' : 1000,
+                  transformStyle: isMobile ? 'flat' : 'preserve-3d',
                 }}
-                animate={rm ? {} : { y: [0, -14, 0], boxShadow: ['0 20px 60px -15px rgba(139,105,20,0.3)','0 30px 80px -10px rgba(139,105,20,0.45)','0 20px 60px -15px rgba(139,105,20,0.3)'] }}
-                transition={rm ? {} : { duration: 3.8, repeat: Infinity, ease: 'easeInOut' }}
-                whileHover={rm ? {} : { scale: 1.02 }}
+                animate={(rm || isMobile) ? {} : { y: [0, -14, 0], boxShadow: ['0 20px 60px -15px rgba(139,105,20,0.3)','0 30px 80px -10px rgba(139,105,20,0.45)','0 20px 60px -15px rgba(139,105,20,0.3)'] }}
+                transition={(rm || isMobile) ? {} : { duration: 3.8, repeat: Infinity, ease: 'easeInOut' }}
+                whileHover={(rm || isMobile) ? {} : { scale: 1.02 }}
                 className="relative"
               >
-                <div className="rounded-3xl overflow-hidden shadow-2xl border-4 border-[#2c2a26]/10 max-w-sm w-full mx-auto bg-white">
+                <div className="rounded-3xl overflow-hidden shadow-2xl border border-[#2c2a26]/10 max-w-[280px] sm:max-w-sm w-full mx-auto bg-white" style={{ border: '1px solid rgba(0,0,0,0.08)' }}>
                   <div className="relative h-48 overflow-hidden">
                     <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
