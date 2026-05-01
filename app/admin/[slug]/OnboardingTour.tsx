@@ -279,8 +279,20 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
     setVisible(false);
   }, []);
 
-  const next = () => step < STEPS.length - 1 ? setStep(s => s + 1) : finish();
-  const back = () => step > 0 && setStep(s => s - 1);
+  const next = useCallback(() => step < STEPS.length - 1 ? setStep(s => s + 1) : finish(), [step, finish]);
+  const back = useCallback(() => step > 0 && setStep(s => s - 1), [step]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    if (!visible) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') finish();
+      if (e.key === 'ArrowRight') next();
+      if (e.key === 'ArrowLeft') back();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [visible, finish, next, back]);
 
   if (!visible) return null;
 
@@ -299,7 +311,7 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
       </p>
       <div className="flex items-start justify-between gap-3">
         <h3 className="font-serif text-lg font-semibold text-[#2c2a26] leading-snug mb-0">{current.title}</h3>
-        <button type="button" onClick={finish} aria-label="Skip tour" className="shrink-0 text-[#2c2a26]/40 hover:text-[#2c2a26]/70 text-xl leading-none mt-0.5 transition-colors">✕</button>
+        <button type="button" onClick={finish} aria-label="Skip tour" className="shrink-0 flex items-center justify-center w-11 h-11 -mr-2 -mt-1 text-[#2c2a26]/40 hover:text-[#2c2a26]/70 text-xl transition-colors rounded-lg">✕</button>
       </div>
       <p className="text-base text-[#2c2a26]/65 leading-relaxed mt-2">{current.description}</p>
       <div className="flex items-center justify-between mt-4 gap-3">
@@ -311,12 +323,12 @@ export function OnboardingTour({ tourKey }: { tourKey: number }) {
         </div>
         <div className="flex gap-3">
           {isFirst ? (
-            <button type="button" onClick={finish} className="px-3 py-2 text-sm font-medium text-[#2c2a26]/50 hover:text-[#2c2a26]/80 rounded-lg transition-colors">Skip</button>
+            <button type="button" onClick={finish} className="h-11 px-3 text-sm font-medium text-[#2c2a26]/50 hover:text-[#2c2a26]/80 rounded-lg transition-colors">Skip tour</button>
           ) : (
-            <button type="button" onClick={back} className="px-3 py-2 text-sm font-medium border border-gray-200 text-[#2c2a26]/70 hover:bg-gray-50 rounded-lg transition-colors">Back</button>
+            <button type="button" onClick={back} className="h-11 px-3 text-sm font-medium border border-gray-200 text-[#2c2a26]/70 hover:bg-gray-50 rounded-lg transition-colors">Back</button>
           )}
-          <button type="button" onClick={next} className="px-5 py-2 text-sm font-medium bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
-            {isLast ? "Done" : "Next →"}
+          <button type="button" onClick={next} className="h-11 px-5 text-sm font-medium bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
+            {isLast ? "Got it!" : "Next →"}
           </button>
         </div>
       </div>

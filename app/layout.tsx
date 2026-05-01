@@ -24,11 +24,58 @@ const orbitron = Orbitron({ variable: "--font-orbitron", subsets: ["latin"], wei
 const cinzel = Cinzel({ variable: "--font-cinzel", subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
-  title: "DineLinks — Digital Menus for Restaurants",
-  description: "Beautiful digital menus for independent restaurants. Customers scan a QR code to see your menu in 10 languages. No reprinting. Update in seconds. Free 2-month trial.",
-  keywords: ["digital menu", "restaurant menu", "QR code menu", "multilingual menu", "restaurant software", "menu management"],
-  authors: [{ name: "DineLinks" }],
-  creator: "DineLinks",
+  metadataBase: new URL('https://dinelinks.com'),
+  title: {
+    default: 'DineLinks — Digital QR Code Menus for Restaurants',
+    template: '%s | DineLinks',
+  },
+  description: 'DineLinks creates beautiful QR code menus for restaurants. Customers scan to view your menu in 10 languages. No reprinting menus — update in seconds. Built for cafes, bistros, food trucks, and independent restaurants.',
+  keywords: [
+    'digital menu', 'QR code menu', 'QR menu', 'restaurant menu app',
+    'online menu builder', 'multilingual menu', 'contactless menu',
+    'restaurant menu software', 'digital restaurant menu',
+    'menu management system', 'QR code menu generator',
+    'restaurant menu maker', 'translated menu app',
+    'menu in 10 languages', 'paperless restaurant menu',
+    'cafe menu app', 'food truck menu', 'bistro menu software',
+    'mobile restaurant menu', 'scan to view menu',
+    'restaurant QR code', 'no reprint menu',
+  ],
+  authors: [{ name: 'DineLinks' }],
+  creator: 'DineLinks',
+  publisher: 'DineLinks',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_CA',
+    url: 'https://dinelinks.com',
+    title: 'DineLinks — Digital QR Code Menus for Restaurants',
+    description: 'Beautiful QR code menus in 10 languages. No reprinting. Update in seconds. Built for independent restaurants.',
+    siteName: 'DineLinks',
+    images: [{
+      url: '/og-image.png',
+      width: 1200,
+      height: 630,
+      alt: 'DineLinks — QR Code Menus for Restaurants',
+    }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'DineLinks — Digital QR Code Menus for Restaurants',
+    description: 'QR code menus in 10 languages. No reprinting. Update in seconds.',
+    images: ['/og-image.png'],
+  },
+  alternates: { canonical: 'https://dinelinks.com' },
+  category: 'technology',
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
@@ -36,19 +83,6 @@ export const metadata: Metadata = {
     shortcut: '/favicon.svg',
     apple: '/favicon.svg',
   },
-  openGraph: {
-    type: "website",
-    url: "https://dinelinks.com",
-    title: "DineLinks — Digital Menus for Restaurants",
-    description: "Beautiful digital menus for independent restaurants. Scan a QR code, see the menu in 10 languages.",
-    siteName: "DineLinks",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "DineLinks — Digital Menus for Restaurants",
-    description: "QR code menus in 10 languages. No reprinting ever. Free 2-month trial.",
-  },
-  metadataBase: new URL("https://dinelinks.com"),
 };
 
 export const viewport: Viewport = {

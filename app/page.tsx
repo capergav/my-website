@@ -175,7 +175,7 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
         <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
           {/* Phone mockup */}
           <motion.div
-            className="flex-shrink-0 w-full flex justify-center"
+            className="flex-shrink-0 w-full lg:w-auto flex justify-center"
             {...(rm ? {} : { initial: { opacity: 0, x: -30 }, whileInView: { opacity: 1, x: 0 }, viewport: { once: true }, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } })}
           >
             <div className="rounded-3xl overflow-hidden shadow-2xl border-4 border-[#2c2a26]/10 w-64 sm:w-72 bg-white">
@@ -497,6 +497,28 @@ export default function HomePage() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: 'DineLinks',
+            applicationCategory: 'BusinessApplication',
+            operatingSystem: 'Web',
+            description: 'Digital QR code menus for restaurants. Customers scan to view menus in 10 languages. No reprinting — update in seconds.',
+            url: 'https://dinelinks.com',
+            featureList: [
+              'QR code menu generation',
+              '10 language automatic translation',
+              'Real-time menu updates',
+              'Mobile-optimized customer view',
+              'Restaurant analytics dashboard',
+              'No paper menu reprinting',
+            ],
+          }),
+        }}
+      />
       <style>{`
         @keyframes periodic-shimmer{0%,75%,100%{transform:translateX(-150%) skewX(-15deg);opacity:0}80%{opacity:1}95%{transform:translateX(150%) skewX(-15deg);opacity:0}}
         @keyframes banner-shine{0%{background-position:-200% center}100%{background-position:400% center}}
