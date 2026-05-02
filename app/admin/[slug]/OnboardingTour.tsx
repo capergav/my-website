@@ -96,7 +96,7 @@ const STEPS: Step[] = [
     id: "done",
     selector: null,
     title: "You're all set! 🎉",
-    description: "That's the tour! You can replay it anytime from Settings → Help, or by clicking the ? button.",
+    description: "Ready to publish your real menu? Start your 60-day free trial — no credit card required. You can replay this tour anytime from the menu.",
     placement: "bottom",
   },
 ];
