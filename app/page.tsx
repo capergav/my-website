@@ -660,7 +660,7 @@ export default function HomePage() {
 
             <motion.h1
               style={{ fontFamily: "Georgia, serif" }}
-              className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-semibold text-[#2c2a26] leading-tight mt-6"
+              className="text-4xl sm:text-5xl md:text-5xl lg:text-6xl font-semibold text-[#2c2a26] leading-tight mt-6 max-w-4xl"
               initial={rm ? {} : { opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: rm ? 0 : 0.7, ease: [0.22, 1, 0.36, 1], delay: rm ? 0 : 0.1 }}
@@ -1193,7 +1193,7 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          <div className="flex flex-col sm:flex-row justify-center gap-6 mt-14 items-start" style={{ perspective: 1200 }}>
+          <div className="flex flex-col items-center sm:flex-row sm:justify-center sm:items-start gap-6 mt-14" style={{ perspective: 1200 }}>
             {/* Villa Romana */}
             <motion.div {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5 } })}>
               <motion.div
@@ -1461,7 +1461,7 @@ export default function HomePage() {
                   </motion.span>
                 </span>
               </div>
-              <p className="text-sm text-[#faf8f5]/50 max-w-xs">Digital menus for modern independent restaurants. Beautiful, instant, multilingual.</p>
+              <p className="text-sm text-[#faf8f5]/50 max-w-xs">Beautiful QR menus in 10 languages. Update in seconds, no reprinting.</p>
             </div>
 
             {/* Newsletter */}
@@ -1578,7 +1578,7 @@ export default function HomePage() {
           {/* Bottom row */}
           <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
             <p className="text-xs text-[#faf8f5]/30">© 2025 DineLinks. All rights reserved.</p>
-            <p className="text-xs text-[#faf8f5]/20">Built for the world&apos;s best independent restaurants.</p>
+            <p className="text-xs text-[#faf8f5]/20">Built for the world&apos;s best restaurants.</p>
           </div>
         </div>
       </footer>

@@ -842,7 +842,7 @@ export function AdminMenuEditor({
           <h3 className="text-xl font-semibold text-[var(--foreground)] font-serif">No categories yet</h3>
           <p className="text-sm text-[var(--muted)] mt-2 max-w-xs">Start by creating a category (e.g. &ldquo;Mains&rdquo;), then add items to it.</p>
           <button type="button" onClick={() => setShowCategoryModal(true)}
-            className="mt-6 bg-[var(--admin-accent)] text-[var(--admin-accent-fg)] font-semibold rounded-xl px-6 py-3 hover:opacity-90 transition-opacity flex items-center gap-2">
+            className="mt-6 bg-[var(--accent)] text-white font-semibold rounded-xl px-6 py-3 hover:opacity-90 transition-opacity flex items-center gap-2">
             <Plus size={16} /> Add first category
           </button>
         </div>
@@ -864,7 +864,7 @@ export function AdminMenuEditor({
                           onClick={() => setActiveCategory(cat)}
                           className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all select-none font-sans ${
                             activeCategory === cat
-                              ? "bg-[var(--admin-accent)] text-[var(--admin-accent-fg)] shadow-sm"
+                              ? "bg-[var(--accent)] text-white shadow-sm"
                               : "bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted)] hover:text-[var(--foreground)]"
                           }`}>
                           {cat}
@@ -876,7 +876,7 @@ export function AdminMenuEditor({
                       type="button"
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => setShowCategoryModal(true)}
-                      className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold font-sans text-[var(--admin-accent)] border-2 border-dashed border-[var(--admin-accent)]/30 rounded-xl px-3 py-1.5 hover:bg-[var(--admin-accent)]/5 transition-colors">
+                      className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold font-sans text-[var(--accent)] border-2 border-dashed border-[var(--accent)]/30 rounded-xl px-3 py-1.5 hover:bg-[var(--accent)]/5 transition-colors">
                       <Plus size={14} /> Add category
                     </button>
                     <button
@@ -903,7 +903,7 @@ export function AdminMenuEditor({
               <h2 className="font-serif text-xl sm:text-2xl font-semibold">{activeCategory}</h2>
               <motion.button data-tour="tour-add-item" type="button"
                 onClick={() => { setAddingNew(true); setEditingItem(null); }}
-                className="px-4 py-2 rounded-xl bg-[var(--admin-accent)] text-[var(--admin-accent-fg)] font-medium text-sm hover:opacity-90 transition-opacity shadow-sm"
+                className="px-4 py-2 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity shadow-sm"
                 whileTap={{ scale: 0.96 }}
                 transition={{ duration: 0.1 }}
               >
@@ -1072,6 +1072,15 @@ export function AdminMenuEditor({
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+function useBodyScrollLock(isOpen: boolean) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [isOpen]);
+}
+
 function AvailabilityToggle({ available, onChange }: { available: boolean; onChange: (v: boolean) => void }) {
   return (
     <button type="button" onClick={() => onChange(!available)}
@@ -1132,6 +1141,8 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
   const [fontOpen, setFontOpen]           = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [colorCustomized, setColorCustomized] = useState(false);
+
+  useBodyScrollLock(open);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
@@ -1466,11 +1477,12 @@ function TrialPill({ daysLeft, onSubscribe, loading }: { daysLeft: number | null
   const isExpired = daysLeft <= 0;
   const isUrgent  = daysLeft <= 7 && !isExpired;
 
-  const bg = isExpired
-    ? 'bg-[#c89b3c] hover:bg-[#b8851e]'
+  const bg = 'bg-[var(--accent)] hover:opacity-90';
+  const ring = isExpired
+    ? 'ring-2 ring-offset-2 ring-offset-[var(--background)] ring-[var(--accent)]'
     : isUrgent
-    ? 'bg-[#b8851e] hover:bg-[#a07418]'
-    : 'bg-[#8b6914] hover:bg-[#6f5310]';
+    ? 'ring-1 ring-offset-2 ring-offset-[var(--background)] ring-[var(--accent)]'
+    : '';
 
   const label = isExpired
     ? 'Trial ended — Subscribe'
@@ -1484,7 +1496,7 @@ function TrialPill({ daysLeft, onSubscribe, loading }: { daysLeft: number | null
       title={isExpired
         ? 'Your trial has ended. Subscribe to keep your menu live.'
         : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left in your free trial`}
-      className={`min-h-[44px] px-3.5 py-2 rounded-xl ${bg} text-white font-medium text-sm border border-transparent inline-flex items-center gap-2 disabled:opacity-60 transition-colors`}
+      className={`min-h-[44px] px-3.5 py-2 rounded-xl ${bg} ${ring} text-white font-medium text-sm border border-transparent inline-flex items-center gap-2 disabled:opacity-60 transition-opacity`}
     >
       <span className="relative flex h-2 w-2 flex-shrink-0">
         {!isExpired && (
@@ -1502,10 +1514,10 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
     <div className="flex items-center justify-between gap-3 py-1">
       <span className="text-sm font-sans text-[var(--foreground)]">{label}</span>
       <div className="flex items-center gap-2">
-        <span className={`text-xs font-sans transition-colors ${checked ? "text-[#8b6914] font-semibold" : "text-[var(--muted)]"}`}>{checked ? "On" : "Off"}</span>
+        <span className={`text-xs font-sans transition-colors ${checked ? "text-[var(--accent)] font-semibold" : "text-[var(--muted)]"}`}>{checked ? "On" : "Off"}</span>
         <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
-          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#8b6914] focus:ring-offset-2 ${checked ? "bg-[#8b6914]" : "bg-gray-200"}`}>
-          <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform mt-0.5 ml-0.5 ${checked ? "translate-x-[18px]" : "translate-x-0"}`} />
+          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 ${checked ? "bg-[var(--accent)]" : "bg-gray-200"}`}>
+          <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform mt-0.5 ml-0.5 ${checked ? "translate-x-[20px]" : "translate-x-0"}`} />
         </button>
       </div>
     </div>
@@ -1532,6 +1544,8 @@ function ItemForm({
   const [veg, setVeg]             = useState<boolean>(item?.vegetarian ?? false);
   const [dairy, setDairy]         = useState<boolean>(item?.dairy_free ?? false);
   const [spicy, setSpicy]         = useState<boolean>(item?.spicy ?? false);
+
+  useBodyScrollLock(true);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();

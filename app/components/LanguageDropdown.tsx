@@ -80,7 +80,6 @@ export function LanguageDropdown({ trackRestaurantId }: { trackRestaurantId?: st
         aria-haspopup="listbox"
         aria-label="Change language"
       >
-        <span>{current.flag}</span>
         <span>{current.label}</span>
         <svg
           className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
@@ -124,7 +123,7 @@ export function LanguageDropdown({ trackRestaurantId }: { trackRestaurantId?: st
                     : "text-[var(--foreground)] hover:bg-[var(--card-border)]/50"
                 }`}
               >
-                <span className="mr-2">{opt.flag}</span>{opt.label}
+                {opt.label}
               </button>
             </li>
           ))}
