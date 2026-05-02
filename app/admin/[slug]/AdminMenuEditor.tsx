@@ -1119,6 +1119,68 @@ function CategoryNoteEditor({
 
 // ── Theme modal (shared between desktop header button and mobile sheet) ────────
 
+type BrandColors = { card: string; accent: string; bg: string; fontColor: string };
+
+function BrandSlot({ slot, colors, onApply, onSave, onClear }: {
+  slot: 1 | 2;
+  colors: BrandColors | null;
+  onApply: (c: BrandColors) => void;
+  onSave: () => void;
+  onClear: () => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  if (!colors) {
+    return (
+      <div className="rounded-xl border-2 border-dashed border-[var(--card-border)] p-3 flex flex-col gap-1.5">
+        <p className="text-xs font-semibold text-[var(--muted)]">Brand {slot}</p>
+        <p className="text-[10px] text-[var(--muted)] leading-tight">No colors saved</p>
+        <button type="button" onClick={onSave} className="mt-1 text-xs font-medium text-[#8b6914] hover:underline text-left">
+          Save current colors →
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative rounded-xl border border-[var(--card-border)] p-3 flex flex-col gap-2">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-[var(--muted)]">Brand {slot}</p>
+        <button type="button" onClick={() => setMenuOpen(o => !o)}
+          className="text-[var(--muted)] hover:text-[var(--foreground)] p-0.5 rounded transition-colors">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+        </button>
+      </div>
+      <div className="flex items-center gap-1">
+        {[colors.card, colors.accent, colors.bg, colors.fontColor].map((c, i) => (
+          <span key={i} className="w-5 h-5 rounded-md border border-black/10 flex-shrink-0" style={{ background: c }} title={c} />
+        ))}
+      </div>
+      <button type="button" onClick={() => onApply(colors)}
+        className="mt-0.5 text-xs font-semibold text-white bg-[#8b6914] rounded-lg px-2.5 py-1.5 hover:opacity-90 transition-opacity text-center">
+        Apply
+      </button>
+      {menuOpen && (
+        <>
+          <div className="fixed inset-0 z-[5]" onClick={() => setMenuOpen(false)} />
+          <div className="absolute top-8 right-0 z-10 bg-[var(--card)] border border-[var(--card-border)] rounded-xl shadow-xl py-1 min-w-[160px]">
+            <button type="button" onClick={() => { onSave(); setMenuOpen(false); }}
+              className="w-full text-left px-3 py-2 text-xs text-[var(--foreground)] hover:bg-[var(--card-border)]/30 transition-colors">
+              Overwrite with current
+            </button>
+            <button type="button" onClick={() => { onClear(); setMenuOpen(false); }}
+              className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 transition-colors">
+              Clear slot
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 type ThemeModalProps = {
   restaurant: Restaurant | null;
   onSave: (u: Partial<Restaurant>) => void;
@@ -1141,6 +1203,8 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
   const [fontOpen, setFontOpen]           = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [colorCustomized, setColorCustomized] = useState(false);
+  const [brand1, setBrand1]               = useState<BrandColors | null>(null);
+  const [brand2, setBrand2]               = useState<BrandColors | null>(null);
 
   useBodyScrollLock(open);
 
@@ -1154,10 +1218,22 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       setFont(restaurant.font_family ?? "sans");
       setName(restaurant.name ?? "");
       setHeroUrl(restaurant.hero_image_url ?? "");
-      setLogoUrl((restaurant as Restaurant & { logo_url?: string | null }).logo_url ?? "");
+      setLogoUrl(restaurant.logo_url ?? "");
       setFontOpen(false);
       setSelectedPreset(null);
       setColorCustomized(false);
+      setBrand1(restaurant.brand_primary_1 ? {
+        card: restaurant.brand_primary_1,
+        accent: restaurant.brand_secondary_1 ?? D_ACCENT,
+        bg: restaurant.brand_bg_1 ?? D_BG,
+        fontColor: restaurant.brand_font_1 ?? D_TEXT,
+      } : null);
+      setBrand2(restaurant.brand_primary_2 ? {
+        card: restaurant.brand_primary_2,
+        accent: restaurant.brand_secondary_2 ?? D_ACCENT,
+        bg: restaurant.brand_bg_2 ?? D_BG,
+        fontColor: restaurant.brand_font_2 ?? D_TEXT,
+      } : null);
     }
     // initialise form fields when modal opens — setState-in-effect is intentional here
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1176,6 +1252,32 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
     } as Partial<Restaurant>);
     setOpen(false);
     onClose?.();
+  };
+
+  const applyBrand = (colors: BrandColors) => {
+    setCard(colors.card); setAccent(colors.accent); setBg(colors.bg); setFontColor(colors.fontColor);
+    setSelectedPreset(null); setColorCustomized(false);
+  };
+
+  const saveBrandSlot = (slot: 1 | 2) => {
+    const colors: BrandColors = { card, accent, bg, fontColor };
+    if (slot === 1) setBrand1(colors); else setBrand2(colors);
+    onSave({
+      [`brand_primary_${slot}`]: card,
+      [`brand_secondary_${slot}`]: accent,
+      [`brand_bg_${slot}`]: bg,
+      [`brand_font_${slot}`]: fontColor,
+    } as Partial<Restaurant>);
+  };
+
+  const clearBrandSlot = (slot: 1 | 2) => {
+    if (slot === 1) setBrand1(null); else setBrand2(null);
+    onSave({
+      [`brand_primary_${slot}`]: null,
+      [`brand_secondary_${slot}`]: null,
+      [`brand_bg_${slot}`]: null,
+      [`brand_font_${slot}`]: null,
+    } as Partial<Restaurant>);
   };
 
   const colors = [
@@ -1225,30 +1327,51 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-7">
-              {/* Preset themes */}
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+
+              {/* LIVE PREVIEW — always at top */}
+              <div className="rounded-xl overflow-hidden border border-[var(--card-border)] shadow-sm" style={{ background: bg || '#faf8f5' }}>
+                <div className="h-9 w-full flex items-center px-3" style={{ background: card }}>
+                  <span className="text-[10px] font-bold truncate" style={{ color: fontColor }}>{name || "Your Restaurant"}</span>
+                </div>
+                <div className="px-3 pt-2 pb-0.5">
+                  <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: fontColor, opacity: 0.5 }}>Mains</p>
+                </div>
+                {[{ n: "Grilled Salmon", d: "Lemon butter, fresh herbs", p: "$24" }, { n: "Pasta Primavera", d: "Fresh vegetables, olive oil", p: "$18" }].map(item => (
+                  <div key={item.n} className="mx-3 mb-2 rounded-lg overflow-hidden flex border" style={{ borderColor: `${fontColor}18`, background: card }}>
+                    <div className="w-10 h-10 flex-shrink-0 bg-gray-200" />
+                    <div className="px-2 py-1.5 flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline gap-1">
+                        <p className="text-[10px] font-semibold truncate" style={{ color: fontColor }}>{item.n}</p>
+                        <p className="text-[10px] font-bold flex-shrink-0" style={{ color: accent }}>{item.p}</p>
+                      </div>
+                      <p className="text-[9px] truncate" style={{ color: `${fontColor}80` }}>{item.d}</p>
+                    </div>
+                  </div>
+                ))}
+                <div className="px-3 pb-2 text-center">
+                  <p className="text-[8px]" style={{ color: `${fontColor}30` }}>Powered by DineLinks</p>
+                </div>
+              </div>
+
+              {/* PRESETS */}
               <section>
-                <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-3">Preset themes</h3>
-                <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
+                <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[#8b6914] mb-3">Presets</h3>
+                <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
                   {PRESET_THEMES.map((preset) => {
                     const isSelected = selectedPreset === preset.name;
                     return (
-                      <button
-                        key={preset.name}
-                        type="button"
+                      <button key={preset.name} type="button"
                         onClick={() => {
-                          setCard(preset.main_color);
-                          setAccent(preset.accent_color);
-                          setBg(preset.background_color);
-                          setFontColor(preset.font_color);
+                          setCard(preset.main_color); setAccent(preset.accent_color);
+                          setBg(preset.background_color); setFontColor(preset.font_color);
                           setFont(FONT_NAME_TO_VALUE[preset.font_family] ?? 'sans');
-                          setSelectedPreset(preset.name);
-                          setColorCustomized(false);
+                          setSelectedPreset(preset.name); setColorCustomized(false);
                         }}
                         className={`relative flex flex-col gap-2 p-3 rounded-xl border text-left transition-all ${
                           isSelected
-                            ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/40 shadow-md"
-                            : "border-[var(--card-border)] hover:border-[var(--accent)]/50 hover:shadow-sm"
+                            ? "border-[#8b6914] ring-2 ring-[#8b6914]/30 shadow-md"
+                            : "border-[var(--card-border)] hover:border-[#8b6914]/40 hover:shadow-sm"
                         }`}
                       >
                         {isSelected && (
@@ -1273,174 +1396,140 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                 </div>
               </section>
 
-              {/* Details */}
+              {/* YOUR BRANDS */}
               <section>
-                <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-4">Restaurant details</h3>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-sans font-medium text-[var(--foreground)] mb-1.5">Restaurant name</label>
-                    <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. La Piazza"
-                      className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium font-sans text-[var(--foreground)] mb-1.5">Logo</label>
-                    <p className="text-xs font-sans text-[var(--muted)] mb-2">PNG with a transparent background works best.</p>
-                    <div className="max-w-[140px]">
-                      <ImageUploader
-                        currentUrl={logoUrl}
-                        onUploaded={(url) => setLogoUrl(url)}
-                        folder="logos"
-                        aspectRatio="square"
-                      />
-                    </div>
-                    {logoUrl && (
-                      <a href={logoUrl} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs font-sans text-[#8b6914] hover:underline inline-block">
-                        View full size ↗
-                      </a>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium font-sans text-[var(--foreground)] mb-1.5">Hero / banner image</label>
-                    <p className="text-xs font-sans text-[var(--muted)] mb-2">Shown across the top of your public menu.</p>
-                    <div className="max-h-[160px] overflow-hidden rounded-lg">
-                      <ImageUploader
-                        currentUrl={heroUrl}
-                        onUploaded={(url) => setHeroUrl(url)}
-                        folder="hero"
-                        aspectRatio="video"
-                      />
-                    </div>
-                    {heroUrl && (
-                      <a href={heroUrl} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs font-sans text-[#8b6914] hover:underline inline-block">
-                        View full size ↗
-                      </a>
-                    )}
-                  </div>
+                <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[#8b6914] mb-3">Your Brands</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <BrandSlot slot={1} colors={brand1} onApply={applyBrand} onSave={() => saveBrandSlot(1)} onClear={() => clearBrandSlot(1)} />
+                  <BrandSlot slot={2} colors={brand2} onApply={applyBrand} onSave={() => saveBrandSlot(2)} onClear={() => clearBrandSlot(2)} />
                 </div>
               </section>
 
-              {/* Colours — each in its own card */}
-              <section>
-                <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-4">Colours</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {colors.map(({ label, value, set }) => (
-                    <div key={label} className="rounded-2xl border border-[var(--card-border)] bg-[var(--background)] p-4 flex flex-col gap-3">
-                      <label className="block text-xs font-semibold text-[var(--muted)]">{label}</label>
-                      <div className="flex items-center gap-3">
-                        <div className="relative flex-shrink-0">
-                          <input type="color" value={value}
-                            onChange={(e) => { set(e.target.value); setColorCustomized(true); }}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                          <div className="w-12 h-12 rounded-xl border-2 border-white shadow-md"
-                            style={{ background: value }} />
-                        </div>
-                        <span className="text-xs font-mono text-[var(--muted)] uppercase tracking-wide">{value}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </section>
+              {/* CUSTOMIZE (collapsible) */}
+              <details className="group">
+                <summary className="flex items-center justify-between cursor-pointer list-none py-1 select-none">
+                  <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[#8b6914]">Customize</h3>
+                  <svg className="w-4 h-4 text-[var(--muted)] transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <div className="mt-4 space-y-6">
 
-              {/* Contrast panel — only shown when user has manually customised colors */}
-              {colorCustomized && (() => {
-                const textOnCard = getContrast(fontColor, card);
-                const textOnBg = getContrast(fontColor, bg);
-                const accentOnBg = getContrast(accent, bg);
-                const lowContrast = textOnCard < 4.5 || textOnBg < 4.5;
-                if (!lowContrast && accentOnBg >= 3.0) return null;
-                return (
-                  <div className="rounded-lg border px-3 py-3 text-xs font-sans -mt-3 bg-amber-50 border-amber-200">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <AlertTriangle size={13} className="text-amber-600 flex-shrink-0" />
-                      <span className="font-semibold text-amber-700">
-                        {lowContrast ? 'Low contrast' : 'Accent contrast below recommended'}
-                      </span>
-                    </div>
-                    <div className="space-y-1">
-                      {[
-                        { label: "Text on card", ratio: textOnCard, min: 4.5 },
-                        { label: "Text on page", ratio: textOnBg, min: 4.5 },
-                        { label: "Accent on page", ratio: accentOnBg, min: 3.0 },
-                      ].filter(p => p.ratio < p.min).map(p => (
-                        <div key={p.label} className="flex items-center justify-between gap-2">
-                          <span className="text-amber-600">{p.label}</span>
-                          <span className="font-mono font-semibold">
-                            {p.ratio.toFixed(1)}:1 <span className="opacity-60 font-normal">(min {p.min}:1)</span>
-                          </span>
+                  {/* Colors */}
+                  <div>
+                    <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest mb-3">Colors</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {colors.map(({ label, value, set }) => (
+                        <div key={label} className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3 flex flex-col gap-2">
+                          <label className="block text-xs font-semibold text-[var(--muted)]">{label}</label>
+                          <div className="flex items-center gap-2">
+                            <div className="relative flex-shrink-0">
+                              <input type="color" value={value}
+                                onChange={(e) => { set(e.target.value); setColorCustomized(true); }}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                              <div className="w-10 h-10 rounded-xl border-2 border-white shadow-md" style={{ background: value }} />
+                            </div>
+                            <span className="text-xs font-mono text-[var(--muted)] uppercase tracking-wide">{value}</span>
+                          </div>
                         </div>
                       ))}
                     </div>
-                  </div>
-                );
-              })()}
-
-              {/* Live preview */}
-              <section>
-                <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-3">Live preview</h3>
-                <div
-                  className="rounded-2xl overflow-hidden border border-[var(--card-border)] shadow-sm"
-                  style={{ background: bg || '#faf8f5' }}
-                >
-                  {/* Mini hero bar */}
-                  <div className="h-10 w-full flex items-center px-3" style={{ background: card }}>
-                    <span className="text-[11px] font-bold truncate" style={{ color: fontColor, fontFamily: FONT_OPTIONS.find(o => o.value === font)?.cls?.includes('font-') ? undefined : 'inherit' }}>
-                      {name || "Your Restaurant"}
-                    </span>
-                  </div>
-                  {/* Category heading */}
-                  <div className="px-3 pt-3 pb-1">
-                    <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: fontColor, opacity: 0.5 }}>Appetizers</p>
-                  </div>
-                  {/* Sample item card */}
-                  {[
-                    { n: "Seared Duck Confit", d: "Slow-cooked duck leg, golden crust", p: "$24" },
-                    { n: "Atlantic Salmon", d: "Pan-seared with lemon butter", p: "$22" },
-                  ].map((item) => (
-                    <div key={item.n} className="mx-3 mb-2 rounded-xl overflow-hidden flex border" style={{ borderColor: `${fontColor}18`, background: card }}>
-                      <div className="w-12 h-12 flex-shrink-0 bg-gray-200" />
-                      <div className="p-2 flex-1 min-w-0">
-                        <div className="flex justify-between items-baseline gap-1">
-                          <p className="text-[11px] font-semibold truncate" style={{ color: fontColor }}>{item.n}</p>
-                          <p className="text-[11px] font-bold flex-shrink-0" style={{ color: accent }}>{item.p}</p>
+                    {colorCustomized && (() => {
+                      const textOnCard = getContrast(fontColor, card);
+                      const textOnBg = getContrast(fontColor, bg);
+                      const accentOnBg = getContrast(accent, bg);
+                      const lowContrast = textOnCard < 4.5 || textOnBg < 4.5;
+                      if (!lowContrast && accentOnBg >= 3.0) return null;
+                      return (
+                        <div className="mt-3 rounded-lg border px-3 py-3 text-xs font-sans bg-amber-50 border-amber-200">
+                          <div className="flex items-center gap-1.5 mb-2">
+                            <AlertTriangle size={13} className="text-amber-600 flex-shrink-0" />
+                            <span className="font-semibold text-amber-700">
+                              {lowContrast ? 'Low contrast' : 'Accent contrast below recommended'}
+                            </span>
+                          </div>
+                          <div className="space-y-1">
+                            {[
+                              { label: "Text on card", ratio: textOnCard, min: 4.5 },
+                              { label: "Text on page", ratio: textOnBg, min: 4.5 },
+                              { label: "Accent on page", ratio: accentOnBg, min: 3.0 },
+                            ].filter(p => p.ratio < p.min).map(p => (
+                              <div key={p.label} className="flex items-center justify-between gap-2">
+                                <span className="text-amber-600">{p.label}</span>
+                                <span className="font-mono font-semibold">
+                                  {p.ratio.toFixed(1)}:1 <span className="opacity-60 font-normal">(min {p.min}:1)</span>
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <p className="text-[9px] mt-0.5 truncate" style={{ color: `${fontColor}80` }}>{item.d}</p>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Font */}
+                  <div>
+                    <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest mb-2">Font</p>
+                    <div className="relative">
+                      <button type="button" onClick={() => setFontOpen((o) => !o)}
+                        className="w-full px-4 py-3 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#8b6914]">
+                        <span className={FONT_OPTIONS.find((o) => o.value === font)?.cls}>
+                          {FONT_OPTIONS.find((o) => o.value === font)?.label ?? "Geist Sans"}
+                        </span>
+                        <svg className={`w-4 h-4 text-[var(--muted)] transition-transform ${fontOpen ? "rotate-180" : ""}`}
+                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      {fontOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-1 py-1 rounded-xl border border-[var(--card-border)] bg-[var(--card)] shadow-xl z-10 max-h-52 overflow-y-auto">
+                          {FONT_OPTIONS.map((opt) => (
+                            <button key={opt.value} type="button"
+                              onClick={() => { setFont(opt.value); setFontOpen(false); }}
+                              className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--card-border)]/40 transition-colors ${opt.cls} ${font === opt.value ? "text-[#8b6914] font-medium" : "text-[var(--foreground)]"}`}>
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Restaurant details */}
+                  <div>
+                    <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest mb-3">Restaurant details</p>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-sans font-medium text-[var(--foreground)] mb-1.5">Restaurant name</label>
+                        <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+                          placeholder="e.g. La Piazza"
+                          className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium font-sans text-[var(--foreground)] mb-1.5">Logo</label>
+                        <p className="text-xs font-sans text-[var(--muted)] mb-2">PNG with a transparent background works best.</p>
+                        <div className="max-w-[140px]">
+                          <ImageUploader currentUrl={logoUrl} onUploaded={(url) => setLogoUrl(url)} folder="logos" aspectRatio="square" />
+                        </div>
+                        {logoUrl && (
+                          <a href={logoUrl} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs font-sans text-[#8b6914] hover:underline inline-block">View full size ↗</a>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium font-sans text-[var(--foreground)] mb-1.5">Hero / banner image</label>
+                        <p className="text-xs font-sans text-[var(--muted)] mb-2">Shown across the top of your public menu.</p>
+                        <div className="max-h-[160px] overflow-hidden rounded-lg">
+                          <ImageUploader currentUrl={heroUrl} onUploaded={(url) => setHeroUrl(url)} folder="hero" aspectRatio="video" />
+                        </div>
+                        {heroUrl && (
+                          <a href={heroUrl} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs font-sans text-[#8b6914] hover:underline inline-block">View full size ↗</a>
+                        )}
                       </div>
                     </div>
-                  ))}
-                  <div className="px-3 pb-3 pt-1 text-center">
-                    <p className="text-[9px]" style={{ color: `${fontColor}30` }}>Powered by DineLinks</p>
                   </div>
-                </div>
-              </section>
 
-              {/* Font */}
-              <section>
-                <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-4">Font</h3>
-                <div className="relative">
-                  <button type="button" onClick={() => setFontOpen((o) => !o)}
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#8b6914]">
-                    <span className={FONT_OPTIONS.find((o) => o.value === font)?.cls}>
-                      {FONT_OPTIONS.find((o) => o.value === font)?.label ?? "Geist Sans"}
-                    </span>
-                    <svg className={`w-4 h-4 text-[var(--muted)] transition-transform ${fontOpen ? "rotate-180" : ""}`}
-                      fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {fontOpen && (
-                    <div className="absolute top-full left-0 right-0 mt-1 py-1 rounded-xl border border-[var(--card-border)] bg-[var(--card)] shadow-xl z-10 max-h-52 overflow-y-auto">
-                      {FONT_OPTIONS.map((opt) => (
-                        <button key={opt.value} type="button"
-                          onClick={() => { setFont(opt.value); setFontOpen(false); }}
-                          className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--card-border)]/40 transition-colors ${opt.cls} ${font === opt.value ? "text-[#8b6914] font-medium" : "text-[var(--foreground)]"}`}>
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              </section>
+              </details>
 
             </div>
             <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)] space-y-3">

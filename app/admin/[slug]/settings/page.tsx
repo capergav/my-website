@@ -1,11 +1,12 @@
-import { redirect } from "next/navigation";
-import type { Metadata } from "next";
-import { createSupabaseServerClient } from "@/app/lib/supabase";
-import { AccountDangerZone } from "../AccountDangerZone";
+export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "Account Settings",
-};
+import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { createSupabaseServerClient } from "@/app/lib/supabase";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { SettingsClient } from "./SettingsClient";
+
+export const metadata: Metadata = { title: "Account Settings — DineLinks" };
 
 export default async function SettingsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -13,25 +14,31 @@ export default async function SettingsPage({ params }: { params: Promise<{ slug:
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/admin/${slug}/settings`);
 
-  return (
-    <main className="min-h-screen px-4 py-12" style={{ background: "#faf8f5" }}>
-      <div className="max-w-lg mx-auto">
-        <div className="mb-8">
-          <a
-            href={`/admin/${slug}`}
-            className="inline-flex items-center gap-1.5 text-sm text-[#6b6560] hover:text-[#2c2a26] transition-colors mb-6"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-            Back to dashboard
-          </a>
-          <h1 className="text-2xl font-serif font-semibold text-[#2c2a26]">Account Settings</h1>
-          <p className="text-sm text-[#6b6560] mt-1">{user.email}</p>
-        </div>
+  const meta = user.user_metadata ?? {};
 
-        <AccountDangerZone />
-      </div>
-    </main>
+  // Subscription info
+  const admin = getSupabaseAdmin();
+  const { data: sub } = await admin
+    .from("subscriptions")
+    .select("status, trial_end")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const trialDaysLeft = sub?.status === "trialing" && sub?.trial_end
+    ? Math.max(0, Math.ceil((new Date(sub.trial_end).getTime() - Date.now()) / 86400000))
+    : null;
+
+  return (
+    <SettingsClient
+      slug={slug}
+      userEmail={user.email ?? ""}
+      displayName={meta.display_name ?? ""}
+      notifyWeeklyAnalytics={meta.notify_weekly_analytics ?? true}
+      notifyTrialEnding={meta.notify_trial_ending ?? true}
+      notifyProductUpdates={meta.notify_product_updates ?? false}
+      defaultLanguage={meta.default_language ?? "en"}
+      subStatus={sub?.status ?? null}
+      trialDaysLeft={trialDaysLeft}
+    />
   );
 }

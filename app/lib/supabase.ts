@@ -44,6 +44,15 @@ export type Restaurant = {
   font_color?: string | null;
   hero_image_url?: string | null;
   logo_url?: string | null;
+  // Brand color slots
+  brand_primary_1?: string | null;
+  brand_secondary_1?: string | null;
+  brand_bg_1?: string | null;
+  brand_font_1?: string | null;
+  brand_primary_2?: string | null;
+  brand_secondary_2?: string | null;
+  brand_bg_2?: string | null;
+  brand_font_2?: string | null;
 };
 
 export type CategoryNote = {
