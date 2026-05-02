@@ -573,39 +573,88 @@ export function AdminMenuEditor({
 
       {/* ── Subscription banners ─────────────────────────────────────────────── */}
       {subStatus === 'trialing' && daysLeftInTrial !== null && (
-        <div className={`border-b border-[#e8e4dd] ${(daysLeftInTrial ?? 1) <= 0 ? 'bg-gradient-to-r from-[#fff8ed] to-[#fff0d6]' : 'bg-gradient-to-r from-[#faf8f5] to-[#f5f1ea]'}`}>
-          <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-                {(daysLeftInTrial ?? 1) > 0 ? (
-                  <>
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#8b6914] opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#8b6914]"></span>
-                  </>
-                ) : (
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#c89b3c]"></span>
-                )}
-              </span>
-              <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2 min-w-0">
-                <span className="text-sm font-semibold text-[#2c2a26]">
-                  {(daysLeftInTrial ?? 1) <= 0 ? 'Trial ended' : 'Free trial'}
-                </span>
-                <span className="text-sm text-[#5a564f]">
-                  {(daysLeftInTrial ?? 1) <= 0
-                    ? 'Subscribe to keep your menu live.'
-                    : <>{<span className={(daysLeftInTrial ?? 60) <= 7 ? 'font-semibold' : ''}>{daysLeftInTrial} days left</span>} of your 60-day trial</>}
-                </span>
+        <div className="px-4 pt-4">
+          <div className={`max-w-7xl mx-auto rounded-2xl border shadow-sm overflow-hidden ${
+            (daysLeftInTrial ?? 1) <= 0
+              ? 'border-[#d4b87a] bg-gradient-to-r from-[#fff8ed] to-[#fef0d6]'
+              : 'border-[#e8e4dd] bg-gradient-to-r from-[#faf8f5] to-[#f5f1ea]'
+          }`}>
+            <div className="px-5 py-4 sm:px-6 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+              {/* Left: dot + text */}
+              <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
+
+                {/* Dot with soft halo */}
+                <div className="relative flex-shrink-0 mt-0.5 sm:mt-0">
+                  <span className={`absolute inset-0 rounded-full scale-[2.2] ${(daysLeftInTrial ?? 1) <= 0 ? 'bg-[#c89b3c]/15' : 'bg-[#8b6914]/15'}`}></span>
+                  <span className="relative flex h-2.5 w-2.5">
+                    {(daysLeftInTrial ?? 1) > 0 ? (
+                      <>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#8b6914] opacity-60"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#8b6914]"></span>
+                      </>
+                    ) : (
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#c89b3c]"></span>
+                    )}
+                  </span>
+                </div>
+
+                {/* Status text */}
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  {(daysLeftInTrial ?? 1) > 0 ? (
+                    <>
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className={`text-[11px] uppercase tracking-[0.12em] font-semibold ${(daysLeftInTrial ?? 60) <= 7 ? 'text-[#b8851e]' : 'text-[#8b6914]'}`}>
+                          Free trial
+                        </span>
+                        <span className="text-[#e8e4dd]" aria-hidden>•</span>
+                        <span className={`text-sm font-semibold ${(daysLeftInTrial ?? 60) <= 7 ? 'text-[#8b6914]' : 'text-[#2c2a26]'}`}>
+                          {daysLeftInTrial} days left
+                        </span>
+                      </div>
+                      <span className="text-sm text-[#5a564f] leading-snug">
+                        Subscribe before your trial ends to keep your menu live.
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-[11px] uppercase tracking-[0.12em] font-semibold text-[#b8851e]">
+                          Trial ended
+                        </span>
+                      </div>
+                      <span className="text-sm text-[#5a564f] leading-snug">
+                        Subscribe now to bring your menu back online.
+                      </span>
+                    </>
+                  )}
+                </div>
+
               </div>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
-              <button
-                onClick={startCheckout}
-                disabled={checkoutLoading}
-                className="bg-[#8b6914] hover:bg-[#6f5310] disabled:opacity-60 disabled:cursor-wait text-[#faf8f5] text-sm font-semibold rounded-lg px-4 h-10 transition-colors inline-flex items-center justify-center gap-2 w-full sm:w-auto"
-              >
-                {checkoutLoading ? 'Redirecting...' : 'Subscribe — $25 CAD/mo'}
-                {!checkoutLoading && <span aria-hidden>→</span>}
-              </button>
+
+              {/* Right: button */}
+              <div className="flex-shrink-0 w-full sm:w-auto">
+                <button
+                  onClick={startCheckout}
+                  disabled={checkoutLoading}
+                  className={`disabled:opacity-60 disabled:cursor-wait text-[#faf8f5] text-sm font-semibold rounded-xl px-5 h-11 transition-colors inline-flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm ${
+                    (daysLeftInTrial ?? 1) <= 0
+                      ? 'bg-[#8b6914] hover:bg-[#6f5310]'
+                      : 'bg-[#2c2a26] hover:bg-[#1f1d1a]'
+                  }`}
+                >
+                  {checkoutLoading ? (
+                    <span>Redirecting…</span>
+                  ) : (
+                    <>
+                      <span>Subscribe</span>
+                      <span className="text-[#faf8f5]/60 font-normal">·</span>
+                      <span className="font-normal">$25 CAD/mo</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
             </div>
           </div>
         </div>
