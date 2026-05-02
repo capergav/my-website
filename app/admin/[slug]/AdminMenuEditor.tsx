@@ -550,7 +550,7 @@ export function AdminMenuEditor({
           </div>
           <h2 className="text-2xl font-serif font-semibold text-[#2c2a26] mb-2">Start your free trial</h2>
           <p className="text-sm text-[#6b6560] mb-6">
-            Get full access to DineLinks for 2 months free, then $25/month. Cancel anytime.
+            Get full access to DineLinks for 2 months free, then $25 CAD/month. Cancel anytime.
           </p>
           <button onClick={startCheckout} disabled={checkoutLoading}
             className="w-full bg-[var(--main-color,#8b6914)] text-white font-semibold py-3.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
@@ -583,6 +583,7 @@ export function AdminMenuEditor({
               <span className={`rounded-full px-3 py-1 text-xs font-medium ${daysLeftInTrial <= 7 ? 'bg-[#8b6914] text-[#faf8f5]' : 'bg-[#2c2a26] text-[#faf8f5]'}`}>
                 {daysLeftInTrial} {daysLeftInTrial === 1 ? 'day' : 'days'} left
               </span>
+              <a href={`/admin/${restaurantSlug}/analytics`} className="text-sm text-[#2c2a26]/60 hover:text-[#2c2a26] underline underline-offset-4 font-medium transition-colors">Analytics</a>
               <a href="/billing" className="text-sm text-[#8b6914] underline underline-offset-4 font-medium">Upgrade</a>
             </div>
           </div>
