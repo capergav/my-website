@@ -9,6 +9,15 @@
   --card-border: #ebe6df;
   /* Optional override from site settings */
   --font-body: var(--font-geist-sans);
+
+  /* Admin-specific brand variables — never overridden by menu theme */
+  --admin-bg: #faf8f5;
+  --admin-fg: #2c2a26;
+  --admin-muted: #5a564f;
+  --admin-border: #e8e4dd;
+  --admin-accent: #8b6914;
+  --admin-accent-fg: #faf8f5;
+  --admin-card: #ffffff;
 }
 
 @theme inline {

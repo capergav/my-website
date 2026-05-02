@@ -572,19 +572,40 @@ export function AdminMenuEditor({
     <main className={`min-h-screen bg-[var(--background)] text-[var(--foreground)] ${showTrialExpiredOverlay ? 'pointer-events-none grayscale opacity-60' : ''}`}>
 
       {/* ── Subscription banners ─────────────────────────────────────────────── */}
-      {subStatus === 'trialing' && daysLeftInTrial !== null && daysLeftInTrial > 0 && (
-        <div className="border-l-[3px] border-[#8b6914] bg-[#faf8f5] shadow-sm rounded-lg mx-4 mt-3">
-          <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-            <div>
-              <span className="text-[10px] uppercase tracking-widest text-[#8b6914] font-semibold mr-3">Trial</span>
-              <span className="text-sm text-[#2c2a26]">You&apos;re on a free 2-month trial of DineLinks.</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={`rounded-full px-3 py-1 text-xs font-medium ${daysLeftInTrial <= 7 ? 'bg-[#8b6914] text-[#faf8f5]' : 'bg-[#2c2a26] text-[#faf8f5]'}`}>
-                {daysLeftInTrial} {daysLeftInTrial === 1 ? 'day' : 'days'} left
+      {subStatus === 'trialing' && daysLeftInTrial !== null && (
+        <div className={`border-b border-[#e8e4dd] ${(daysLeftInTrial ?? 1) <= 0 ? 'bg-gradient-to-r from-[#fff8ed] to-[#fff0d6]' : 'bg-gradient-to-r from-[#faf8f5] to-[#f5f1ea]'}`}>
+          <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                {(daysLeftInTrial ?? 1) > 0 ? (
+                  <>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#8b6914] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#8b6914]"></span>
+                  </>
+                ) : (
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#c89b3c]"></span>
+                )}
               </span>
-              <a href={`/admin/${restaurantSlug}/analytics`} className="text-sm text-[#2c2a26]/60 hover:text-[#2c2a26] underline underline-offset-4 font-medium transition-colors">Analytics</a>
-              <a href="/billing" className="text-sm text-[#8b6914] underline underline-offset-4 font-medium">Upgrade</a>
+              <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-2 min-w-0">
+                <span className="text-sm font-semibold text-[#2c2a26]">
+                  {(daysLeftInTrial ?? 1) <= 0 ? 'Trial ended' : 'Free trial'}
+                </span>
+                <span className="text-sm text-[#5a564f]">
+                  {(daysLeftInTrial ?? 1) <= 0
+                    ? 'Subscribe to keep your menu live.'
+                    : <>{<span className={(daysLeftInTrial ?? 60) <= 7 ? 'font-semibold' : ''}>{daysLeftInTrial} days left</span>} of your 60-day trial</>}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto">
+              <button
+                onClick={startCheckout}
+                disabled={checkoutLoading}
+                className="bg-[#8b6914] hover:bg-[#6f5310] disabled:opacity-60 disabled:cursor-wait text-[#faf8f5] text-sm font-semibold rounded-lg px-4 h-10 transition-colors inline-flex items-center justify-center gap-2 w-full sm:w-auto"
+              >
+                {checkoutLoading ? 'Redirecting...' : 'Subscribe — $25 CAD/mo'}
+                {!checkoutLoading && <span aria-hidden>→</span>}
+              </button>
             </div>
           </div>
         </div>
@@ -673,7 +694,7 @@ export function AdminMenuEditor({
           >
             ?
           </button>
-          <ThemeModal restaurant={restaurant} onSave={handleSaveTheme} saving={saving} tourTarget="theme-btn-desktop" />
+          <ThemeModal restaurant={restaurant} onSave={handleSaveTheme} saving={saving} tourTarget="tour-theme" />
           <button
             type="button"
             onClick={handleBilling}
@@ -706,7 +727,7 @@ export function AdminMenuEditor({
             QR Code
           </button>
           <a
-            data-tour="view-menu-desktop"
+            data-tour="tour-view-menu"
             href={`/menu/${restaurantSlug}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -719,12 +740,14 @@ export function AdminMenuEditor({
             </svg>
           </a>
           <button
+            data-tour="tour-signout"
             type="button" onClick={handleSignOut}
             className="min-h-[40px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium border border-white/20 transition-colors"
           >
             Sign out
           </button>
           <a
+            data-tour="tour-settings"
             href={`/admin/${restaurantSlug}/settings`}
             title="Account settings"
             className="min-h-[40px] w-10 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm border border-white/20 flex items-center justify-center transition-colors"
@@ -757,7 +780,7 @@ export function AdminMenuEditor({
               style={{ background: "transparent" }} />
           )}
           <p className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-0.5">Admin Panel</p>
-          <h1 className="font-serif text-3xl font-semibold text-white drop-shadow-md">
+          <h1 data-tour="tour-restaurant-name" className="font-serif text-3xl font-semibold text-white drop-shadow-md">
             {restaurant?.name ?? "Your Restaurant"}
           </h1>
         </div>
@@ -854,7 +877,7 @@ export function AdminMenuEditor({
           <h3 className="text-xl font-semibold text-[var(--foreground)] font-serif">No categories yet</h3>
           <p className="text-sm text-[var(--muted)] mt-2 max-w-xs">Start by creating a category (e.g. &ldquo;Mains&rdquo;), then add items to it.</p>
           <button type="button" onClick={() => setShowCategoryModal(true)}
-            className="mt-6 bg-[var(--main-color)] text-white font-semibold rounded-xl px-6 py-3 hover:opacity-90 transition-opacity flex items-center gap-2">
+            className="mt-6 bg-[var(--admin-accent)] text-[var(--admin-accent-fg)] font-semibold rounded-xl px-6 py-3 hover:opacity-90 transition-opacity flex items-center gap-2">
             <Plus size={16} /> Add first category
           </button>
         </div>
@@ -863,7 +886,7 @@ export function AdminMenuEditor({
       {!isEmpty && (
         <>
           {/* Category tabs — draggable + clickable */}
-          <div className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
+          <div data-tour="tour-categories" className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
             <div className="max-w-4xl mx-auto px-3 sm:px-6">
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
                 <SortableContext items={sortedCategories} strategy={horizontalListSortingStrategy}>
@@ -876,7 +899,7 @@ export function AdminMenuEditor({
                           onClick={() => setActiveCategory(cat)}
                           className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all select-none font-sans ${
                             activeCategory === cat
-                              ? "bg-[var(--main-color)] text-white shadow-sm"
+                              ? "bg-[var(--admin-accent)] text-[var(--admin-accent-fg)] shadow-sm"
                               : "bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted)] hover:text-[var(--foreground)]"
                           }`}>
                           {cat}
@@ -888,7 +911,7 @@ export function AdminMenuEditor({
                       type="button"
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => setShowCategoryModal(true)}
-                      className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold font-sans text-[var(--main-color)] border-2 border-dashed border-[var(--main-color)]/30 rounded-xl px-3 py-1.5 hover:bg-[var(--main-color)]/5 transition-colors">
+                      className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold font-sans text-[var(--admin-accent)] border-2 border-dashed border-[var(--admin-accent)]/30 rounded-xl px-3 py-1.5 hover:bg-[var(--admin-accent)]/5 transition-colors">
                       <Plus size={14} /> Add category
                     </button>
                     <button
@@ -913,9 +936,9 @@ export function AdminMenuEditor({
           <div data-tour="menu-area" className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
             <div className="flex justify-between items-center mb-5">
               <h2 className="font-serif text-xl sm:text-2xl font-semibold">{activeCategory}</h2>
-              <motion.button data-tour="add-item" type="button"
+              <motion.button data-tour="tour-add-item" type="button"
                 onClick={() => { setAddingNew(true); setEditingItem(null); }}
-                className="px-4 py-2 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity shadow-sm"
+                className="px-4 py-2 rounded-xl bg-[var(--admin-accent)] text-[var(--admin-accent-fg)] font-medium text-sm hover:opacity-90 transition-opacity shadow-sm"
                 whileTap={{ scale: 0.96 }}
                 transition={{ duration: 0.1 }}
               >
