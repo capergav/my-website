@@ -90,7 +90,7 @@ export function OnboardingTour({
 }) {
   const [step, setStep]           = useState(0);
   const [visible, setVisible]     = useState(false);
-  const [opacity, setOpacity]     = useState(0);
+  const opacity = 1;
   const [spotlight, setSpotlight] = useState<SpotRect | null>(null);
 
   const tokenRef = useRef<{ cancelled: boolean }>({ cancelled: false });
@@ -127,7 +127,6 @@ export function OnboardingTour({
       // No target — full-dim overlay, tooltip centered bottom
       if (token.cancelled) return;
       setSpotlight(null);
-      setOpacity(1);
       return;
     }
 
@@ -146,11 +145,6 @@ export function OnboardingTour({
       return;
     }
 
-    // Fade out before repositioning spotlight
-    setOpacity(0);
-    await new Promise<void>((r) => setTimeout(r, 150));
-    if (token.cancelled) return;
-
     // Scroll target into upper third of viewport
     const el = document.querySelector(s.selector);
     if (el) {
@@ -163,10 +157,7 @@ export function OnboardingTour({
 
     // Re-measure after scroll
     const rect = getVisibleRect(s.selector);
-    if (!rect || token.cancelled) {
-      setOpacity(1);
-      return;
-    }
+    if (!rect || token.cancelled) return;
 
     setSpotlight({
       top:    rect.top    - PAD,
@@ -174,8 +165,6 @@ export function OnboardingTour({
       width:  rect.width  + PAD * 2,
       height: rect.height + PAD * 2,
     });
-
-    if (!token.cancelled) setOpacity(1);
   }, []);
 
   useEffect(() => {

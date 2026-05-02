@@ -1466,9 +1466,11 @@ function TrialPill({ daysLeft, onSubscribe, loading }: { daysLeft: number | null
   const isExpired = daysLeft <= 0;
   const isUrgent  = daysLeft <= 7 && !isExpired;
 
-  const bg     = isExpired ? 'bg-[#c89b3c]' : isUrgent ? 'bg-[#b8851e]' : 'bg-white/20';
-  const hover  = isExpired ? 'hover:bg-[#b8851e]' : isUrgent ? 'hover:bg-[#a07418]' : 'hover:bg-white/30';
-  const border = isExpired || isUrgent ? 'border-transparent' : 'border-white/40';
+  const bg = isExpired
+    ? 'bg-[#c89b3c] hover:bg-[#b8851e]'
+    : isUrgent
+    ? 'bg-[#b8851e] hover:bg-[#a07418]'
+    : 'bg-[#8b6914] hover:bg-[#6f5310]';
 
   const label = isExpired
     ? 'Trial ended — Subscribe'
@@ -1482,7 +1484,7 @@ function TrialPill({ daysLeft, onSubscribe, loading }: { daysLeft: number | null
       title={isExpired
         ? 'Your trial has ended. Subscribe to keep your menu live.'
         : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left in your free trial`}
-      className={`min-h-[44px] px-3.5 py-2 rounded-xl ${bg} ${hover} text-white font-medium text-sm border ${border} inline-flex items-center gap-2 disabled:opacity-60 transition-colors`}
+      className={`min-h-[44px] px-3.5 py-2 rounded-xl ${bg} text-white font-medium text-sm border border-transparent inline-flex items-center gap-2 disabled:opacity-60 transition-colors`}
     >
       <span className="relative flex h-2 w-2 flex-shrink-0">
         {!isExpired && (
@@ -1503,7 +1505,7 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
         <span className={`text-xs font-sans transition-colors ${checked ? "text-[#8b6914] font-semibold" : "text-[var(--muted)]"}`}>{checked ? "On" : "Off"}</span>
         <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
           className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#8b6914] focus:ring-offset-2 ${checked ? "bg-[#8b6914]" : "bg-gray-200"}`}>
-          <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-all duration-200 mt-0.5 ml-0.5 ${checked ? "translate-x-5" : "translate-x-0"}`} />
+          <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform mt-0.5 ml-0.5 ${checked ? "translate-x-[18px]" : "translate-x-0"}`} />
         </button>
       </div>
     </div>

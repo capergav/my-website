@@ -74,7 +74,20 @@ export default async function AdminSlugPage({ params }: Props) {
     case "cinzel":   fontFamily = "var(--font-cinzel), serif"; break;
   }
 
-  const themeStyle = `:root{--foreground:${fontColor};--accent:${accent};--background:${bg};--card:${card};}body{color:var(--foreground);font-family:${fontFamily};}`;
+  const themeStyle = `
+    :root {
+      --foreground: ${fontColor};
+      --accent: ${accent};
+      --background: ${bg};
+      --card: ${card};
+      --card-border: #e8e4dd;
+      --muted: #5a564f;
+    }
+    body {
+      color: var(--foreground);
+      font-family: ${fontFamily};
+    }
+  `;
 
   return (
     <>
