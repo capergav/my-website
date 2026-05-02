@@ -572,93 +572,6 @@ export function AdminMenuEditor({
     <main className={`min-h-screen bg-[var(--background)] text-[var(--foreground)] ${showTrialExpiredOverlay ? 'pointer-events-none grayscale opacity-60' : ''}`}>
 
       {/* ── Subscription banners ─────────────────────────────────────────────── */}
-      {subStatus === 'trialing' && daysLeftInTrial !== null && (
-        <div className="px-4 pt-4">
-          <div className={`max-w-7xl mx-auto rounded-2xl border shadow-sm overflow-hidden ${
-            (daysLeftInTrial ?? 1) <= 0
-              ? 'border-[#d4b87a] bg-gradient-to-r from-[#fff8ed] to-[#fef0d6]'
-              : 'border-[#e8e4dd] bg-gradient-to-r from-[#faf8f5] to-[#f5f1ea]'
-          }`}>
-            <div className="px-5 py-4 sm:px-6 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-
-              {/* Left: dot + text */}
-              <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
-
-                {/* Dot with soft halo */}
-                <div className="relative flex-shrink-0 mt-0.5 sm:mt-0">
-                  <span className={`absolute inset-0 rounded-full scale-[2.2] ${(daysLeftInTrial ?? 1) <= 0 ? 'bg-[#c89b3c]/15' : 'bg-[#8b6914]/15'}`}></span>
-                  <span className="relative flex h-2.5 w-2.5">
-                    {(daysLeftInTrial ?? 1) > 0 ? (
-                      <>
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#8b6914] opacity-60"></span>
-                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#8b6914]"></span>
-                      </>
-                    ) : (
-                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#c89b3c]"></span>
-                    )}
-                  </span>
-                </div>
-
-                {/* Status text */}
-                <div className="flex flex-col gap-0.5 min-w-0">
-                  {(daysLeftInTrial ?? 1) > 0 ? (
-                    <>
-                      <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className={`text-[11px] uppercase tracking-[0.12em] font-semibold ${(daysLeftInTrial ?? 60) <= 7 ? 'text-[#b8851e]' : 'text-[#8b6914]'}`}>
-                          Free trial
-                        </span>
-                        <span className="text-[#e8e4dd]" aria-hidden>•</span>
-                        <span className={`text-sm font-semibold ${(daysLeftInTrial ?? 60) <= 7 ? 'text-[#8b6914]' : 'text-[#2c2a26]'}`}>
-                          {daysLeftInTrial} days left
-                        </span>
-                      </div>
-                      <span className="text-sm text-[#5a564f] leading-snug">
-                        Subscribe before your trial ends to keep your menu live.
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className="text-[11px] uppercase tracking-[0.12em] font-semibold text-[#b8851e]">
-                          Trial ended
-                        </span>
-                      </div>
-                      <span className="text-sm text-[#5a564f] leading-snug">
-                        Subscribe now to bring your menu back online.
-                      </span>
-                    </>
-                  )}
-                </div>
-
-              </div>
-
-              {/* Right: button */}
-              <div className="flex-shrink-0 w-full sm:w-auto">
-                <button
-                  onClick={startCheckout}
-                  disabled={checkoutLoading}
-                  className={`disabled:opacity-60 disabled:cursor-wait text-[#faf8f5] text-sm font-semibold rounded-xl px-5 h-11 transition-colors inline-flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm ${
-                    (daysLeftInTrial ?? 1) <= 0
-                      ? 'bg-[#8b6914] hover:bg-[#6f5310]'
-                      : 'bg-[#2c2a26] hover:bg-[#1f1d1a]'
-                  }`}
-                >
-                  {checkoutLoading ? (
-                    <span>Redirecting…</span>
-                  ) : (
-                    <>
-                      <span>Subscribe</span>
-                      <span className="text-[#faf8f5]/60 font-normal">·</span>
-                      <span className="font-normal">$25 CAD/mo</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      )}
       {subStatus === 'past_due' && (
         <div className="bg-red-50 border-b border-red-200 px-4 py-2.5 flex items-center justify-between gap-3">
           <span className="text-sm text-red-900 flex items-center gap-2">
@@ -734,6 +647,9 @@ export function AdminMenuEditor({
 
         {/* Desktop action row */}
         <div className="hidden sm:flex absolute top-4 end-4 items-center gap-2 z-20">
+          {subStatus === 'trialing' && (
+            <TrialPill daysLeft={daysLeftInTrial} onSubscribe={startCheckout} loading={checkoutLoading} />
+          )}
           <button
             data-tour="settings-btn"
             type="button"
@@ -1215,6 +1131,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
   const [logoUrl, setLogoUrl]             = useState("");
   const [fontOpen, setFontOpen]           = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [colorCustomized, setColorCustomized] = useState(false);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => {
@@ -1229,6 +1146,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       setLogoUrl((restaurant as Restaurant & { logo_url?: string | null }).logo_url ?? "");
       setFontOpen(false);
       setSelectedPreset(null);
+      setColorCustomized(false);
     }
     // initialise form fields when modal opens — setState-in-effect is intentional here
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1314,6 +1232,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                           setFontColor(preset.font_color);
                           setFont(FONT_NAME_TO_VALUE[preset.font_family] ?? 'sans');
                           setSelectedPreset(preset.name);
+                          setColorCustomized(false);
                         }}
                         className={`relative flex flex-col gap-2 p-3 rounded-xl border text-left transition-all ${
                           isSelected
@@ -1400,7 +1319,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                       <div className="flex items-center gap-3">
                         <div className="relative flex-shrink-0">
                           <input type="color" value={value}
-                            onChange={(e) => set(e.target.value)}
+                            onChange={(e) => { set(e.target.value); setColorCustomized(true); }}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                           <div className="w-12 h-12 rounded-xl border-2 border-white shadow-md"
                             style={{ background: value }} />
@@ -1412,30 +1331,29 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                 </div>
               </section>
 
-              {/* Contrast panel */}
-              {(() => {
+              {/* Contrast panel — only shown when user has manually customised colors */}
+              {colorCustomized && (() => {
                 const textOnCard = getContrast(fontColor, card);
                 const textOnBg = getContrast(fontColor, bg);
                 const accentOnBg = getContrast(accent, bg);
-                const criticalFail = textOnCard < 4.5 || textOnBg < 4.5;
-                const pairs = [
-                  { label: "Text on card", ratio: textOnCard, min: 4.5 },
-                  { label: "Text on page", ratio: textOnBg, min: 4.5 },
-                  { label: "Accent on page", ratio: accentOnBg, min: 3.0 },
-                ];
-                if (!criticalFail && accentOnBg >= 3.0) return null;
+                const lowContrast = textOnCard < 4.5 || textOnBg < 4.5;
+                if (!lowContrast && accentOnBg >= 3.0) return null;
                 return (
-                  <div className={`rounded-lg border px-3 py-3 text-xs font-sans -mt-3 ${criticalFail ? 'bg-red-50 border-red-200' : 'bg-amber-50 border-amber-200'}`}>
+                  <div className="rounded-lg border px-3 py-3 text-xs font-sans -mt-3 bg-amber-50 border-amber-200">
                     <div className="flex items-center gap-1.5 mb-2">
-                      <AlertTriangle size={13} className={criticalFail ? 'text-red-600 flex-shrink-0' : 'text-amber-600 flex-shrink-0'} />
-                      <span className={`font-semibold ${criticalFail ? 'text-red-700' : 'text-amber-700'}`}>
-                        {criticalFail ? 'Low contrast — customers may struggle to read the menu' : 'Accent contrast below recommended'}
+                      <AlertTriangle size={13} className="text-amber-600 flex-shrink-0" />
+                      <span className="font-semibold text-amber-700">
+                        {lowContrast ? 'Low contrast' : 'Accent contrast below recommended'}
                       </span>
                     </div>
                     <div className="space-y-1">
-                      {pairs.filter(p => p.ratio < p.min).map(p => (
+                      {[
+                        { label: "Text on card", ratio: textOnCard, min: 4.5 },
+                        { label: "Text on page", ratio: textOnBg, min: 4.5 },
+                        { label: "Accent on page", ratio: accentOnBg, min: 3.0 },
+                      ].filter(p => p.ratio < p.min).map(p => (
                         <div key={p.label} className="flex items-center justify-between gap-2">
-                          <span className={criticalFail ? 'text-red-600' : 'text-amber-600'}>{p.label}</span>
+                          <span className="text-amber-600">{p.label}</span>
                           <span className="font-mono font-semibold">
                             {p.ratio.toFixed(1)}:1 <span className="opacity-60 font-normal">(min {p.min}:1)</span>
                           </span>
@@ -1514,21 +1432,21 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
               </section>
 
             </div>
-            <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)]">
-              {(() => {
-                const contrastBlocked = getContrast(fontColor, card) < 4.5 || getContrast(fontColor, bg) < 4.5;
-                return (
-                  <>
-                    <button type="button" onClick={save} disabled={saving || contrastBlocked}
-                      className="font-sans w-full py-3.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity shadow-sm">
-                      {saving ? "Saving…" : "Save theme"}
-                    </button>
-                    {contrastBlocked && (
-                      <p className="text-xs font-sans text-red-600 text-center mt-2">Fix text contrast before saving</p>
-                    )}
-                  </>
-                );
-              })()}
+            <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)] space-y-3">
+              {colorCustomized && (getContrast(fontColor, card) < 4.5 || getContrast(fontColor, bg) < 4.5) && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-[#fff8ed] border border-[#f0d89b]">
+                  <svg className="w-5 h-5 text-[#b8851e] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                  <div className="text-sm text-[#5a564f] font-sans">
+                    <strong className="text-[#2c2a26]">Low contrast.</strong> Customers may have trouble reading your menu, but you can still save these colors if you like the look.
+                  </div>
+                </div>
+              )}
+              <button type="button" onClick={save} disabled={saving}
+                className="font-sans w-full py-3.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity shadow-sm">
+                {saving ? "Saving…" : "Save theme"}
+              </button>
             </div>
           </div>
         </div>
@@ -1540,6 +1458,41 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 // Alias for mobile sheet (sheetMode=true)
 function SheetThemeButton(props: Omit<ThemeModalProps, "sheetMode"> & { tourTarget?: string }) {
   return <ThemeModal {...props} sheetMode />;
+}
+
+function TrialPill({ daysLeft, onSubscribe, loading }: { daysLeft: number | null; onSubscribe: () => void; loading: boolean }) {
+  if (daysLeft === null) return null;
+
+  const isExpired = daysLeft <= 0;
+  const isUrgent  = daysLeft <= 7 && !isExpired;
+
+  const bg     = isExpired ? 'bg-[#c89b3c]' : isUrgent ? 'bg-[#b8851e]' : 'bg-white/20';
+  const hover  = isExpired ? 'hover:bg-[#b8851e]' : isUrgent ? 'hover:bg-[#a07418]' : 'hover:bg-white/30';
+  const border = isExpired || isUrgent ? 'border-transparent' : 'border-white/40';
+
+  const label = isExpired
+    ? 'Trial ended — Subscribe'
+    : `${daysLeft}d left — Subscribe`;
+
+  return (
+    <button
+      type="button"
+      onClick={onSubscribe}
+      disabled={loading}
+      title={isExpired
+        ? 'Your trial has ended. Subscribe to keep your menu live.'
+        : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left in your free trial`}
+      className={`min-h-[44px] px-3.5 py-2 rounded-xl ${bg} ${hover} text-white font-medium text-sm border ${border} inline-flex items-center gap-2 disabled:opacity-60 transition-colors`}
+    >
+      <span className="relative flex h-2 w-2 flex-shrink-0">
+        {!isExpired && (
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-50" />
+        )}
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+      </span>
+      <span>{loading ? 'Redirecting…' : label}</span>
+    </button>
+  );
 }
 
 function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
