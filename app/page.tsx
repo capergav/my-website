@@ -1041,21 +1041,20 @@ export default function HomePage() {
                   <span style={{ fontFamily: "Georgia, serif" }} className="text-white text-lg font-semibold">The Copper Table</span>
                 </div>
               </div>
-              {/* Action buttons top-right */}
-              <div className="absolute top-3 right-3 flex gap-1.5">
-                <span className="bg-white/10 text-white text-[11px] px-2.5 py-1.5 rounded-lg border border-white/20 font-medium flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg>
-                  Theme
+              {/* Action buttons top-right — trial pill + hamburger menu */}
+              <div className="absolute top-3 right-3 flex items-center gap-2">
+                <span className="bg-[#8b6914] text-white text-[11px] px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white opacity-90" />
+                  14d left
                 </span>
-                <span className="bg-white/10 text-white text-[11px] px-2.5 py-1.5 rounded-lg border border-white/20 font-medium flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/><rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/><rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 14h3v3m4-3v3m-4 4h7"/></svg>
-                  QR Code
+                <span className="bg-white/20 text-white text-[11px] px-2.5 py-1.5 rounded-lg border border-white/40 font-medium flex items-center gap-1.5">
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="3" y1="6" x2="21" y2="6" strokeLinecap="round" />
+                    <line x1="3" y1="12" x2="21" y2="12" strokeLinecap="round" />
+                    <line x1="3" y1="18" x2="21" y2="18" strokeLinecap="round" />
+                  </svg>
+                  Menu
                 </span>
-                <span className="bg-white/10 text-white text-[11px] px-2.5 py-1.5 rounded-lg border border-white/20 font-medium flex items-center gap-1">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                  View menu
-                </span>
-                <span className="bg-white/10 text-white text-[11px] px-2.5 py-1.5 rounded-lg border border-white/20 font-medium">Sign out</span>
               </div>
             </div>
 

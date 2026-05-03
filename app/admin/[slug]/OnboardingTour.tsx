@@ -15,7 +15,7 @@ const STEPS: Step[] = [
     id: "welcome",
     selector: null,
     title: "Welcome to DineLinks",
-    body: "This 60-second tour shows you how to manage your menu. You can replay it anytime by clicking the ? button in the header.",
+    body: "This 60-second tour shows you how to manage your menu. You can replay it anytime from the Menu button in the header.",
   },
   {
     id: "restaurant-name",
@@ -24,16 +24,10 @@ const STEPS: Step[] = [
     body: "This is what customers see at the top of your menu. Update it in Settings if you need to change it.",
   },
   {
-    id: "theme",
-    selector: "[data-tour='tour-theme']",
-    title: "Customize your look",
-    body: "Pick a color theme and font that match your restaurant. Changes show up instantly on your live menu.",
-  },
-  {
-    id: "view-menu",
-    selector: "[data-tour='tour-view-menu']",
-    title: "See your live menu",
-    body: "Opens your public menu in a new tab — exactly what customers see when they scan your QR code.",
+    id: "menu",
+    selector: "[data-tour='tour-menu']",
+    title: "Admin menu",
+    body: "Tap here to open theme settings, view your live menu, manage your account, replay this tour, or sign out.",
   },
   {
     id: "categories",
@@ -46,18 +40,6 @@ const STEPS: Step[] = [
     selector: "[data-tour='tour-add-item']",
     title: "Add menu items",
     body: "Click '+ Add item' to add a dish to the active category. Include a name, price, description, photo, and dietary tags.",
-  },
-  {
-    id: "settings",
-    selector: "[data-tour='tour-settings']",
-    title: "Account settings",
-    body: "Manage your account, restaurant info, and billing here. Account deletion lives here too.",
-  },
-  {
-    id: "signout",
-    selector: "[data-tour='tour-signout']",
-    title: "Sign out safely",
-    body: "Your menu stays live even when you're signed out. Customers can scan and view it 24/7.",
   },
   {
     id: "done",

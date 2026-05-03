@@ -285,6 +285,7 @@ export function AdminMenuEditor({
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [hasCompletedTour, setHasCompletedTour] = useState(true); // default true: don't flash tour before we know
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [themeOpen, setThemeOpen] = useState(false);
 
 
   const refreshMenuRef = useRef<(() => Promise<void>) | null>(null);
@@ -650,79 +651,23 @@ export function AdminMenuEditor({
           {subStatus === 'trialing' && (
             <TrialPill daysLeft={daysLeftInTrial} onSubscribe={startCheckout} loading={checkoutLoading} />
           )}
-          <button
-            data-tour="settings-btn"
-            type="button"
-            onClick={() => setTourKey((k) => k + 1)}
-            title="Reopen tour"
-            className="min-h-[40px] w-10 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-bold border border-white/20 flex items-center justify-center transition-colors"
-          >
-            ?
-          </button>
-          <ThemeModal restaurant={restaurant} onSave={handleSaveTheme} saving={saving} tourTarget="tour-theme" />
-          <button
-            type="button"
-            onClick={handleBilling}
-            disabled={checkoutLoading}
-            className="min-h-[40px] px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-medium border border-white/25 flex items-center gap-1.5 transition-colors disabled:opacity-50"
-          >
-            <CreditCard size={16} /> {billingLabel}
-          </button>
-          <a
-            href={`/admin/${restaurantSlug}/analytics`}
-            className="min-h-[40px] px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-medium border border-white/25 flex items-center gap-1.5 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-            Analytics
-          </a>
-          <button
-            data-tour="qr-btn"
-            type="button"
-            onClick={() => setShowQR(true)}
-            className="min-h-[40px] px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-medium border border-white/25 flex items-center gap-1.5 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/>
-              <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/>
-              <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 14h3v3m4-3v3m-4 4h7"/>
-            </svg>
-            QR Code
-          </button>
-          <a
-            data-tour="tour-view-menu"
-            href={`/menu/${restaurantSlug}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="min-h-[40px] px-4 py-2 rounded-xl bg-white/15 hover:bg-white/25 text-white text-sm font-medium border border-white/25 inline-flex items-center gap-1.5 transition-colors"
-          >
-            View menu
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-          </a>
-          <button
-            data-tour="tour-signout"
-            type="button" onClick={handleSignOut}
-            className="min-h-[40px] px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm font-medium border border-white/20 transition-colors"
-          >
-            Sign out
-          </button>
-          <a
-            data-tour="tour-settings"
-            href={`/admin/${restaurantSlug}/settings`}
-            title="Account settings"
-            className="min-h-[40px] w-10 rounded-xl bg-white/10 hover:bg-white/20 text-white text-sm border border-white/20 flex items-center justify-center transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </a>
+          <AdminMenuPanel
+            onOpenTheme={() => setThemeOpen(true)}
+            onReplayTour={() => setTourKey((k) => k + 1)}
+            onSignOut={handleSignOut}
+            onOpenQR={() => setShowQR(true)}
+            restaurantSlug={restaurantSlug}
+          />
         </div>
+        <ThemeModal
+          restaurant={restaurant}
+          onSave={handleSaveTheme}
+          saving={saving}
+          noTrigger
+          externalOpen={themeOpen}
+          onExternalClose={() => setThemeOpen(false)}
+          tourTarget="tour-theme"
+        />
 
         {/* Mobile: centred branding */}
         <div className="sm:hidden absolute inset-x-0 bottom-0 flex flex-col items-center text-center px-4 pb-4 z-10">
@@ -1188,10 +1133,15 @@ type ThemeModalProps = {
   sheetMode?: boolean;
   onClose?: () => void;
   tourTarget?: string;
+  noTrigger?: boolean;
+  externalOpen?: boolean;
+  onExternalClose?: () => void;
 };
 
-function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget }: ThemeModalProps) {
-  const [open, setOpen]                   = useState(false);
+function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget, noTrigger, externalOpen, onExternalClose }: ThemeModalProps) {
+  const [internalOpen, setInternalOpen]   = useState(false);
+  const open = externalOpen !== undefined ? externalOpen : internalOpen;
+  const setOpen = (val: boolean) => { setInternalOpen(val); if (!val) onExternalClose?.(); };
   const [card, setCard]                   = useState(D_CARD);
   const [accent, setAccent]               = useState(D_ACCENT);
   const [bg, setBg]                       = useState(D_BG);
@@ -1309,7 +1259,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 
   return (
     <>
-      {trigger}
+      {!noTrigger && trigger}
       {open && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
           style={{ animation: 'fadeIn 0.15s ease-out' }}>
@@ -1558,6 +1508,134 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 // Alias for mobile sheet (sheetMode=true)
 function SheetThemeButton(props: Omit<ThemeModalProps, "sheetMode"> & { tourTarget?: string }) {
   return <ThemeModal {...props} sheetMode />;
+}
+
+function AdminMenuPanel({
+  onOpenTheme,
+  onReplayTour,
+  onSignOut,
+  onOpenQR,
+  restaurantSlug,
+}: {
+  onOpenTheme: () => void;
+  onReplayTour: () => void;
+  onSignOut: () => void;
+  onOpenQR: () => void;
+  restaurantSlug: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    if (open) document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        data-tour="tour-menu"
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-label="Open menu"
+        className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-medium text-sm border border-white/40 inline-flex items-center gap-2 transition-colors"
+      >
+        <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <line x1="3" y1="6" x2="21" y2="6" strokeLinecap="round" />
+          <line x1="3" y1="12" x2="21" y2="12" strokeLinecap="round" />
+          <line x1="3" y1="18" x2="21" y2="18" strokeLinecap="round" />
+        </svg>
+        <span className="hidden sm:inline">Menu</span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full mt-2 w-64 rounded-xl bg-[var(--card)] border border-[var(--card-border)] shadow-xl overflow-hidden z-50">
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onOpenTheme(); }}
+            className="w-full text-left px-4 py-3 text-sm text-[var(--foreground)] hover:bg-[var(--card-border)]/50 flex items-center gap-3 transition-colors"
+          >
+            <svg className="w-4 h-4 text-[var(--muted)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+            </svg>
+            Theme &amp; branding
+          </button>
+          <a
+            href={`/menu/${restaurantSlug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            className="w-full text-left px-4 py-3 text-sm text-[var(--foreground)] hover:bg-[var(--card-border)]/50 flex items-center gap-3 transition-colors"
+          >
+            <svg className="w-4 h-4 text-[var(--muted)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            View live menu
+          </a>
+          <button
+            data-tour="qr-btn"
+            type="button"
+            onClick={() => { setOpen(false); onOpenQR(); }}
+            className="w-full text-left px-4 py-3 text-sm text-[var(--foreground)] hover:bg-[var(--card-border)]/50 flex items-center gap-3 transition-colors"
+          >
+            <svg className="w-4 h-4 text-[var(--muted)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/>
+              <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/>
+              <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 14h3v3m4-3v3m-4 4h7"/>
+            </svg>
+            QR Code
+          </button>
+          <a
+            href={`/admin/${restaurantSlug}/analytics`}
+            onClick={() => setOpen(false)}
+            className="w-full text-left px-4 py-3 text-sm text-[var(--foreground)] hover:bg-[var(--card-border)]/50 flex items-center gap-3 transition-colors"
+          >
+            <svg className="w-4 h-4 text-[var(--muted)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Analytics
+          </a>
+          <a
+            href={`/admin/${restaurantSlug}/settings`}
+            onClick={() => setOpen(false)}
+            className="w-full text-left px-4 py-3 text-sm text-[var(--foreground)] hover:bg-[var(--card-border)]/50 flex items-center gap-3 transition-colors"
+          >
+            <svg className="w-4 h-4 text-[var(--muted)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Account settings
+          </a>
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onReplayTour(); }}
+            className="w-full text-left px-4 py-3 text-sm text-[var(--foreground)] hover:bg-[var(--card-border)]/50 flex items-center gap-3 border-t border-[var(--card-border)] transition-colors"
+          >
+            <svg className="w-4 h-4 text-[var(--muted)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Replay tour
+          </button>
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onSignOut(); }}
+            className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 border-t border-[var(--card-border)] transition-colors"
+          >
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Sign out
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function TrialPill({ daysLeft, onSubscribe, loading }: { daysLeft: number | null; onSubscribe: () => void; loading: boolean }) {
