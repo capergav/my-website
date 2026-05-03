@@ -1,4 +1,10 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms of Service",
+  description: "DineLinks terms of service.",
+};
 
 export default function TermsPage() {
   return (

@@ -29,7 +29,11 @@
       "Bash(ls /c/Users/Gavin/Desktop/MenuSnap/app/admin/[slug]/)",
       "mcp__claude_ai_Supabase__list_projects",
       "mcp__claude_ai_Supabase__apply_migration",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(grep -n \"className.*nav\\\\|className.*top\\\\|className.*tab\\\\|function.*Nav\\\\|function.*Tab\\\\|className.*modal\" /c/Users/Gavin/Desktop/MenuSnap/app/admin/[slug]/AdminMenuEditor.tsx)",
+      "Bash(grep -r \"\\\\$25\" \"C:\\\\Users\\\\Gavin\\\\Desktop\\\\MenuSnap\\\\app\")"
     ]
   }
 }

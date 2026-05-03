@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="285" height="212" viewBox="0 0 285 212">
+  
+  <g transform="translate(92.5, 24) scale(2.272727272727273)">
+    <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#faf8f5" stroke-width="2.444444444444444" stroke-linejoin="round"/>
+    <line x1="26" y1="3" x2="26" y2="37" stroke="#c9a030" stroke-width="2.444444444444444" stroke-linecap="round"/>
+    <line x1="26" y1="37" x2="42" y2="37" stroke="#c9a030" stroke-width="2.444444444444444" stroke-linecap="round"/>
+  </g>
+  <text x="24" y="175.8" font-family="Georgia, serif" font-size="48" font-weight="400" fill="#faf8f5">Dine</text>
+  <text x="124" y="175.8" font-family="Georgia, serif" font-size="48" font-weight="700" fill="#c9a030">Links</text>
+</svg>

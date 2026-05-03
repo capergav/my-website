@@ -102,8 +102,14 @@ function CategoryIcon({ name, isActive }: { name: string; isActive: boolean }) {
 }
 
 function formatPrice(price: number): string {
-  if (Number.isInteger(price)) return `$${price}`;
-  return `$${price.toFixed(2)}`;
+  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(price);
+}
+
+function hasDetails(item: MenuItem): boolean {
+  const hasDesc = (item.description?.trim().length ?? 0) > 10;
+  const hasImg = Boolean(item.image_url);
+  const hasDiet = Boolean(item.chefs_favorite || item.gluten_free || item.nut_free || item.vegan || item.vegetarian || item.dairy_free || item.spicy);
+  return hasDesc || hasImg || hasDiet;
 }
 
 export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, categoryImageMap = {}, restaurantId, language }: MenuTabsProps) {
@@ -191,7 +197,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
             </div>
             <DietaryIcons item={selectedItem} />
             {selectedItem.description && (
-              <p className="text-[var(--muted)] mt-4 text-base sm:text-lg leading-relaxed text-wrap-force whitespace-pre-line">
+              <p className="text-[var(--muted)] mt-4 text-base sm:text-lg leading-relaxed text-wrap-force whitespace-pre-line break-words [overflow-wrap:anywhere]">
                 <TranslatedText text={selectedItem.description} as="span" />
               </p>
             )}
@@ -313,25 +319,27 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
               No items match this filter.
             </p>
           )}
-          {items.map((item, idx) => (
+          {items.map((item, idx) => {
+            const clickable = hasDetails(item);
+            return (
             <motion.article
               key={item.id}
-              role="button"
-              tabIndex={0}
-              onClick={() => { setSelectedItem(item); fireTrack("item_click", { item_id: item.id, category: item.category ?? activeCategory }); }}
-              onKeyDown={(e) => {
+              role={clickable ? "button" : undefined}
+              tabIndex={clickable ? 0 : undefined}
+              onClick={clickable ? () => { setSelectedItem(item); fireTrack("item_click", { item_id: item.id, category: item.category ?? activeCategory }); } : undefined}
+              onKeyDown={clickable ? (e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   setSelectedItem(item);
                   fireTrack("item_click", { item_id: item.id, category: item.category ?? activeCategory });
                 }
-              }}
+              } : undefined}
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.38, delay: idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
-              whileHover={{ y: -2, boxShadow: '0 8px 24px -6px rgba(0,0,0,0.12)' }}
-              whileTap={{ scale: 0.99 }}
-              className="bg-[var(--card)] rounded-2xl overflow-hidden border border-[var(--card-border)] shadow-sm hover:border-[var(--accent)]/20 transition-colors duration-300 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 touch-manipulation flex flex-row"
+              whileHover={clickable ? { y: -2, boxShadow: '0 8px 24px -6px rgba(0,0,0,0.12)' } : {}}
+              whileTap={clickable ? { scale: 0.99 } : {}}
+              className={`bg-[var(--card)] rounded-2xl overflow-hidden border border-[var(--card-border)] shadow-sm transition-colors duration-300 touch-manipulation flex flex-row ${clickable ? 'cursor-pointer hover:border-[var(--accent)]/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2' : ''}`}
             >
               {/* Image on the left — only when present */}
               {item.image_url && (
@@ -368,16 +376,19 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                 </div>
                 <DietaryIcons item={item} />
                 {item.description && (
-                  <p className="text-[var(--muted)] mt-2 text-sm sm:text-base leading-relaxed line-clamp-2 text-wrap-force whitespace-pre-line">
+                  <p className="text-[var(--muted)] mt-2 text-sm sm:text-base leading-relaxed line-clamp-2 text-wrap-force whitespace-pre-line break-words [overflow-wrap:anywhere]">
                     <TranslatedText text={item.description} as="span" />
                   </p>
                 )}
-                <p className="text-[var(--accent)]/70 text-xs mt-3 font-medium tracking-wide">
-                  {t("ui.tapToReadMore")} →
-                </p>
+                {clickable && (
+                  <p className="text-[var(--accent)]/70 text-xs mt-3 font-medium tracking-wide">
+                    {t("ui.tapToReadMore")} →
+                  </p>
+                )}
               </div>
             </motion.article>
-          ))}
+            );
+          })}
           </motion.div>
         </AnimatePresence>
       </div>

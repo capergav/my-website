@@ -1,8 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+// TODO: Implement full billing page with:
+// - Stripe customer portal embed (easiest path)
+// - View/update payment method
+// - View invoices
+// - Cancel subscription
+// - Reactivate subscription
+
 export const metadata: Metadata = {
-  title: "Upgrade | DineLinks",
+  title: "Upgrade",
 };
 
 export default function BillingPage() {
@@ -16,10 +23,12 @@ export default function BillingPage() {
             <line x1="26" y1="37" x2="42" y2="37" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="round"/>
           </svg>
         </div>
-        <h1 className="text-2xl font-serif font-semibold text-[#2c2a26] mb-2">Upgrade to DineLinks</h1>
+        <h1 className="text-2xl font-serif font-semibold text-[#2c2a26] mb-2">Start your 60-day free trial</h1>
+        <p className="text-sm text-[#6b6560] mb-2">
+          Full access to DineLinks for 60 days free, then $25 CAD/month. Cancel anytime.
+        </p>
         <p className="text-sm text-[#6b6560] mb-8">
-          Full billing management is coming soon. For now, head back to your admin dashboard and use the
-          {" "}<strong>Start subscription</strong> button in the top navigation.
+          Head back to your admin dashboard and click{" "}<strong>Start subscription</strong>{" "}in the top navigation to begin.
         </p>
         <Link
           href="/admin"
@@ -27,6 +36,12 @@ export default function BillingPage() {
         >
           Back to dashboard
         </Link>
+        <p className="text-xs text-[#6b6560]/70 mt-6">
+          Need help with billing?{" "}
+          <a href="mailto:support@dinelinks.com" className="text-[#8b6914] hover:underline underline-offset-4">
+            Email support@dinelinks.com
+          </a>
+        </p>
       </div>
     </main>
   );

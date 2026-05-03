@@ -25,6 +25,18 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
   if (!restaurant || restaurant.owner_id !== user.id) redirect("/admin");
 
   const admin = getSupabaseAdmin();
+
+  // Guard: analytics requires an active subscription (same as the admin editor)
+  const { data: sub } = await admin
+    .from('subscriptions')
+    .select('status, trial_end')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  const subIsActive = sub && (
+    sub.status === 'active' ||
+    (sub.status === 'trialing' && (!sub.trial_end || new Date(sub.trial_end) > new Date()))
+  );
+  if (!subIsActive) redirect(`/admin/${slug}`);
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
   const prevSince = new Date(Date.now() - days * 2 * 24 * 60 * 60 * 1000).toISOString();
 
@@ -106,7 +118,7 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
     .slice(0, 20)
     .map(([id, views]) => ({
       id,
-      name: itemNameMap[id] ?? "Unknown",
+      name: itemNameMap[id] ?? "(Deleted item)",
       category: itemCatMap[id] ?? "Other",
       views,
     }));
