@@ -1264,14 +1264,14 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       {open && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
           style={{ animation: 'fadeIn 0.15s ease-out' }}>
-          <div className="flex flex-col w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl bg-[var(--card)] shadow-2xl"
+          <div className="flex flex-col w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl"
             style={{ animation: 'modalIn 0.15s ease-out' }}>
-            <div className="flex-shrink-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
+            <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl flex items-center justify-between">
               <div>
-                <h2 className="text-base font-semibold text-[var(--foreground)]">Theme & branding</h2>
-                <p className="text-xs text-[var(--muted)] mt-0.5">Changes apply instantly after saving</p>
+                <h2 className="text-base font-semibold text-gray-900">Theme & branding</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Changes apply instantly after saving</p>
               </div>
-              <button type="button" onClick={() => setOpen(false)} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
+              <button type="button" onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-700 p-1">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -1281,7 +1281,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
 
               {/* LIVE PREVIEW — always at top */}
-              <div className="rounded-xl overflow-hidden border border-[var(--card-border)] shadow-sm" style={{ background: bg || '#faf8f5' }}>
+              <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm" style={{ background: bg || '#faf8f5' }}>
                 <div className="h-9 w-full flex items-center px-3" style={{ background: card }}>
                   <span className="text-[10px] font-bold truncate" style={{ color: fontColor }}>{name || "Your Restaurant"}</span>
                 </div>
@@ -1322,7 +1322,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                         className={`relative flex flex-col gap-2 p-3 rounded-xl border text-left transition-all ${
                           isSelected
                             ? "border-[#8b6914] ring-2 ring-[#8b6914]/30 shadow-md"
-                            : "border-[var(--card-border)] hover:border-[#8b6914]/40 hover:shadow-sm"
+                            : "border-gray-200 hover:border-[#8b6914]/40 hover:shadow-sm"
                         }`}
                       >
                         {isSelected && (
@@ -1338,8 +1338,8 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                           <span className="w-4 h-4 rounded-full shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.accent_color }} />
                         </div>
                         <div>
-                          <p className="text-xs font-semibold font-sans text-[var(--foreground)] leading-tight">{preset.name}</p>
-                          <p className="text-[10px] font-sans text-[var(--muted)] mt-0.5 leading-tight">{preset.description}</p>
+                          <p className="text-xs font-semibold font-sans text-gray-900 leading-tight">{preset.name}</p>
+                          <p className="text-[10px] font-sans text-gray-500 mt-0.5 leading-tight">{preset.description}</p>
                         </div>
                       </button>
                     );
@@ -1360,7 +1360,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
               <details className="group">
                 <summary className="flex items-center justify-between cursor-pointer list-none py-1 select-none">
                   <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[#8b6914]">Customize</h3>
-                  <svg className="w-4 h-4 text-[var(--muted)] transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </summary>
@@ -1368,11 +1368,11 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 
                   {/* Colors */}
                   <div>
-                    <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest mb-3">Colors</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Colors</p>
                     <div className="grid grid-cols-2 gap-3">
                       {colors.map(({ label, value, set }) => (
-                        <div key={label} className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3 flex flex-col gap-2">
-                          <label className="block text-xs font-semibold text-[var(--muted)]">{label}</label>
+                        <div key={label} className="rounded-xl border border-gray-200 bg-gray-50 p-3 flex flex-col gap-2">
+                          <label className="block text-xs font-semibold text-gray-500">{label}</label>
                           <div className="flex items-center gap-2">
                             <div className="relative flex-shrink-0">
                               <input type="color" value={value}
@@ -1380,7 +1380,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                               <div className="w-10 h-10 rounded-xl border-2 border-white shadow-md" style={{ background: value }} />
                             </div>
-                            <span className="text-xs font-mono text-[var(--muted)] uppercase tracking-wide">{value}</span>
+                            <span className="text-xs font-mono text-gray-500 uppercase tracking-wide">{value}</span>
                           </div>
                         </div>
                       ))}
@@ -1420,24 +1420,24 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 
                   {/* Font */}
                   <div>
-                    <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest mb-2">Font</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Font</p>
                     <div className="relative">
                       <button type="button" onClick={() => setFontOpen((o) => !o)}
-                        className="w-full px-4 py-3 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#8b6914]">
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#8b6914]">
                         <span className={FONT_OPTIONS.find((o) => o.value === font)?.cls}>
                           {FONT_OPTIONS.find((o) => o.value === font)?.label ?? "Geist Sans"}
                         </span>
-                        <svg className={`w-4 h-4 text-[var(--muted)] transition-transform ${fontOpen ? "rotate-180" : ""}`}
+                        <svg className={`w-4 h-4 text-gray-400 transition-transform ${fontOpen ? "rotate-180" : ""}`}
                           fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
                       {fontOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-1 py-1 rounded-xl border border-[var(--card-border)] bg-[var(--card)] shadow-xl z-10 max-h-52 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 mt-1 py-1 rounded-xl border border-gray-200 bg-white shadow-xl z-10 max-h-52 overflow-y-auto">
                           {FONT_OPTIONS.map((opt) => (
                             <button key={opt.value} type="button"
                               onClick={() => { setFont(opt.value); setFontOpen(false); }}
-                              className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--card-border)]/40 transition-colors ${opt.cls} ${font === opt.value ? "text-[#8b6914] font-medium" : "text-[var(--foreground)]"}`}>
+                              className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-100 transition-colors ${opt.cls} ${font === opt.value ? "text-[#8b6914] font-medium" : "text-gray-900"}`}>
                               {opt.label}
                             </button>
                           ))}
@@ -1448,17 +1448,17 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 
                   {/* Restaurant details */}
                   <div>
-                    <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest mb-3">Restaurant details</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Restaurant details</p>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-sans font-medium text-[var(--foreground)] mb-1.5">Restaurant name</label>
+                        <label className="block text-sm font-sans font-medium text-gray-900 mb-1.5">Restaurant name</label>
                         <input type="text" value={name} onChange={(e) => setName(e.target.value)}
                           placeholder="e.g. La Piazza"
-                          className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                          className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium font-sans text-[var(--foreground)] mb-1.5">Logo</label>
-                        <p className="text-xs font-sans text-[var(--muted)] mb-2">PNG with a transparent background works best.</p>
+                        <label className="block text-sm font-medium font-sans text-gray-900 mb-1.5">Logo</label>
+                        <p className="text-xs font-sans text-gray-500 mb-2">PNG with a transparent background works best.</p>
                         <div className="max-w-[140px]">
                           <ImageUploader currentUrl={logoUrl} onUploaded={(url) => setLogoUrl(url)} folder="logos" aspectRatio="square" />
                         </div>
@@ -1467,8 +1467,8 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium font-sans text-[var(--foreground)] mb-1.5">Hero / banner image</label>
-                        <p className="text-xs font-sans text-[var(--muted)] mb-2">Shown across the top of your public menu.</p>
+                        <label className="block text-sm font-medium font-sans text-gray-900 mb-1.5">Hero / banner image</label>
+                        <p className="text-xs font-sans text-gray-500 mb-2">Shown across the top of your public menu.</p>
                         <div className="max-h-[160px] overflow-hidden rounded-lg">
                           <ImageUploader currentUrl={heroUrl} onUploaded={(url) => setHeroUrl(url)} folder="hero" aspectRatio="video" />
                         </div>
@@ -1483,7 +1483,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
               </details>
 
             </div>
-            <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)] space-y-3">
+            <div className="flex-shrink-0 border-t border-gray-200 px-6 py-4 bg-white space-y-3">
               {colorCustomized && (getContrast(fontColor, card) < 4.5 || getContrast(fontColor, bg) < 4.5) && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-[#fff8ed] border border-[#f0d89b]">
                   <svg className="w-5 h-5 text-[#b8851e] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1749,11 +1749,11 @@ function ItemForm({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
       style={{ animation: 'fadeIn 0.15s ease-out' }}>
-      <div className="flex flex-col bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden"
+      <div className="flex flex-col bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden"
         style={{ animation: 'modalIn 0.15s ease-out' }}>
-        <div className="flex-shrink-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
-          <h3 className="font-serif text-lg font-semibold text-[var(--foreground)]">{item ? "Edit item" : "Add item"}</h3>
-          <button type="button" onClick={onCancel} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
+        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+          <h3 className="font-serif text-lg font-semibold text-gray-900">{item ? "Edit item" : "Add item"}</h3>
+          <button type="button" onClick={onCancel} className="text-gray-400 hover:text-gray-700 p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -1762,27 +1762,27 @@ function ItemForm({
         <div className="flex-1 overflow-y-auto px-6 py-6">
           <form id="item-form" onSubmit={submit} className="space-y-4">
             <div>
-              <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Name *</label>
+              <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-gray-500 mb-1.5">Name *</label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
-                className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
             </div>
             <div>
-              <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Description</label>
+              <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-gray-500 mb-1.5">Description</label>
               <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3}
-                className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Price *</label>
+                <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-gray-500 mb-1.5">Price *</label>
                 <input type="number" step="0.01" min="0" value={price}
                   onChange={(e) => setPrice(e.target.value)} required
-                  className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                  className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
               </div>
               <div>
-                <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Category *</label>
+                <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-gray-500 mb-1.5">Category *</label>
                 {categories.length === 0 ? (
                   <select disabled
-                    className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--muted)] text-sm cursor-not-allowed">
+                    className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-400 text-sm cursor-not-allowed">
                     <option>Create a category first</option>
                   </select>
                 ) : (
@@ -1790,19 +1790,19 @@ function ItemForm({
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     required
-                    className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
                   >
                     <option value="" disabled>Select a category…</option>
                     {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 )}
                 {!category && categories.length > 0 && (
-                  <p className="mt-1 text-xs text-[var(--muted)]">Category is required.</p>
+                  <p className="mt-1 text-xs text-gray-500">Category is required.</p>
                 )}
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-2">Photo</label>
+              <label className="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Photo</label>
               <ImageUploader
                 currentUrl={imgUrl}
                 onUploaded={(url) => setImgUrl(url)}
@@ -1810,19 +1810,19 @@ function ItemForm({
                 aspectRatio="video"
                 existingImageUrl={existingImageUrl}
               />
-              <label className="block text-xs font-sans font-medium text-[var(--muted)] mt-3 mb-1">Or paste image URL</label>
+              <label className="block text-xs font-sans font-medium text-gray-500 mt-3 mb-1">Or paste image URL</label>
               <input type="url" value={imgUrl} onChange={(e) => setImgUrl(e.target.value)}
                 placeholder="https://..."
-                className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
             </div>
             <div className="flex items-center gap-3">
               <input id="avail" type="checkbox" checked={available}
                 onChange={(e) => setAvailable(e.target.checked)}
-                className="h-4 w-4 rounded border-[var(--card-border)] text-[#8b6914] focus:ring-[#8b6914]" />
-              <label htmlFor="avail" className="text-sm font-medium text-[var(--foreground)]">Listed as available</label>
+                className="h-4 w-4 rounded border-gray-300 text-[#8b6914] focus:ring-[#8b6914]" />
+              <label htmlFor="avail" className="text-sm font-medium text-gray-900">Listed as available</label>
             </div>
-            <div className="border-t border-[var(--card-border)] pt-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-3">Dietary & highlights</p>
+            <div className="border-t border-gray-200 pt-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">Dietary & highlights</p>
               <div className="space-y-0.5">
                 <Toggle label="Chef's favourite"  checked={chefs}  onChange={setChefs}  />
                 <Toggle label="Gluten free"        checked={gluten} onChange={setGluten} />
@@ -1835,9 +1835,9 @@ function ItemForm({
             </div>
           </form>
         </div>
-        <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)] flex gap-3">
+        <div className="flex-shrink-0 border-t border-gray-200 px-6 py-4 bg-white flex gap-3">
           <button type="button" onClick={onCancel}
-            className="font-sans flex-1 py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
+            className="font-sans flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors">
             Cancel
           </button>
           <button type="submit" form="item-form" disabled={saving}
@@ -1868,6 +1868,7 @@ function AddCategoryModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const supabase = createSupabaseClient();
+  useBodyScrollLock(true);
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1888,28 +1889,28 @@ function AddCategoryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" style={{ animation: "fadeIn 0.15s ease-out" }}>
-      <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-sm p-6" style={{ animation: "modalIn 0.15s ease-out" }}>
-        <h3 className="font-serif text-lg font-semibold text-[var(--foreground)] mb-4">Add category</h3>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" style={{ animation: "modalIn 0.15s ease-out" }}>
+        <h3 className="font-serif text-lg font-semibold text-gray-900 mb-4">Add category</h3>
         <form onSubmit={create} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-1.5">Category name</label>
+            <label className="block text-xs font-semibold font-sans uppercase tracking-widest text-gray-500 mb-1.5">Category name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => { setName(e.target.value); setError(""); }}
               placeholder="e.g. Desserts"
               autoFocus
-              className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
+              className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
             />
             {error && <p className="mt-1 text-xs text-red-600 font-sans">{error}</p>}
           </div>
 
           {/* Show image toggle */}
-          <div className="rounded-xl border border-[var(--card-border)] p-4 bg-[var(--background)]">
+          <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-[var(--foreground)] font-sans">Show image on category</p>
-                <p className="text-xs text-[var(--muted)] mt-0.5 font-sans">Display a banner image at the top of this category on your menu</p>
+                <p className="text-sm font-medium text-gray-900 font-sans">Show image on category</p>
+                <p className="text-xs text-gray-500 mt-0.5 font-sans">Display a banner image at the top of this category on your menu</p>
               </div>
               <button
                 type="button"
@@ -1920,7 +1921,7 @@ function AddCategoryModal({
               </button>
             </div>
             {showImage && (
-              <p className="text-xs text-[var(--muted)] mt-3 font-sans">
+              <p className="text-xs text-gray-500 mt-3 font-sans">
                 You can upload a category image after creating the category by editing it in &ldquo;Manage categories&rdquo;.
               </p>
             )}
@@ -1928,7 +1929,7 @@ function AddCategoryModal({
 
           <div className="flex gap-3">
             <button type="button" onClick={onClose}
-              className="font-sans flex-1 py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
+              className="font-sans flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors">
               Cancel
             </button>
             <button type="submit" disabled={saving || !name.trim()}
@@ -1963,24 +1964,24 @@ function SortableCategoryManageRow({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
-      className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] overflow-hidden"
+      className="rounded-xl border border-gray-200 bg-gray-50 overflow-hidden"
     >
       <div className="flex items-center gap-3 p-3">
         <div
           {...attributes}
           {...listeners}
-          className="cursor-grab active:cursor-grabbing touch-none text-[var(--muted)] hover:text-[var(--foreground)] transition-colors flex-shrink-0"
+          className="cursor-grab active:cursor-grabbing touch-none text-gray-400 hover:text-gray-700 transition-colors flex-shrink-0"
         >
           <GripVertical size={16} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-[var(--foreground)] truncate">{name}</p>
-          <p className="text-xs text-[var(--muted)]">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
+          <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
+          <p className="text-xs text-gray-500">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
         </div>
         <button
           type="button"
           onClick={onDelete}
-          className="flex-shrink-0 p-1.5 rounded-lg text-[var(--muted)] hover:text-red-600 hover:bg-red-50 transition-colors"
+          className="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
           title="Delete category"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1989,10 +1990,10 @@ function SortableCategoryManageRow({
         </button>
       </div>
       {/* Thumbnail toggle */}
-      <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]/50">
+      <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-gray-200 bg-white">
         <div>
-          <p className="text-xs font-medium text-[var(--foreground)] font-sans">Show image next to category name</p>
-          <p className="text-[10px] text-[var(--muted)] font-sans">Displays a small 40px thumbnail inline with the category heading</p>
+          <p className="text-xs font-medium text-gray-900 font-sans">Show image next to category name</p>
+          <p className="text-[10px] text-gray-500 font-sans">Displays a small 40px thumbnail inline with the category heading</p>
         </div>
         <button
           type="button"
@@ -2004,10 +2005,10 @@ function SortableCategoryManageRow({
       </div>
       {/* Thumbnail item picker — shown when use_banner is ON */}
       {useBanner && (
-        <div className="px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]/30">
-          <p className="text-[10px] font-semibold font-sans text-[var(--muted)] uppercase tracking-wide mb-2">Choose thumbnail image</p>
+        <div className="px-3 py-2 border-t border-gray-200 bg-white">
+          <p className="text-[10px] font-semibold font-sans text-gray-500 uppercase tracking-wide mb-2">Choose thumbnail image</p>
           {itemsWithImages.length === 0 ? (
-            <p className="text-[11px] text-[var(--muted)] font-sans italic">Add an image to a menu item to use it as a banner</p>
+            <p className="text-[11px] text-gray-500 font-sans italic">Add an image to a menu item to use it as a banner</p>
           ) : (
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
               {/* "No banner" option */}
@@ -2017,7 +2018,7 @@ function SortableCategoryManageRow({
                 className={`flex-shrink-0 w-12 h-12 rounded-lg border-2 flex items-center justify-center text-[10px] font-sans font-medium transition-all ${
                   bannerItemId === null
                     ? 'border-[#8b6914] ring-2 ring-[#8b6914]/30 bg-[#8b6914]/10 text-[#8b6914]'
-                    : 'border-[var(--card-border)] text-[var(--muted)] hover:border-[var(--muted)]'
+                    : 'border-gray-200 text-gray-400 hover:border-gray-400'
                 }`}
                 title="Use first item image (default)"
               >
@@ -2032,7 +2033,7 @@ function SortableCategoryManageRow({
                   className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
                     bannerItemId === item.id
                       ? 'border-[#8b6914] ring-2 ring-[#8b6914]/40'
-                      : 'border-[var(--card-border)] hover:border-[var(--muted)] opacity-70 hover:opacity-100'
+                      : 'border-gray-200 hover:border-gray-400 opacity-70 hover:opacity-100'
                   }`}
                 >
                   <img src={item.image_url!} alt={item.name} className="w-full h-full object-cover" />
@@ -2060,6 +2061,7 @@ function ManageCategoriesModal({
   const [bannerItemMap, setBannerItemMap] = useState<Record<string, string | null>>({});
   const [busy, setBusy] = useState(false);
   const supabase = createSupabaseClient();
+  useBodyScrollLock(true);
 
   // Load banner settings for existing categories
   useEffect(() => {
@@ -2125,22 +2127,22 @@ function ManageCategoriesModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" style={{ animation: 'fadeIn 0.15s ease-out' }}>
-      <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-sm" style={{ animation: 'modalIn 0.15s ease-out' }}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--card-border)]">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" style={{ animation: 'modalIn 0.15s ease-out' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
           <div>
-            <h3 className="font-serif text-lg font-semibold text-[var(--foreground)]">Manage categories</h3>
-            <p className="text-xs text-[var(--muted)] mt-0.5">Drag to reorder · tap trash to delete</p>
+            <h3 className="font-serif text-lg font-semibold text-gray-900">Manage categories</h3>
+            <p className="text-xs text-gray-500 mt-0.5">Drag to reorder · tap trash to delete</p>
           </div>
-          <button type="button" onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-700 p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
         <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
-          {busy && <p className="text-xs text-[var(--muted)] mb-2 font-sans">Saving order…</p>}
+          {busy && <p className="text-xs text-gray-500 mb-2 font-sans">Saving order…</p>}
           {cats.length === 0 ? (
-            <p className="text-center text-[var(--muted)] text-sm py-6 font-sans">No categories yet.</p>
+            <p className="text-center text-gray-500 text-sm py-6 font-sans">No categories yet.</p>
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={cats} strategy={verticalListSortingStrategy}>
@@ -2175,9 +2177,9 @@ function ManageCategoriesModal({
             </DndContext>
           )}
         </div>
-        <div className="px-6 py-4 border-t border-[var(--card-border)]">
+        <div className="px-6 py-4 border-t border-gray-200">
           <button type="button" onClick={onClose}
-            className="font-sans w-full py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
+            className="font-sans w-full py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors">
             Done
           </button>
         </div>
@@ -2363,6 +2365,8 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const downloadCanvasRef = useRef<HTMLCanvasElement>(null);
 
+  useBodyScrollLock(true);
+
   const commonOpts = useCallback(() => ({
     slug,
     style: qrStyle,
@@ -2420,16 +2424,16 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/60 sm:p-4"
       style={{ animation: "fadeIn 0.15s ease-out" }}>
-      <div className="flex flex-col w-full sm:max-w-lg max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-t-2xl sm:rounded-2xl bg-[var(--card)] shadow-2xl"
+      <div className="flex flex-col w-full sm:max-w-lg max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl"
         style={{ animation: "modalIn 0.15s ease-out" }}>
 
         {/* Header */}
-        <div className="flex-shrink-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 flex items-center justify-between">
+        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-[var(--foreground)]">Get your QR code</h2>
-            <p className="text-xs text-[var(--muted)] mt-0.5">Download and print for your tables</p>
+            <h2 className="text-base font-semibold text-gray-900">Get your QR code</h2>
+            <p className="text-xs text-gray-500 mt-0.5">Download and print for your tables</p>
           </div>
-          <button type="button" onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
+          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-700 p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -2443,7 +2447,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
             <div className="relative" style={{ width: 280 }}>
               <canvas
                 ref={previewCanvasRef}
-                className="w-full rounded-xl border border-[var(--card-border)] shadow-sm"
+                className="w-full rounded-xl border border-gray-200 shadow-sm"
                 style={{ display: 'block' }}
               />
               {/* Header overlay — table template only */}
@@ -2484,11 +2488,11 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
           {/* Style */}
           <div>
-            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Style</p>
+            <p className="text-xs uppercase tracking-widest text-gray-500 mb-2">Style</p>
             <div className="flex gap-2 flex-wrap">
               {(Object.entries(QR_STYLES_MAP) as [QRStyleKey, { fg: string; bg: string }][]).map(([key, s]) => (
                 <button key={key} type="button" onClick={() => setQrStyle(key)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${qrStyle === key ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[#8b6914]/50"}`}>
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${qrStyle === key ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-gray-200 text-gray-700 hover:border-[#8b6914]/50"}`}>
                   <span className="flex gap-1">
                     <span className="inline-block w-3 h-3 rounded-full border border-gray-200" style={{ background: s.fg }} />
                     <span className="inline-block w-3 h-3 rounded-full border border-gray-200" style={{ background: s.bg }} />
@@ -2501,7 +2505,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
           {/* Template */}
           <div>
-            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-3">Template</p>
+            <p className="text-xs uppercase tracking-widest text-gray-500 mb-3">Template</p>
             <div className="grid grid-cols-3 gap-3">
               {([
                 { id: "simple" as const, label: "QR only" },
@@ -2509,7 +2513,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                 { id: "table" as const, label: "Table card" },
               ]).map(t => (
                 <div key={t.id} onClick={() => setQrTemplate(t.id)}
-                  className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all ${qrTemplate === t.id ? "border-[#8b6914]" : "border-[var(--card-border)] hover:border-[#8b6914]/40"}`}>
+                  className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all ${qrTemplate === t.id ? "border-[#8b6914]" : "border-gray-200 hover:border-[#8b6914]/40"}`}>
                   <div className="bg-white rounded-lg p-2 mb-2 flex flex-col items-center gap-1 min-h-[80px] justify-center border border-gray-100">
                     {t.id === "table" && (
                       <div className="w-full text-center text-[8px] text-[#6b6560] font-bold truncate px-1">Header text</div>
@@ -2519,7 +2523,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                       <div className="w-full text-center text-[8px] text-[#6b6560] truncate px-1">Tagline text</div>
                     )}
                   </div>
-                  <span className="text-xs text-[var(--muted)]">{t.label}</span>
+                  <span className="text-xs text-gray-500">{t.label}</span>
                 </div>
               ))}
             </div>
@@ -2527,11 +2531,11 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
           {/* Size */}
           <div>
-            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Output size</p>
+            <p className="text-xs uppercase tracking-widest text-gray-500 mb-2">Output size</p>
             <div className="flex gap-2">
               {(["small", "medium", "large"] as QRSizeKey[]).map(s => (
                 <button key={s} type="button" onClick={() => setQrSize(s)}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${qrSize === s ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[#8b6914]/50"}`}>
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${qrSize === s ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-gray-200 text-gray-700 hover:border-[#8b6914]/50"}`}>
                   {s}
                 </button>
               ))}
@@ -2540,31 +2544,31 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
           {/* Logo */}
           {logoUrl && (
-            <div className="space-y-3 rounded-xl border border-[var(--card-border)] p-4">
+            <div className="space-y-3 rounded-xl border border-gray-200 p-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-[var(--foreground)]">Include logo in center</span>
+                <span className="text-sm font-medium text-gray-900">Include logo in center</span>
                 <Toggle checked={qrIncludeLogo} onChange={setQrIncludeLogo} />
               </div>
               {qrIncludeLogo && (
-                <div className="space-y-3 pt-2 border-t border-[var(--card-border)]">
+                <div className="space-y-3 pt-2 border-t border-gray-200">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-[var(--foreground)]">Add background behind logo</span>
+                    <span className="text-sm text-gray-900">Add background behind logo</span>
                     <Toggle checked={qrLogoBg} onChange={setQrLogoBg} />
                   </div>
                   {qrLogoBg && (
                     <div className="flex gap-3 items-center flex-wrap">
                       {(["circle", "square", "rounded"] as const).map(shape => (
                         <button key={shape} type="button" onClick={() => setQrLogoBgShape(shape)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${qrLogoBgShape === shape ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-[var(--card-border)] text-[var(--foreground)]"}`}>
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${qrLogoBgShape === shape ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-gray-200 text-gray-700"}`}>
                           {shape}
                         </button>
                       ))}
                       <div className="flex items-center gap-2 ml-auto">
-                        <span className="text-xs text-[var(--muted)]">Color</span>
+                        <span className="text-xs text-gray-500">Color</span>
                         <div className="relative w-8 h-8">
                           <input type="color" value={qrLogoBgColor} onChange={e => setQrLogoBgColor(e.target.value)}
                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                          <div className="w-8 h-8 rounded-lg border-2 border-[var(--card-border)] shadow-sm" style={{ background: qrLogoBgColor }} />
+                          <div className="w-8 h-8 rounded-lg border-2 border-gray-200 shadow-sm" style={{ background: qrLogoBgColor }} />
                         </div>
                       </div>
                     </div>
@@ -2576,7 +2580,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)]">
+        <div className="flex-shrink-0 border-t border-gray-200 px-6 py-4 bg-white">
           <button type="button" onClick={downloadQR} disabled={isDownloading}
             className="w-full py-2.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
             {isDownloading ? "Generating…" : "Download PNG"}
