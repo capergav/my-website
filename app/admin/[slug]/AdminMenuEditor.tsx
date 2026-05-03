@@ -1525,22 +1525,37 @@ function AdminMenuPanel({
   restaurantSlug: string;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [dropPos, setDropPos] = useState<{ top: number; right: number } | null>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (
+        panelRef.current && !panelRef.current.contains(target) &&
+        btnRef.current && !btnRef.current.contains(target)
+      ) setOpen(false);
     }
     if (open) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [open]);
 
+  const handleToggle = () => {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setDropPos({ top: r.bottom + 8, right: window.innerWidth - r.right });
+    }
+    setOpen((o) => !o);
+  };
+
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative">
       <button
         data-tour="tour-menu"
+        ref={btnRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={handleToggle}
         aria-label="Open menu"
         className="min-h-[44px] px-3.5 py-2 rounded-xl bg-white/20 hover:bg-white/30 text-white font-medium text-sm border border-white/40 inline-flex items-center gap-2 transition-colors"
       >
@@ -1552,14 +1567,18 @@ function AdminMenuPanel({
         <span className="hidden sm:inline">Menu</span>
       </button>
 
-      {open && (
-        <div className="absolute right-0 top-full mt-2 w-64 rounded-xl bg-[var(--card)] border border-[var(--card-border)] shadow-xl overflow-hidden z-50">
+      {open && dropPos && (
+        <div
+          ref={panelRef}
+          style={{ position: "fixed", top: dropPos.top, right: dropPos.right }}
+          className="w-64 rounded-xl bg-white border border-[#e8e4dd] shadow-2xl z-[100] max-h-[80vh] overflow-y-auto"
+        >
           <button
             type="button"
             onClick={() => { setOpen(false); onOpenTheme(); }}
-            className="w-full text-left px-4 py-3 text-sm text-[var(--foreground)] hover:bg-[var(--card-border)]/50 flex items-center gap-3 transition-colors"
+            className="w-full text-left px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 flex items-center gap-3 transition-colors"
           >
-            <svg className="w-4 h-4 text-[var(--muted)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
             </svg>
@@ -1570,9 +1589,9 @@ function AdminMenuPanel({
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
-            className="w-full text-left px-4 py-3 text-sm text-[var(--foreground)] hover:bg-[var(--card-border)]/50 flex items-center gap-3 transition-colors"
+            className="w-full text-left px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 flex items-center gap-3 transition-colors"
           >
-            <svg className="w-4 h-4 text-[var(--muted)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
@@ -1582,9 +1601,9 @@ function AdminMenuPanel({
             data-tour="qr-btn"
             type="button"
             onClick={() => { setOpen(false); onOpenQR(); }}
-            className="w-full text-left px-4 py-3 text-sm text-[var(--foreground)] hover:bg-[var(--card-border)]/50 flex items-center gap-3 transition-colors"
+            className="w-full text-left px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 flex items-center gap-3 transition-colors"
           >
-            <svg className="w-4 h-4 text-[var(--muted)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/>
               <rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/>
               <rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/>
@@ -1595,9 +1614,9 @@ function AdminMenuPanel({
           <a
             href={`/admin/${restaurantSlug}/analytics`}
             onClick={() => setOpen(false)}
-            className="w-full text-left px-4 py-3 text-sm text-[var(--foreground)] hover:bg-[var(--card-border)]/50 flex items-center gap-3 transition-colors"
+            className="w-full text-left px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 flex items-center gap-3 transition-colors"
           >
-            <svg className="w-4 h-4 text-[var(--muted)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
             Analytics
@@ -1605,9 +1624,9 @@ function AdminMenuPanel({
           <a
             href={`/admin/${restaurantSlug}/settings`}
             onClick={() => setOpen(false)}
-            className="w-full text-left px-4 py-3 text-sm text-[var(--foreground)] hover:bg-[var(--card-border)]/50 flex items-center gap-3 transition-colors"
+            className="w-full text-left px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 flex items-center gap-3 transition-colors"
           >
-            <svg className="w-4 h-4 text-[var(--muted)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             Account settings
@@ -1615,9 +1634,9 @@ function AdminMenuPanel({
           <button
             type="button"
             onClick={() => { setOpen(false); onReplayTour(); }}
-            className="w-full text-left px-4 py-3 text-sm text-[var(--foreground)] hover:bg-[var(--card-border)]/50 flex items-center gap-3 border-t border-[var(--card-border)] transition-colors"
+            className="w-full text-left px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 flex items-center gap-3 border-t border-[#e8e4dd] transition-colors"
           >
-            <svg className="w-4 h-4 text-[var(--muted)] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             Replay tour
@@ -1625,7 +1644,7 @@ function AdminMenuPanel({
           <button
             type="button"
             onClick={() => { setOpen(false); onSignOut(); }}
-            className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 border-t border-[var(--card-border)] transition-colors"
+            className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 border-t border-[#e8e4dd] transition-colors"
           >
             <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
