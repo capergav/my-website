@@ -537,8 +537,9 @@ export function AdminMenuEditor({
   const items   = grouped[activeCategory] ?? [];
   const isEmpty = sortedCategories.length === 0;
 
-  // No subscription yet — show "start trial" blocker (but let tour run first for new users)
-  if (subStatus !== 'loading' && subStatus === 'none' && hasCompletedTour !== false) {
+  // No subscription yet — show "start trial" blocker (but only after user identity is confirmed,
+  // and only if tour is done; never show during loading or when userId is not yet resolved)
+  if (user !== null && subStatus !== 'loading' && subStatus === 'none' && hasCompletedTour !== false) {
     return (
       <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-md flex items-center justify-center p-4">
         <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center">
