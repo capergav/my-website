@@ -11,6 +11,8 @@ export function useSubscription(userId: string | undefined) {
 
   useEffect(() => {
     if (!userId) { setStatus('none'); return; }
+    // Reset to loading so callers never see a stale 'none' while the fetch is in-flight.
+    setStatus('loading');
     const supabase = createSupabaseClient();
     supabase
       .from('subscriptions')
