@@ -1077,6 +1077,8 @@ function BrandSlot({ slot, colors, onApply, onSave, onClear }: {
   onClear: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dropPos, setDropPos] = useState<{ top: number; right: number } | null>(null);
+  const dotsBtnRef = useRef<HTMLButtonElement>(null);
 
   if (!colors) {
     return (
@@ -1090,12 +1092,20 @@ function BrandSlot({ slot, colors, onApply, onSave, onClear }: {
     );
   }
 
+  const handleDotsClick = () => {
+    if (!menuOpen && dotsBtnRef.current) {
+      const r = dotsBtnRef.current.getBoundingClientRect();
+      setDropPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+    }
+    setMenuOpen((o) => !o);
+  };
+
   return (
     <div className="relative rounded-xl border border-[var(--card-border)] p-3 flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <p className="text-xs font-semibold text-[var(--muted)]">Brand {slot}</p>
-        <button type="button" onClick={() => setMenuOpen(o => !o)}
-          className="text-[var(--muted)] hover:text-[var(--foreground)] p-0.5 rounded transition-colors">
+        <button ref={dotsBtnRef} type="button" onClick={handleDotsClick}
+          className="text-gray-400 hover:text-gray-700 p-0.5 rounded transition-colors">
           <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
             <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
@@ -1110,12 +1120,15 @@ function BrandSlot({ slot, colors, onApply, onSave, onClear }: {
         className="mt-0.5 text-xs font-semibold text-white bg-[#8b6914] rounded-lg px-2.5 py-1.5 hover:opacity-90 transition-opacity text-center">
         Apply
       </button>
-      {menuOpen && (
+      {menuOpen && dropPos && (
         <>
-          <div className="fixed inset-0 z-[5]" onClick={() => setMenuOpen(false)} />
-          <div className="absolute top-8 right-0 z-10 bg-[var(--card)] border border-[var(--card-border)] rounded-xl shadow-xl py-1 min-w-[160px]">
+          <div className="fixed inset-0 z-[99]" onClick={() => setMenuOpen(false)} />
+          <div
+            style={{ position: 'fixed', top: dropPos.top, right: dropPos.right }}
+            className="z-[100] bg-white border border-gray-200 rounded-xl shadow-xl py-1 min-w-[160px] max-h-[80vh] overflow-y-auto"
+          >
             <button type="button" onClick={() => { onSave(); setMenuOpen(false); }}
-              className="w-full text-left px-3 py-2 text-xs text-[var(--foreground)] hover:bg-[var(--card-border)]/30 transition-colors">
+              className="w-full text-left px-3 py-2 text-xs text-gray-900 hover:bg-gray-50 transition-colors">
               Overwrite with current
             </button>
             <button type="button" onClick={() => { onClear(); setMenuOpen(false); }}
