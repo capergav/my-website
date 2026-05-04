@@ -33,7 +33,22 @@
       "Bash(ls:*)",
       "Bash(wc:*)",
       "Bash(grep -n \"className.*nav\\\\|className.*top\\\\|className.*tab\\\\|function.*Nav\\\\|function.*Tab\\\\|className.*modal\" /c/Users/Gavin/Desktop/MenuSnap/app/admin/[slug]/AdminMenuEditor.tsx)",
-      "Bash(grep -r \"\\\\$25\" \"C:\\\\Users\\\\Gavin\\\\Desktop\\\\MenuSnap\\\\app\")"
+      "Bash(grep -r \"\\\\$25\" \"C:\\\\Users\\\\Gavin\\\\Desktop\\\\MenuSnap\\\\app\")",
+      "Bash(git clone:*)",
+      "Bash(python3:*)",
+      "Bash(python \".claude/skills/ui-ux/src/ui-ux-pro-max/scripts/search.py\" \"restaurant menu SaaS\" --design-system -p \"DineLinks\")",
+      "Bash(py \".claude/skills/ui-ux/src/ui-ux-pro-max/scripts/search.py\" \"restaurant menu SaaS\" --design-system -p \"DineLinks\")",
+      "Bash(npx claude-mem:*)",
+      "Bash(npx:*)",
+      "Bash(npm --version)",
+      "Bash(npm exec:*)",
+      "Bash(claude-mem install:*)",
+      "Bash(C:/Users/Gavin/.bun/bin/bun.exe install:*)",
+      "Bash(C:/Users/Gavin/.bun/bin/bun.exe --version)",
+      "Bash(export PATH=\"$PATH:/c/Users/Gavin/.bun/bin\")",
+      "Read(//c/Users/Gavin/.claude/plugins/marketplaces/thedotmack/**)",
+      "Read(//c/Users/Gavin/.claude/plugins/**)",
+      "Bash(/c/Users/Gavin/.bun/bin/bun.exe ~/.claude/plugins/marketplaces/thedotmack/plugin/scripts/worker-service.cjs start)"
     ]
   }
 }

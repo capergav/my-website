@@ -17,7 +17,7 @@ export default async function AdminSlugPage({ params }: Props) {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, slug, name, main_color, accent_color, background_color, font_family, font_color, hero_image_url, logo_url, owner_id, brand_primary_1, brand_secondary_1, brand_bg_1, brand_font_1, brand_primary_2, brand_secondary_2, brand_bg_2, brand_font_2")
+    .select("id, slug, name, main_color, accent_color, background_color, font_family, font_color, hero_image_url, logo_url, owner_id, brand_primary_1, brand_secondary_1, brand_bg_1, brand_font_1, brand_primary_2, brand_secondary_2, brand_bg_2, brand_font_2, muted_color")
     .eq("slug", slug)
     .eq("owner_id", user.id)
     .maybeSingle<Restaurant>();
@@ -76,17 +76,14 @@ export default async function AdminSlugPage({ params }: Props) {
 
   const themeStyle = `
     :root {
-      --foreground: ${fontColor};
-      --accent: ${accent};
-      --background: ${bg};
-      --card: ${card};
+      --foreground: #2c2a26;
+      --accent: #8b6914;
+      --background: #faf8f5;
+      --card: #ffffff;
       --card-border: #e8e4dd;
       --muted: #5a564f;
     }
-    body {
-      color: var(--foreground);
-      font-family: ${fontFamily};
-    }
+    body { font-family: ${fontFamily}; color: #2c2a26; }
   `;
 
   return (

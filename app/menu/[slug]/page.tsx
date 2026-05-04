@@ -36,7 +36,7 @@ export default async function PublicMenuPage({ params }: Props) {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id")
+    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id, muted_color")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -166,7 +166,7 @@ export default async function PublicMenuPage({ params }: Props) {
         "--accent": accent,
         "--background": bg,
         "--card": card,
-        "--muted": `${fontColor}99`,
+        "--muted": (restaurant as { muted_color?: string | null }).muted_color ?? `${fontColor}99`,
         "--card-border": `${fontColor}26`,
         "--main-color": card,
         "--accent-color": accent,

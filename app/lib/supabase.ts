@@ -53,6 +53,7 @@ export type Restaurant = {
   brand_secondary_2?: string | null;
   brand_bg_2?: string | null;
   brand_font_2?: string | null;
+  muted_color?: string | null;
 };
 
 export type CategoryNote = {
