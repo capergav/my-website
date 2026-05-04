@@ -12,6 +12,7 @@ import { ImageUploader } from "./ImageUploader";
 import { OnboardingTour } from "./OnboardingTour";
 import { useSubscription } from "@/lib/useSubscription";
 import { CreditCard, AlertTriangle, AlertCircle, Plus, GripVertical } from "lucide-react";
+import { AccountDangerZone } from "./AccountDangerZone";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor,
   useSensor, useSensors,
@@ -278,6 +279,7 @@ export function AdminMenuEditor({
   const [savingNote, setSavingNote]             = useState(false);
   const [message, setMessage]                   = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [mobileOpen, setMobileOpen]             = useState(false);
+  const [settingsOpen, setSettingsOpen]         = useState(false);
   const [tourKey, setTourKey]                   = useState(0);
   const [showQR, setShowQR] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -365,21 +367,17 @@ export function AdminMenuEditor({
 
   const billingLabel = (subStatus === 'trialing' || subStatus === 'none') ? 'Start subscription' : 'Manage billing';
 
-  // ── Live theme — no reload needed ────────────────────────────────────────
+  // ── Live font update (colors stay as DineLinks brand) ────────────────────
   useEffect(() => {
     if (!restaurant) return;
-    const fc  = restaurant.font_color        ?? D_TEXT;
-    const acc = restaurant.accent_color      ?? D_ACCENT;
-    const bg  = restaurant.background_color  ?? D_BG;
-    const cd  = restaurant.main_color        ?? D_CARD;
-    const ff  = fontFamily(restaurant.font_family);
+    const ff = fontFamily(restaurant.font_family);
     let el = document.getElementById("dinelinks-theme") as HTMLStyleElement | null;
     if (!el) {
       el = document.createElement("style");
       el.id = "dinelinks-theme";
       document.head.appendChild(el);
     }
-    el.textContent = `:root{--foreground:${fc};--accent:${acc};--background:${bg};--card:${cd};--card-border:${fc}22;--muted:${fc}99;--main-color:${cd};--accent-color:${acc};--background-color:${bg};--font-color:${fc};}body{font-family:${ff};}`;
+    el.textContent = `body{font-family:${ff};}`;
   }, [restaurant]);
 
   const showMsg = useCallback((type: "ok" | "err", text: string) => {
@@ -659,6 +657,7 @@ export function AdminMenuEditor({
             onReplayTour={() => setTourKey((k) => k + 1)}
             onSignOut={handleSignOut}
             onOpenQR={() => setShowQR(true)}
+            onOpenSettings={() => setSettingsOpen(true)}
             restaurantSlug={restaurantSlug}
           />
         </div>
@@ -758,15 +757,15 @@ export function AdminMenuEditor({
               </svg>
               Sign out
             </button>
-            <a href={`/admin/${restaurantSlug}/settings`}
-              onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
+            <button type="button"
+              onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; setSettingsOpen(true); }}
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               Account settings
-            </a>
+            </button>
             <button type="button" data-tour="sheet-close" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-500 text-sm font-medium">
               Cancel
@@ -782,6 +781,11 @@ export function AdminMenuEditor({
         }`}>
           {message.text}
         </div>
+      )}
+
+      {/* Trial banner */}
+      {subStatus === 'trialing' && daysLeftInTrial !== null && (
+        <TrialBanner daysLeft={daysLeftInTrial} onSubscribe={startCheckout} />
       )}
 
       {/* Empty state — no categories at all */}
@@ -976,6 +980,16 @@ export function AdminMenuEditor({
 
       <OnboardingTour tourKey={tourKey} hasCompletedTour={hasCompletedTour} userId={user?.id} />
 
+      {/* Settings Modal */}
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        slug={restaurantSlug}
+        userEmail={user?.email ?? ""}
+        subStatus={subStatus}
+        trialDaysLeft={daysLeftInTrial}
+      />
+
       {/* QR Code Modal */}
       {showQR && (
         <QRModal
@@ -1067,81 +1081,6 @@ function CategoryNoteEditor({
 
 // ── Theme modal (shared between desktop header button and mobile sheet) ────────
 
-type BrandColors = { card: string; accent: string; bg: string; fontColor: string };
-
-function BrandSlot({ slot, colors, onApply, onSave, onClear }: {
-  slot: 1 | 2;
-  colors: BrandColors | null;
-  onApply: (c: BrandColors) => void;
-  onSave: () => void;
-  onClear: () => void;
-}) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [dropPos, setDropPos] = useState<{ top: number; right: number } | null>(null);
-  const dotsBtnRef = useRef<HTMLButtonElement>(null);
-
-  if (!colors) {
-    return (
-      <div className="rounded-xl border-2 border-dashed border-[var(--card-border)] p-3 flex flex-col gap-1.5">
-        <p className="text-xs font-semibold text-[var(--muted)]">Brand {slot}</p>
-        <p className="text-[10px] text-[var(--muted)] leading-tight">No colors saved</p>
-        <button type="button" onClick={onSave} className="mt-1 text-xs font-medium text-[#8b6914] hover:underline text-left">
-          Save current colors →
-        </button>
-      </div>
-    );
-  }
-
-  const handleDotsClick = () => {
-    if (!menuOpen && dotsBtnRef.current) {
-      const r = dotsBtnRef.current.getBoundingClientRect();
-      setDropPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
-    }
-    setMenuOpen((o) => !o);
-  };
-
-  return (
-    <div className="relative rounded-xl border border-[var(--card-border)] p-3 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold text-[var(--muted)]">Brand {slot}</p>
-        <button ref={dotsBtnRef} type="button" onClick={handleDotsClick}
-          className="text-gray-400 hover:text-gray-700 p-0.5 rounded transition-colors">
-          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-        </button>
-      </div>
-      <div className="flex items-center gap-1">
-        {[colors.card, colors.accent, colors.bg, colors.fontColor].map((c, i) => (
-          <span key={i} className="w-5 h-5 rounded-md border border-black/10 flex-shrink-0" style={{ background: c }} title={c} />
-        ))}
-      </div>
-      <button type="button" onClick={() => onApply(colors)}
-        className="mt-0.5 text-xs font-semibold text-white bg-[#8b6914] rounded-lg px-2.5 py-1.5 hover:opacity-90 transition-opacity text-center">
-        Apply
-      </button>
-      {menuOpen && dropPos && (
-        <>
-          <div className="fixed inset-0 z-[99]" onClick={() => setMenuOpen(false)} />
-          <div
-            style={{ position: 'fixed', top: dropPos.top, right: dropPos.right }}
-            className="z-[100] bg-white border border-gray-200 rounded-xl shadow-xl py-1 min-w-[160px] max-h-[80vh] overflow-y-auto"
-          >
-            <button type="button" onClick={() => { onSave(); setMenuOpen(false); }}
-              className="w-full text-left px-3 py-2 text-xs text-gray-900 hover:bg-gray-50 transition-colors">
-              Overwrite with current
-            </button>
-            <button type="button" onClick={() => { onClear(); setMenuOpen(false); }}
-              className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 transition-colors">
-              Clear slot
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
 type ThemeModalProps = {
   restaurant: Restaurant | null;
   onSave: (u: Partial<Restaurant>) => void;
@@ -1162,6 +1101,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
   const [accent, setAccent]               = useState(D_ACCENT);
   const [bg, setBg]                       = useState(D_BG);
   const [fontColor, setFontColor]         = useState(D_TEXT);
+  const [mutedColor, setMutedColor]       = useState("#6b6560");
   const [font, setFont]                   = useState("sans");
   const [name, setName]                   = useState("");
   const [heroUrl, setHeroUrl]             = useState("");
@@ -1169,8 +1109,6 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
   const [fontOpen, setFontOpen]           = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [colorCustomized, setColorCustomized] = useState(false);
-  const [brand1, setBrand1]               = useState<BrandColors | null>(null);
-  const [brand2, setBrand2]               = useState<BrandColors | null>(null);
 
   useBodyScrollLock(open);
 
@@ -1181,6 +1119,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       setAccent(restaurant.accent_color ?? D_ACCENT);
       setBg(restaurant.background_color ?? D_BG);
       setFontColor(restaurant.font_color ?? D_TEXT);
+      setMutedColor(restaurant.muted_color ?? "#6b6560");
       setFont(restaurant.font_family ?? "sans");
       setName(restaurant.name ?? "");
       setHeroUrl(restaurant.hero_image_url ?? "");
@@ -1188,18 +1127,6 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       setFontOpen(false);
       setSelectedPreset(null);
       setColorCustomized(false);
-      setBrand1(restaurant.brand_primary_1 ? {
-        card: restaurant.brand_primary_1,
-        accent: restaurant.brand_secondary_1 ?? D_ACCENT,
-        bg: restaurant.brand_bg_1 ?? D_BG,
-        fontColor: restaurant.brand_font_1 ?? D_TEXT,
-      } : null);
-      setBrand2(restaurant.brand_primary_2 ? {
-        card: restaurant.brand_primary_2,
-        accent: restaurant.brand_secondary_2 ?? D_ACCENT,
-        bg: restaurant.brand_bg_2 ?? D_BG,
-        fontColor: restaurant.brand_font_2 ?? D_TEXT,
-      } : null);
     }
     // initialise form fields when modal opens — setState-in-effect is intentional here
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1211,6 +1138,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       accent_color:     accent,
       background_color: bg || null,
       font_color:       fontColor || null,
+      muted_color:      mutedColor.trim() || null,
       font_family:      font,
       name:             name.trim() || null,
       hero_image_url:   heroUrl.trim() || null,
@@ -1218,32 +1146,6 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
     } as Partial<Restaurant>);
     setOpen(false);
     onClose?.();
-  };
-
-  const applyBrand = (colors: BrandColors) => {
-    setCard(colors.card); setAccent(colors.accent); setBg(colors.bg); setFontColor(colors.fontColor);
-    setSelectedPreset(null); setColorCustomized(false);
-  };
-
-  const saveBrandSlot = (slot: 1 | 2) => {
-    const colors: BrandColors = { card, accent, bg, fontColor };
-    if (slot === 1) setBrand1(colors); else setBrand2(colors);
-    onSave({
-      [`brand_primary_${slot}`]: card,
-      [`brand_secondary_${slot}`]: accent,
-      [`brand_bg_${slot}`]: bg,
-      [`brand_font_${slot}`]: fontColor,
-    } as Partial<Restaurant>);
-  };
-
-  const clearBrandSlot = (slot: 1 | 2) => {
-    if (slot === 1) setBrand1(null); else setBrand2(null);
-    onSave({
-      [`brand_primary_${slot}`]: null,
-      [`brand_secondary_${slot}`]: null,
-      [`brand_bg_${slot}`]: null,
-      [`brand_font_${slot}`]: null,
-    } as Partial<Restaurant>);
   };
 
   const colors = [
@@ -1279,14 +1181,14 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       {open && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
           style={{ animation: 'fadeIn 0.15s ease-out' }}>
-          <div className="flex flex-col w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl"
+          <div className="flex flex-col w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl bg-[var(--card)] shadow-2xl"
             style={{ animation: 'modalIn 0.15s ease-out' }}>
-            <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+            <div className="flex-shrink-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
               <div>
-                <h2 className="text-base font-semibold text-gray-900">Theme & branding</h2>
-                <p className="text-xs text-gray-500 mt-0.5">Changes apply instantly after saving</p>
+                <h2 className="text-base font-semibold text-[var(--foreground)]">Theme & branding</h2>
+                <p className="text-xs text-[var(--muted)] mt-0.5">Changes apply instantly after saving</p>
               </div>
-              <button type="button" onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-700 p-1">
+              <button type="button" onClick={() => setOpen(false)} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -1322,7 +1224,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 
               {/* PRESETS */}
               <section>
-                <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[#8b6914] mb-3">Presets</h3>
+                <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-gray-500 mb-3">Presets</h3>
                 <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
                   {PRESET_THEMES.map((preset) => {
                     const isSelected = selectedPreset === preset.name;
@@ -1336,8 +1238,8 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                         }}
                         className={`relative flex flex-col gap-2 p-3 rounded-xl border text-left transition-all ${
                           isSelected
-                            ? "border-[#8b6914] ring-2 ring-[#8b6914]/30 shadow-md"
-                            : "border-gray-200 hover:border-[#8b6914]/40 hover:shadow-sm"
+                            ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/30 shadow-md"
+                            : "border-gray-200 hover:border-[var(--accent)]/40 hover:shadow-sm"
                         }`}
                       >
                         {isSelected && (
@@ -1353,8 +1255,8 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                           <span className="w-4 h-4 rounded-full shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.accent_color }} />
                         </div>
                         <div>
-                          <p className="text-xs font-semibold font-sans text-gray-900 leading-tight">{preset.name}</p>
-                          <p className="text-[10px] font-sans text-gray-500 mt-0.5 leading-tight">{preset.description}</p>
+                          <p className="text-xs font-semibold font-sans text-[var(--foreground)] leading-tight">{preset.name}</p>
+                          <p className="text-[10px] font-sans text-[var(--muted)] mt-0.5 leading-tight">{preset.description}</p>
                         </div>
                       </button>
                     );
@@ -1362,32 +1264,14 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                 </div>
               </section>
 
-              {/* YOUR BRANDS */}
-              <section>
-                <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[#8b6914] mb-3">Your Brands</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <BrandSlot slot={1} colors={brand1} onApply={applyBrand} onSave={() => saveBrandSlot(1)} onClear={() => clearBrandSlot(1)} />
-                  <BrandSlot slot={2} colors={brand2} onApply={applyBrand} onSave={() => saveBrandSlot(2)} onClear={() => clearBrandSlot(2)} />
-                </div>
-              </section>
-
-              {/* CUSTOMIZE (collapsible) */}
-              <details className="group">
-                <summary className="flex items-center justify-between cursor-pointer list-none py-1 select-none">
-                  <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-[#8b6914]">Customize</h3>
-                  <svg className="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </summary>
-                <div className="mt-4 space-y-6">
 
                   {/* Colors */}
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Colors</p>
+                    <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest mb-3">Colors</p>
                     <div className="grid grid-cols-2 gap-3">
                       {colors.map(({ label, value, set }) => (
-                        <div key={label} className="rounded-xl border border-gray-200 bg-gray-50 p-3 flex flex-col gap-2">
-                          <label className="block text-xs font-semibold text-gray-500">{label}</label>
+                        <div key={label} className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3 flex flex-col gap-2">
+                          <label className="block text-xs font-semibold text-[var(--muted)]">{label}</label>
                           <div className="flex items-center gap-2">
                             <div className="relative flex-shrink-0">
                               <input type="color" value={value}
@@ -1395,7 +1279,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
                               <div className="w-10 h-10 rounded-xl border-2 border-white shadow-md" style={{ background: value }} />
                             </div>
-                            <span className="text-xs font-mono text-gray-500 uppercase tracking-wide">{value}</span>
+                            <span className="text-xs font-mono text-[var(--muted)] uppercase tracking-wide">{value}</span>
                           </div>
                         </div>
                       ))}
@@ -1433,26 +1317,41 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                     })()}
                   </div>
 
+                  {/* Subtitle / description text color */}
+                  <div>
+                    <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest mb-1.5">Subtitle / description color</p>
+                    <p className="text-xs text-[var(--muted)] mb-2">Used for descriptions, subheadings, and secondary text on your menu.</p>
+                    <div className="flex items-center gap-3 rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3">
+                      <div className="relative flex-shrink-0">
+                        <input type="color" value={mutedColor}
+                          onChange={(e) => setMutedColor(e.target.value)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                        <div className="w-10 h-10 rounded-xl border-2 border-white shadow-md" style={{ background: mutedColor }} />
+                      </div>
+                      <span className="text-xs font-mono text-[var(--muted)] uppercase tracking-wide">{mutedColor}</span>
+                    </div>
+                  </div>
+
                   {/* Font */}
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">Font</p>
+                    <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest mb-2">Font</p>
                     <div className="relative">
                       <button type="button" onClick={() => setFontOpen((o) => !o)}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[#8b6914]">
+                        className="w-full px-4 py-3 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm text-left flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
                         <span className={FONT_OPTIONS.find((o) => o.value === font)?.cls}>
                           {FONT_OPTIONS.find((o) => o.value === font)?.label ?? "Geist Sans"}
                         </span>
-                        <svg className={`w-4 h-4 text-gray-400 transition-transform ${fontOpen ? "rotate-180" : ""}`}
+                        <svg className={`w-4 h-4 text-[var(--muted)] transition-transform ${fontOpen ? "rotate-180" : ""}`}
                           fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                       </button>
                       {fontOpen && (
-                        <div className="absolute top-full left-0 right-0 mt-1 py-1 rounded-xl border border-gray-200 bg-white shadow-xl z-10 max-h-52 overflow-y-auto">
+                        <div className="absolute top-full left-0 right-0 mt-1 py-1 rounded-xl border border-[var(--card-border)] bg-[var(--card)] shadow-xl z-10 max-h-52 overflow-y-auto">
                           {FONT_OPTIONS.map((opt) => (
                             <button key={opt.value} type="button"
                               onClick={() => { setFont(opt.value); setFontOpen(false); }}
-                              className={`w-full px-4 py-2.5 text-left text-sm hover:bg-gray-100 transition-colors ${opt.cls} ${font === opt.value ? "text-[#8b6914] font-medium" : "text-gray-900"}`}>
+                              className={`w-full px-4 py-2.5 text-left text-sm hover:bg-[var(--background)] transition-colors ${opt.cls} ${font === opt.value ? "text-[var(--accent)] font-medium" : "text-[var(--foreground)]"}`}>
                               {opt.label}
                             </button>
                           ))}
@@ -1463,42 +1362,39 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 
                   {/* Restaurant details */}
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">Restaurant details</p>
+                    <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest mb-3">Restaurant details</p>
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-sans font-medium text-gray-900 mb-1.5">Restaurant name</label>
+                        <label className="block text-sm font-sans font-medium text-[var(--foreground)] mb-1.5">Restaurant name</label>
                         <input type="text" value={name} onChange={(e) => setName(e.target.value)}
                           placeholder="e.g. La Piazza"
-                          className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                          className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium font-sans text-gray-900 mb-1.5">Logo</label>
-                        <p className="text-xs font-sans text-gray-500 mb-2">PNG with a transparent background works best.</p>
+                        <label className="block text-sm font-medium font-sans text-[var(--foreground)] mb-1.5">Logo</label>
+                        <p className="text-xs font-sans text-[var(--muted)] mb-2">PNG with a transparent background works best.</p>
                         <div className="max-w-[140px]">
                           <ImageUploader currentUrl={logoUrl} onUploaded={(url) => setLogoUrl(url)} folder="logos" aspectRatio="square" />
                         </div>
                         {logoUrl && (
-                          <a href={logoUrl} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs font-sans text-[#8b6914] hover:underline inline-block">View full size ↗</a>
+                          <a href={logoUrl} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs font-sans text-gray-700 hover:text-gray-900 hover:underline inline-block">View full size ↗</a>
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium font-sans text-gray-900 mb-1.5">Hero / banner image</label>
-                        <p className="text-xs font-sans text-gray-500 mb-2">Shown across the top of your public menu.</p>
+                        <label className="block text-sm font-medium font-sans text-[var(--foreground)] mb-1.5">Hero / banner image</label>
+                        <p className="text-xs font-sans text-[var(--muted)] mb-2">Shown across the top of your public menu.</p>
                         <div className="max-h-[160px] overflow-hidden rounded-lg">
                           <ImageUploader currentUrl={heroUrl} onUploaded={(url) => setHeroUrl(url)} folder="hero" aspectRatio="video" />
                         </div>
                         {heroUrl && (
-                          <a href={heroUrl} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs font-sans text-[#8b6914] hover:underline inline-block">View full size ↗</a>
+                          <a href={heroUrl} target="_blank" rel="noopener noreferrer" className="mt-1 text-xs font-sans text-gray-700 hover:text-gray-900 hover:underline inline-block">View full size ↗</a>
                         )}
                       </div>
                     </div>
                   </div>
 
-                </div>
-              </details>
-
             </div>
-            <div className="flex-shrink-0 border-t border-gray-200 px-6 py-4 bg-white space-y-3">
+            <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)] space-y-3">
               {colorCustomized && (getContrast(fontColor, card) < 4.5 || getContrast(fontColor, bg) < 4.5) && (
                 <div className="flex items-start gap-2 p-3 rounded-lg bg-[#fff8ed] border border-[#f0d89b]">
                   <svg className="w-5 h-5 text-[#b8851e] flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1510,7 +1406,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                 </div>
               )}
               <button type="button" onClick={save} disabled={saving}
-                className="font-sans w-full py-3.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity shadow-sm">
+                className="font-sans w-full py-3.5 rounded-xl bg-[var(--accent)] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity shadow-sm">
                 {saving ? "Saving…" : "Save theme"}
               </button>
             </div>
@@ -1531,12 +1427,14 @@ function AdminMenuPanel({
   onReplayTour,
   onSignOut,
   onOpenQR,
+  onOpenSettings,
   restaurantSlug,
 }: {
   onOpenTheme: () => void;
   onReplayTour: () => void;
   onSignOut: () => void;
   onOpenQR: () => void;
+  onOpenSettings: () => void;
   restaurantSlug: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -1636,16 +1534,16 @@ function AdminMenuPanel({
             </svg>
             Analytics
           </a>
-          <a
-            href={`/admin/${restaurantSlug}/settings`}
-            onClick={() => setOpen(false)}
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onOpenSettings(); }}
             className="w-full text-left px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 flex items-center gap-3 transition-colors"
           >
             <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             Account settings
-          </a>
+          </button>
           <button
             type="button"
             onClick={() => { setOpen(false); onReplayTour(); }}
@@ -1669,6 +1567,103 @@ function AdminMenuPanel({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function TrialBanner({
+  daysLeft,
+  onSubscribe,
+}: {
+  daysLeft: number | null;
+  onSubscribe: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  if (daysLeft === null) return null;
+
+  const isUrgent  = daysLeft <= 7;
+  const isExpired = daysLeft <= 0;
+
+  const handleClick = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/stripe/checkout', { method: 'POST' });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error ?? 'Unable to start checkout. Email support@dinelinks.com');
+      }
+    } catch {
+      alert('Unable to start checkout. Email support@dinelinks.com');
+    }
+    setLoading(false);
+  };
+
+  void onSubscribe; // exposed for external callers; internal click uses handleClick
+
+  return (
+    <div className="px-4 pt-4 pb-2">
+      <div className={`rounded-2xl border shadow-sm overflow-hidden ${
+        isExpired
+          ? 'border-[#d4b87a] bg-gradient-to-r from-[#fff8ed] to-[#fef0d6]'
+          : 'border-[#e8e4dd] bg-gradient-to-r from-[#faf8f5] to-[#f5f1ea]'
+      }`}>
+        <div className="px-5 py-4 sm:px-6 sm:py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+
+          {/* Left: dot + text */}
+          <div className="flex items-start sm:items-center gap-4 flex-1 min-w-0">
+            <div className="relative flex-shrink-0 mt-1 sm:mt-0">
+              <span className="relative flex h-2.5 w-2.5">
+                {!isExpired && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#8b6914] opacity-60" />
+                )}
+                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isExpired ? 'bg-[#c89b3c]' : 'bg-[#8b6914]'}`} />
+              </span>
+            </div>
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span className="text-[11px] uppercase tracking-[0.12em] font-semibold text-[#8b6914]">
+                  {isExpired ? 'Trial ended' : 'Free trial'}
+                </span>
+                <span className="text-[#e8e4dd]" aria-hidden>•</span>
+                <span className={`text-sm text-[#2c2a26] ${isUrgent ? 'font-semibold' : 'font-normal'}`}>
+                  {isExpired ? 'Your menu is offline' : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left`}
+                </span>
+              </div>
+              <span className="text-sm text-[#5a564f] leading-snug">
+                {isExpired
+                  ? 'Subscribe to bring your menu back online.'
+                  : 'Subscribe before your trial ends to keep your menu live.'
+                }
+              </span>
+            </div>
+          </div>
+
+          {/* Right: button */}
+          <div className="flex-shrink-0 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={handleClick}
+              disabled={loading}
+              className={`inline-flex items-center justify-center gap-2 w-full sm:w-auto rounded-xl px-5 h-11 text-sm font-semibold text-[#faf8f5] transition-colors shadow-sm disabled:opacity-60 disabled:cursor-wait ${
+                isExpired
+                  ? 'bg-[#8b6914] hover:bg-[#6f5310]'
+                  : 'bg-[#2c2a26] hover:bg-[#1f1d1a]'
+              }`}
+            >
+              {loading ? 'Redirecting…' : (
+                <>
+                  <span>Subscribe</span>
+                  <span className="text-white/50 font-normal">·</span>
+                  <span className="font-normal opacity-80">$25/mo</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1718,8 +1713,8 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
       <div className="flex items-center gap-2">
         <span className={`text-xs font-sans transition-colors ${checked ? "text-[var(--accent)] font-semibold" : "text-[var(--muted)]"}`}>{checked ? "On" : "Off"}</span>
         <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
-          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 ${checked ? "bg-[var(--accent)]" : "bg-gray-200"}`}>
-          <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform mt-0.5 ml-0.5 ${checked ? "translate-x-[20px]" : "translate-x-0"}`} />
+          className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 ${checked ? "bg-[var(--accent)]" : "bg-gray-300"}`}>
+          <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform ${checked ? "translate-x-[22px] translate-y-0.5" : "translate-x-0.5 translate-y-0.5"}`} />
         </button>
       </div>
     </div>
@@ -1764,11 +1759,11 @@ function ItemForm({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
       style={{ animation: 'fadeIn 0.15s ease-out' }}>
-      <div className="flex flex-col bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden"
+      <div className="flex flex-col bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden"
         style={{ animation: 'modalIn 0.15s ease-out' }}>
-        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl flex items-center justify-between">
-          <h3 className="font-serif text-lg font-semibold text-gray-900">{item ? "Edit item" : "Add item"}</h3>
-          <button type="button" onClick={onCancel} className="text-gray-400 hover:text-gray-700 p-1">
+        <div className="flex-shrink-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
+          <h3 className="font-serif text-lg font-semibold text-[var(--foreground)]">{item ? "Edit item" : "Add item"}</h3>
+          <button type="button" onClick={onCancel} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -1777,27 +1772,27 @@ function ItemForm({
         <div className="flex-1 overflow-y-auto px-6 py-6">
           <form id="item-form" onSubmit={submit} className="space-y-4">
             <div>
-              <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-gray-500 mb-1.5">Name *</label>
+              <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Name *</label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} required
-                className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
             </div>
             <div>
-              <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-gray-500 mb-1.5">Description</label>
+              <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Description</label>
               <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={3}
-                className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-gray-500 mb-1.5">Price *</label>
+                <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Price *</label>
                 <input type="number" step="0.01" min="0" value={price}
                   onChange={(e) => setPrice(e.target.value)} required
-                  className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                  className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
               </div>
               <div>
-                <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-gray-500 mb-1.5">Category *</label>
+                <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Category *</label>
                 {categories.length === 0 ? (
                   <select disabled
-                    className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-400 text-sm cursor-not-allowed">
+                    className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--muted)] text-sm cursor-not-allowed">
                     <option>Create a category first</option>
                   </select>
                 ) : (
@@ -1805,19 +1800,19 @@ function ItemForm({
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
                     required
-                    className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
+                    className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                   >
                     <option value="" disabled>Select a category…</option>
                     {categories.map((c) => <option key={c} value={c}>{c}</option>)}
                   </select>
                 )}
                 {!category && categories.length > 0 && (
-                  <p className="mt-1 text-xs text-gray-500">Category is required.</p>
+                  <p className="mt-1 text-xs text-[var(--muted)]">Category is required.</p>
                 )}
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2">Photo</label>
+              <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-2">Photo</label>
               <ImageUploader
                 currentUrl={imgUrl}
                 onUploaded={(url) => setImgUrl(url)}
@@ -1825,19 +1820,19 @@ function ItemForm({
                 aspectRatio="video"
                 existingImageUrl={existingImageUrl}
               />
-              <label className="block text-xs font-sans font-medium text-gray-500 mt-3 mb-1">Or paste image URL</label>
+              <label className="block text-xs font-sans font-medium text-[var(--muted)] mt-3 mb-1">Or paste image URL</label>
               <input type="url" value={imgUrl} onChange={(e) => setImgUrl(e.target.value)}
                 placeholder="https://..."
-                className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]" />
+                className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
             </div>
             <div className="flex items-center gap-3">
               <input id="avail" type="checkbox" checked={available}
                 onChange={(e) => setAvailable(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-[#8b6914] focus:ring-[#8b6914]" />
-              <label htmlFor="avail" className="text-sm font-medium text-gray-900">Listed as available</label>
+                className="h-4 w-4 rounded border-[var(--card-border)] text-[var(--accent)] focus:ring-[var(--accent)]" />
+              <label htmlFor="avail" className="text-sm font-medium text-[var(--foreground)]">Listed as available</label>
             </div>
-            <div className="border-t border-gray-200 pt-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">Dietary & highlights</p>
+            <div className="border-t border-[var(--card-border)] pt-4">
+              <p className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-3">Dietary & highlights</p>
               <div className="space-y-0.5">
                 <Toggle label="Chef's favourite"  checked={chefs}  onChange={setChefs}  />
                 <Toggle label="Gluten free"        checked={gluten} onChange={setGluten} />
@@ -1850,13 +1845,13 @@ function ItemForm({
             </div>
           </form>
         </div>
-        <div className="flex-shrink-0 border-t border-gray-200 px-6 py-4 bg-white flex gap-3">
+        <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)] flex gap-3">
           <button type="button" onClick={onCancel}
-            className="font-sans flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors">
+            className="font-sans flex-1 py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
             Cancel
           </button>
           <button type="submit" form="item-form" disabled={saving}
-            className="font-sans flex-1 py-2.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
+            className="font-sans flex-1 py-2.5 rounded-xl bg-[var(--accent)] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
             {saving ? "Saving…" : item ? "Update item" : "Add item"}
           </button>
         </div>
@@ -1904,39 +1899,39 @@ function AddCategoryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" style={{ animation: "fadeIn 0.15s ease-out" }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" style={{ animation: "modalIn 0.15s ease-out" }}>
-        <h3 className="font-serif text-lg font-semibold text-gray-900 mb-4">Add category</h3>
+      <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-sm p-6" style={{ animation: "modalIn 0.15s ease-out" }}>
+        <h3 className="font-serif text-lg font-semibold text-[var(--foreground)] mb-4">Add category</h3>
         <form onSubmit={create} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold font-sans uppercase tracking-widest text-gray-500 mb-1.5">Category name</label>
+            <label className="block text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-1.5">Category name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => { setName(e.target.value); setError(""); }}
               placeholder="e.g. Desserts"
               autoFocus
-              className="font-sans w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
+              className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
             {error && <p className="mt-1 text-xs text-red-600 font-sans">{error}</p>}
           </div>
 
           {/* Show image toggle */}
-          <div className="rounded-xl border border-gray-200 p-4 bg-gray-50">
+          <div className="rounded-xl border border-[var(--card-border)] p-4 bg-[var(--background)]">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-gray-900 font-sans">Show image on category</p>
-                <p className="text-xs text-gray-500 mt-0.5 font-sans">Display a banner image at the top of this category on your menu</p>
+                <p className="text-sm font-medium text-[var(--foreground)] font-sans">Show image on category</p>
+                <p className="text-xs text-[var(--muted)] mt-0.5 font-sans">Display a banner image at the top of this category on your menu</p>
               </div>
               <button
                 type="button"
                 onClick={() => setShowImage((v) => !v)}
-                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${showImage ? 'bg-[#8b6914]' : 'bg-gray-200'}`}
+                className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${showImage ? 'bg-[var(--accent)]' : 'bg-gray-200'}`}
               >
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${showImage ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
             </div>
             {showImage && (
-              <p className="text-xs text-gray-500 mt-3 font-sans">
+              <p className="text-xs text-[var(--muted)] mt-3 font-sans">
                 You can upload a category image after creating the category by editing it in &ldquo;Manage categories&rdquo;.
               </p>
             )}
@@ -1944,11 +1939,11 @@ function AddCategoryModal({
 
           <div className="flex gap-3">
             <button type="button" onClick={onClose}
-              className="font-sans flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors">
+              className="font-sans flex-1 py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
               Cancel
             </button>
             <button type="submit" disabled={saving || !name.trim()}
-              className="font-sans flex-1 py-2.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
+              className="font-sans flex-1 py-2.5 rounded-xl bg-[var(--accent)] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
               {saving ? "Creating…" : "Create"}
             </button>
           </div>
@@ -1979,7 +1974,7 @@ function SortableCategoryManageRow({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
-      className="rounded-xl border border-gray-200 bg-gray-50 overflow-hidden"
+      className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] overflow-hidden"
     >
       <div className="flex items-center gap-3 p-3">
         <div
@@ -1990,8 +1985,8 @@ function SortableCategoryManageRow({
           <GripVertical size={16} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 truncate">{name}</p>
-          <p className="text-xs text-gray-500">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
+          <p className="text-sm font-medium text-[var(--foreground)] truncate">{name}</p>
+          <p className="text-xs text-[var(--muted)]">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
         </div>
         <button
           type="button"
@@ -2005,25 +2000,25 @@ function SortableCategoryManageRow({
         </button>
       </div>
       {/* Thumbnail toggle */}
-      <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-gray-200 bg-white">
+      <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]">
         <div>
-          <p className="text-xs font-medium text-gray-900 font-sans">Show image next to category name</p>
-          <p className="text-[10px] text-gray-500 font-sans">Displays a small 40px thumbnail inline with the category heading</p>
+          <p className="text-xs font-medium text-[var(--foreground)] font-sans">Show image next to category name</p>
+          <p className="text-[10px] text-[var(--muted)] font-sans">Displays a small 40px thumbnail inline with the category heading</p>
         </div>
         <button
           type="button"
           onClick={() => onToggleUseBanner(!useBanner)}
-          className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${useBanner ? 'bg-[#8b6914]' : 'bg-gray-200'}`}
+          className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${useBanner ? 'bg-[var(--accent)]' : 'bg-gray-200'}`}
         >
           <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${useBanner ? 'translate-x-4' : 'translate-x-0.5'}`} />
         </button>
       </div>
       {/* Thumbnail item picker — shown when use_banner is ON */}
       {useBanner && (
-        <div className="px-3 py-2 border-t border-gray-200 bg-white">
-          <p className="text-[10px] font-semibold font-sans text-gray-500 uppercase tracking-wide mb-2">Choose thumbnail image</p>
+        <div className="px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]">
+          <p className="text-[10px] font-semibold font-sans text-[var(--muted)] uppercase tracking-wide mb-2">Choose thumbnail image</p>
           {itemsWithImages.length === 0 ? (
-            <p className="text-[11px] text-gray-500 font-sans italic">Add an image to a menu item to use it as a banner</p>
+            <p className="text-[11px] text-[var(--muted)] font-sans italic">Add an image to a menu item to use it as a banner</p>
           ) : (
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
               {/* "No banner" option */}
@@ -2032,7 +2027,7 @@ function SortableCategoryManageRow({
                 onClick={() => onSelectBannerItem(null)}
                 className={`flex-shrink-0 w-12 h-12 rounded-lg border-2 flex items-center justify-center text-[10px] font-sans font-medium transition-all ${
                   bannerItemId === null
-                    ? 'border-[#8b6914] ring-2 ring-[#8b6914]/30 bg-[#8b6914]/10 text-[#8b6914]'
+                    ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]'
                     : 'border-gray-200 text-gray-400 hover:border-gray-400'
                 }`}
                 title="Use first item image (default)"
@@ -2047,7 +2042,7 @@ function SortableCategoryManageRow({
                   title={item.name}
                   className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
                     bannerItemId === item.id
-                      ? 'border-[#8b6914] ring-2 ring-[#8b6914]/40'
+                      ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/40'
                       : 'border-gray-200 hover:border-gray-400 opacity-70 hover:opacity-100'
                   }`}
                 >
@@ -2142,22 +2137,22 @@ function ManageCategoriesModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" style={{ animation: 'fadeIn 0.15s ease-out' }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" style={{ animation: 'modalIn 0.15s ease-out' }}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+      <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-sm" style={{ animation: 'modalIn 0.15s ease-out' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--card-border)]">
           <div>
-            <h3 className="font-serif text-lg font-semibold text-gray-900">Manage categories</h3>
-            <p className="text-xs text-gray-500 mt-0.5">Drag to reorder · tap trash to delete</p>
+            <h3 className="font-serif text-lg font-semibold text-[var(--foreground)]">Manage categories</h3>
+            <p className="text-xs text-[var(--muted)] mt-0.5">Drag to reorder · tap trash to delete</p>
           </div>
-          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-700 p-1">
+          <button type="button" onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
         <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
-          {busy && <p className="text-xs text-gray-500 mb-2 font-sans">Saving order…</p>}
+          {busy && <p className="text-xs text-[var(--muted)] mb-2 font-sans">Saving order…</p>}
           {cats.length === 0 ? (
-            <p className="text-center text-gray-500 text-sm py-6 font-sans">No categories yet.</p>
+            <p className="text-center text-[var(--muted)] text-sm py-6 font-sans">No categories yet.</p>
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={cats} strategy={verticalListSortingStrategy}>
@@ -2192,9 +2187,9 @@ function ManageCategoriesModal({
             </DndContext>
           )}
         </div>
-        <div className="px-6 py-4 border-t border-gray-200">
+        <div className="px-6 py-4 border-t border-[var(--card-border)]">
           <button type="button" onClick={onClose}
-            className="font-sans w-full py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors">
+            className="font-sans w-full py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
             Done
           </button>
         </div>
@@ -2431,24 +2426,24 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
   const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
     <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#8b6914] focus:ring-offset-2 ${checked ? "bg-[#8b6914]" : "bg-gray-200"}`}>
-      <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform mt-0.5 ml-0.5 ${checked ? "translate-x-5" : "translate-x-0"}`} />
+      className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 ${checked ? "bg-[var(--accent)]" : "bg-gray-300"}`}>
+      <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-[22px] translate-y-0.5" : "translate-x-0.5 translate-y-0.5"}`} />
     </button>
   );
 
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/60 sm:p-4"
       style={{ animation: "fadeIn 0.15s ease-out" }}>
-      <div className="flex flex-col w-full sm:max-w-lg max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl"
+      <div className="flex flex-col w-full sm:max-w-lg max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-t-2xl sm:rounded-2xl bg-[var(--card)] shadow-2xl"
         style={{ animation: "modalIn 0.15s ease-out" }}>
 
         {/* Header */}
-        <div className="flex-shrink-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="flex-shrink-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 flex items-center justify-between">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Get your QR code</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Download and print for your tables</p>
+            <h2 className="text-base font-semibold text-[var(--foreground)]">Get your QR code</h2>
+            <p className="text-xs text-[var(--muted)] mt-0.5">Download and print for your tables</p>
           </div>
-          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-700 p-1">
+          <button type="button" onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -2503,11 +2498,11 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
           {/* Style */}
           <div>
-            <p className="text-xs uppercase tracking-widest text-gray-500 mb-2">Style</p>
+            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Style</p>
             <div className="flex gap-2 flex-wrap">
               {(Object.entries(QR_STYLES_MAP) as [QRStyleKey, { fg: string; bg: string }][]).map(([key, s]) => (
                 <button key={key} type="button" onClick={() => setQrStyle(key)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${qrStyle === key ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-gray-200 text-gray-700 hover:border-[#8b6914]/50"}`}>
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${qrStyle === key ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/50"}`}>
                   <span className="flex gap-1">
                     <span className="inline-block w-3 h-3 rounded-full border border-gray-200" style={{ background: s.fg }} />
                     <span className="inline-block w-3 h-3 rounded-full border border-gray-200" style={{ background: s.bg }} />
@@ -2520,7 +2515,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
           {/* Template */}
           <div>
-            <p className="text-xs uppercase tracking-widest text-gray-500 mb-3">Template</p>
+            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-3">Template</p>
             <div className="grid grid-cols-3 gap-3">
               {([
                 { id: "simple" as const, label: "QR only" },
@@ -2528,17 +2523,17 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                 { id: "table" as const, label: "Table card" },
               ]).map(t => (
                 <div key={t.id} onClick={() => setQrTemplate(t.id)}
-                  className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all ${qrTemplate === t.id ? "border-[#8b6914]" : "border-gray-200 hover:border-[#8b6914]/40"}`}>
-                  <div className="bg-white rounded-lg p-2 mb-2 flex flex-col items-center gap-1 min-h-[80px] justify-center border border-gray-100">
+                  className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all ${qrTemplate === t.id ? "border-[var(--accent)]" : "border-[var(--card-border)] hover:border-[var(--accent)]/40"}`}>
+                  <div className="bg-[var(--background)] rounded-lg p-2 mb-2 flex flex-col items-center gap-1 min-h-[80px] justify-center border border-[var(--card-border)]">
                     {t.id === "table" && (
-                      <div className="w-full text-center text-[8px] text-[#6b6560] font-bold truncate px-1">Header text</div>
+                      <div className="w-full text-center text-[8px] text-[var(--muted)] font-bold truncate px-1">Header text</div>
                     )}
-                    <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center text-[8px] text-gray-400">QR</div>
+                    <div className="w-10 h-10 bg-[var(--card-border)]/30 rounded flex items-center justify-center text-[8px] text-[var(--muted)]">QR</div>
                     {(t.id === "tagline" || t.id === "table") && (
-                      <div className="w-full text-center text-[8px] text-[#6b6560] truncate px-1">Tagline text</div>
+                      <div className="w-full text-center text-[8px] text-[var(--muted)] truncate px-1">Tagline text</div>
                     )}
                   </div>
-                  <span className="text-xs text-gray-500">{t.label}</span>
+                  <span className="text-xs text-[var(--muted)]">{t.label}</span>
                 </div>
               ))}
             </div>
@@ -2546,11 +2541,11 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
           {/* Size */}
           <div>
-            <p className="text-xs uppercase tracking-widest text-gray-500 mb-2">Output size</p>
+            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Output size</p>
             <div className="flex gap-2">
               {(["small", "medium", "large"] as QRSizeKey[]).map(s => (
                 <button key={s} type="button" onClick={() => setQrSize(s)}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${qrSize === s ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-gray-200 text-gray-700 hover:border-[#8b6914]/50"}`}>
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${qrSize === s ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/50"}`}>
                   {s}
                 </button>
               ))}
@@ -2559,27 +2554,27 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
           {/* Logo */}
           {logoUrl && (
-            <div className="space-y-3 rounded-xl border border-gray-200 p-4">
+            <div className="space-y-3 rounded-xl border border-[var(--card-border)] p-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-900">Include logo in center</span>
+                <span className="text-sm font-medium text-[var(--foreground)]">Include logo in center</span>
                 <Toggle checked={qrIncludeLogo} onChange={setQrIncludeLogo} />
               </div>
               {qrIncludeLogo && (
                 <div className="space-y-3 pt-2 border-t border-gray-200">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-900">Add background behind logo</span>
+                    <span className="text-sm text-[var(--foreground)]">Add background behind logo</span>
                     <Toggle checked={qrLogoBg} onChange={setQrLogoBg} />
                   </div>
                   {qrLogoBg && (
                     <div className="flex gap-3 items-center flex-wrap">
                       {(["circle", "square", "rounded"] as const).map(shape => (
                         <button key={shape} type="button" onClick={() => setQrLogoBgShape(shape)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${qrLogoBgShape === shape ? "border-[#8b6914] bg-[#8b6914]/10 text-[#8b6914]" : "border-gray-200 text-gray-700"}`}>
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${qrLogoBgShape === shape ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--card-border)] text-[var(--foreground)]"}`}>
                           {shape}
                         </button>
                       ))}
                       <div className="flex items-center gap-2 ml-auto">
-                        <span className="text-xs text-gray-500">Color</span>
+                        <span className="text-xs text-[var(--muted)]">Color</span>
                         <div className="relative w-8 h-8">
                           <input type="color" value={qrLogoBgColor} onChange={e => setQrLogoBgColor(e.target.value)}
                             className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
@@ -2595,13 +2590,326 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 border-t border-gray-200 px-6 py-4 bg-white">
+        <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)]">
           <button type="button" onClick={downloadQR} disabled={isDownloading}
-            className="w-full py-2.5 rounded-xl bg-[#8b6914] text-white font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
+            className="w-full py-2.5 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
             {isDownloading ? "Generating…" : "Download PNG"}
           </button>
         </div>
         <canvas ref={downloadCanvasRef} className="hidden" />
+      </div>
+    </div>
+  );
+}
+
+// ── Settings Modal ────────────────────────────────────────────────────────────
+
+const SETTINGS_LANGUAGES = [
+  { value: "en", label: "English" },
+  { value: "fr", label: "Français" },
+  { value: "es", label: "Español" },
+  { value: "zh", label: "中文" },
+  { value: "ar", label: "العربية" },
+  { value: "ja", label: "日本語" },
+  { value: "ko", label: "한국어" },
+  { value: "pt", label: "Português" },
+  { value: "de", label: "Deutsch" },
+  { value: "it", label: "Italiano" },
+];
+
+function SettingsModal({
+  open, onClose, slug, userEmail, subStatus, trialDaysLeft,
+}: {
+  open: boolean;
+  onClose: () => void;
+  slug: string;
+  userEmail: string;
+  subStatus: string | null;
+  trialDaysLeft: number | null;
+}) {
+  const supabase = createSupabaseClient();
+  const router = useRouter();
+  const [loaded, setLoaded] = useState(false);
+
+  const [displayName, setDisplayName] = useState("");
+  const [notifyWeekly, setNotifyWeekly] = useState(false);
+  const [notifyTrial, setNotifyTrial] = useState(true);
+  const [notifyProduct, setNotifyProduct] = useState(false);
+  const [defaultLang, setDefaultLang] = useState("en");
+
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingNotifs, setSavingNotifs] = useState(false);
+  const [savingPrefs, setSavingPrefs] = useState(false);
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwSent, setPwSent] = useState(false);
+
+  const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  useBodyScrollLock(open);
+
+  useEffect(() => {
+    if (!open || loaded) return;
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data.user) return;
+      const meta = data.user.user_metadata ?? {};
+      setDisplayName(meta.display_name ?? "");
+      setNotifyWeekly(meta.notify_weekly_analytics ?? false);
+      setNotifyTrial(meta.notify_trial_ending ?? true);
+      setNotifyProduct(meta.notify_product_updates ?? false);
+      setDefaultLang(meta.default_language ?? "en");
+      setLoaded(true);
+    });
+  }, [open, loaded, supabase]);
+
+  useEffect(() => { if (!open) setLoaded(false); }, [open]);
+
+  const showMsg = (type: "ok" | "err", text: string) => {
+    setMsg({ type, text });
+    setTimeout(() => setMsg(null), 3500);
+  };
+
+  const saveProfile = async () => {
+    setSavingProfile(true);
+    const { error } = await supabase.auth.updateUser({ data: { display_name: displayName.trim() || null } });
+    setSavingProfile(false);
+    if (error) showMsg("err", error.message);
+    else showMsg("ok", "Profile saved.");
+  };
+
+  const saveNotifs = async () => {
+    setSavingNotifs(true);
+    const { error } = await supabase.auth.updateUser({
+      data: { notify_weekly_analytics: notifyWeekly, notify_trial_ending: notifyTrial, notify_product_updates: notifyProduct },
+    });
+    setSavingNotifs(false);
+    if (error) showMsg("err", error.message);
+    else showMsg("ok", "Preferences saved.");
+  };
+
+  const savePrefs = async () => {
+    setSavingPrefs(true);
+    const { error } = await supabase.auth.updateUser({ data: { default_language: defaultLang } });
+    setSavingPrefs(false);
+    if (error) showMsg("err", error.message);
+    else showMsg("ok", "Preferences saved.");
+  };
+
+  const sendPasswordReset = async () => {
+    if (typeof window === "undefined") return;
+    setPwLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(userEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setPwLoading(false);
+    if (error) showMsg("err", error.message);
+    else { setPwSent(true); showMsg("ok", "Password reset email sent — check your inbox."); }
+  };
+
+  const signOutAll = async () => {
+    await supabase.auth.signOut({ scope: "global" });
+    router.push("/login");
+  };
+
+  const openPortal = async () => {
+    const res = await fetch("/api/stripe/portal", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantSlug: slug }),
+    });
+    const data = await res.json();
+    if (data.url) window.location.href = data.url;
+    else {
+      const co = await fetch("/api/stripe/checkout", { method: "POST" });
+      const cod = await co.json();
+      if (cod.url) window.location.href = cod.url;
+    }
+  };
+
+  const planLabel = (() => {
+    if (!subStatus || subStatus === "none") return "No active subscription";
+    if (subStatus === "trialing")
+      return trialDaysLeft !== null && trialDaysLeft > 0
+        ? `Free trial — ${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`
+        : "Free trial — expired";
+    if (subStatus === "active") return "Pro Plan — Active";
+    if (subStatus === "past_due") return "Pro Plan — Payment past due";
+    if (subStatus === "canceled") return "Subscription canceled";
+    return subStatus;
+  })();
+
+  const MiniToggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
+    <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 ${checked ? "bg-[var(--accent)]" : "bg-gray-300"}`}>
+      <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform ${checked ? "translate-x-[22px] translate-y-0.5" : "translate-x-0.5 translate-y-0.5"}`} />
+    </button>
+  );
+
+  const SectionCard = ({ children }: { children: React.ReactNode }) => (
+    <div className="rounded-xl border border-[#e8e4dd] bg-white divide-y divide-[#e8e4dd] overflow-hidden">{children}</div>
+  );
+
+  const SettingRow = ({ label, sublabel, children }: { label: string; sublabel?: string; children: React.ReactNode }) => (
+    <div className="flex items-center justify-between gap-4 px-4 py-3.5 hover:bg-[#faf8f5] transition-colors">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-[#2c2a26]">{label}</p>
+        {sublabel && <p className="text-xs text-[#6b6560] mt-0.5">{sublabel}</p>}
+      </div>
+      <div className="flex-shrink-0">{children}</div>
+    </div>
+  );
+
+  const sectionHeader = (label: string) => (
+    <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">{label}</h2>
+  );
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
+      style={{ animation: "fadeIn 0.15s ease-out" }}>
+      <div className="flex flex-col w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl bg-[var(--card)] shadow-2xl"
+        style={{ animation: "modalIn 0.15s ease-out" }}>
+
+        {/* Header */}
+        <div className="flex-shrink-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-[var(--foreground)]">Account settings</h2>
+            <p className="text-xs text-[var(--muted)] mt-0.5">These settings apply to your DineLinks account, not your menu.</p>
+          </div>
+          <button type="button" onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Toast */}
+        {msg && (
+          <div className={`flex-shrink-0 px-5 py-2.5 text-center text-sm font-medium text-white ${msg.type === "ok" ? "bg-green-600" : "bg-red-600"}`}>
+            {msg.text}
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8">
+
+          {/* ACCOUNT */}
+          <section>
+            {sectionHeader("Account")}
+            <SectionCard>
+              <SettingRow label="Email" sublabel="Your login email address">
+                <span className="text-sm text-[#6b6560] font-mono">{userEmail}</span>
+              </SettingRow>
+              <div className="px-4 py-3.5">
+                <label className="block text-sm font-medium text-[#2c2a26] mb-1.5">Display name</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder="e.g. Jane"
+                    className="flex-1 px-3 py-2 rounded-lg border border-[#e8e4dd] bg-white text-sm text-[#2c2a26] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
+                  <button type="button" onClick={saveProfile} disabled={savingProfile}
+                    className="px-4 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
+                    {savingProfile ? "Saving…" : "Save"}
+                  </button>
+                </div>
+              </div>
+            </SectionCard>
+          </section>
+
+          {/* SECURITY */}
+          <section>
+            {sectionHeader("Security")}
+            <SectionCard>
+              <SettingRow label="Change password" sublabel="We'll email you a reset link">
+                <button type="button" onClick={sendPasswordReset} disabled={pwLoading || pwSent}
+                  className="px-4 py-2 text-sm font-medium border border-[#e8e4dd] rounded-lg hover:bg-[#f5f1ea] transition-colors disabled:opacity-50">
+                  {pwSent ? "Email sent ✓" : pwLoading ? "Sending…" : "Send reset email"}
+                </button>
+              </SettingRow>
+              <SettingRow label="Sign out everywhere" sublabel="Ends all active sessions on all devices">
+                <button type="button" onClick={signOutAll}
+                  className="px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+                  Sign out all
+                </button>
+              </SettingRow>
+            </SectionCard>
+          </section>
+
+          {/* NOTIFICATIONS */}
+          <section>
+            {sectionHeader("Notifications")}
+            <SectionCard>
+              <SettingRow label="Weekly analytics digest" sublabel="Summary of menu views and clicks every Monday">
+                <MiniToggle checked={notifyWeekly} onChange={setNotifyWeekly} />
+              </SettingRow>
+              <SettingRow label="Trial ending reminders" sublabel="Emails when your trial is about to expire">
+                <MiniToggle checked={notifyTrial} onChange={setNotifyTrial} />
+              </SettingRow>
+              <SettingRow label="Product updates" sublabel="New features and announcements from DineLinks (opt-in)">
+                <MiniToggle checked={notifyProduct} onChange={setNotifyProduct} />
+              </SettingRow>
+            </SectionCard>
+            <button type="button" onClick={saveNotifs} disabled={savingNotifs}
+              className="mt-3 px-5 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
+              {savingNotifs ? "Saving…" : "Save notification settings"}
+            </button>
+          </section>
+
+          {/* BILLING */}
+          <section>
+            {sectionHeader("Billing")}
+            <SectionCard>
+              <SettingRow label="Current plan" sublabel={planLabel}>
+                <button type="button" onClick={openPortal}
+                  className="px-4 py-2 text-sm font-medium border border-[#e8e4dd] rounded-lg hover:bg-[#f5f1ea] transition-colors">
+                  Manage subscription
+                </button>
+              </SettingRow>
+              <SettingRow label="Invoices" sublabel="View and download past invoices">
+                <button type="button" onClick={openPortal}
+                  className="px-4 py-2 text-sm font-medium border border-[#e8e4dd] rounded-lg hover:bg-[#f5f1ea] transition-colors">
+                  View invoices
+                </button>
+              </SettingRow>
+            </SectionCard>
+          </section>
+
+          {/* PREFERENCES */}
+          <section>
+            {sectionHeader("Preferences")}
+            <SectionCard>
+              <div className="px-4 py-3.5">
+                <label className="block text-sm font-medium text-[#2c2a26] mb-1.5">Default menu language</label>
+                <p className="text-xs text-[#6b6560] mb-2">The language shown first when customers open your menu.</p>
+                <select value={defaultLang} onChange={(e) => setDefaultLang(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-[#e8e4dd] bg-white text-sm text-[#2c2a26] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+                  {SETTINGS_LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+                </select>
+              </div>
+            </SectionCard>
+            <button type="button" onClick={savePrefs} disabled={savingPrefs}
+              className="mt-3 px-5 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
+              {savingPrefs ? "Saving…" : "Save preferences"}
+            </button>
+          </section>
+
+          {/* DANGER ZONE */}
+          <section>
+            <AccountDangerZone />
+          </section>
+
+        </div>
+
+        {/* Footer */}
+        <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)]">
+          <button type="button" onClick={onClose}
+            className="font-sans w-full py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
+            Done
+          </button>
+        </div>
       </div>
     </div>
   );
