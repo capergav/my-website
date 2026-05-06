@@ -4,6 +4,35 @@ import { createSupabaseServerClient } from '@/app/lib/supabase';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { stripe } from '@/lib/stripe';
 
+async function deleteAllFilesInFolder(folder: string): Promise<void> {
+  const { data: entries, error } = await supabaseAdmin.storage
+    .from('menu-images')
+    .list(folder, { limit: 1000 });
+
+  if (error || !entries) return;
+
+  const filePaths: string[] = [];
+  const subFolders: string[] = [];
+
+  for (const entry of entries) {
+    const fullPath = `${folder}/${entry.name}`;
+    if (entry.id === null) {
+      subFolders.push(fullPath);
+    } else {
+      filePaths.push(fullPath);
+    }
+  }
+
+  for (const sub of subFolders) {
+    await deleteAllFilesInFolder(sub);
+  }
+
+  for (let i = 0; i < filePaths.length; i += 100) {
+    const batch = filePaths.slice(i, i + 100);
+    await supabaseAdmin.storage.from('menu-images').remove(batch);
+  }
+}
+
 export async function POST() {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -49,13 +78,9 @@ export async function POST() {
       // 6. Delete menu_analytics
       await supabaseAdmin.from('menu_analytics').delete().in('restaurant_id', restaurantIds);
 
-      // 7. Delete storage objects in 'menu-images' bucket
+      // 7. Delete storage objects in 'menu-images' bucket (recursive)
       for (const slug of restaurantSlugs) {
-        const { data: files } = await supabaseAdmin.storage.from('menu-images').list(slug);
-        if (files && files.length > 0) {
-          const paths = files.map((f: { name: string }) => `${slug}/${f.name}`);
-          await supabaseAdmin.storage.from('menu-images').remove(paths);
-        }
+        await deleteAllFilesInFolder(slug);
       }
 
       // 8. Delete restaurants (cascade handles any remaining children)

@@ -1,3 +1,19 @@
+/**
+ * cleanup-orphan-images.ts
+ * Deletes files in the `menu-images` storage bucket that are no longer
+ * referenced by any menu_item, restaurant hero image, or logo.
+ *
+ * Run manually:
+ *   npx ts-node -r tsconfig-paths/register scripts/cleanup-orphan-images.ts
+ *
+ * Required Supabase storage bucket policies for `menu-images`:
+ *   - service_role: full access (SELECT, INSERT, UPDATE, DELETE)
+ *     Used by this script, the cleanup cron (/api/cron/cleanup-images),
+ *     and the account deletion route (/api/account/delete).
+ *   - anon / authenticated: SELECT only (public read for customer menu)
+ *     INSERT/UPDATE/DELETE for authenticated users scoped to their own folder
+ *     via RLS policy: (storage.foldername(name))[1] = auth.uid()
+ */
 import { createClient } from "@supabase/supabase-js";
 
 const BUCKET = "menu-images";
