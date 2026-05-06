@@ -52,6 +52,7 @@ const PRESET_THEMES = [
     background_color: '#ffffff',
     font_color: '#1a1a1a',
     font_family: 'Playfair Display',
+    mutedColor: '#6b6560',
   },
   {
     name: 'Midnight Brass',
@@ -61,6 +62,7 @@ const PRESET_THEMES = [
     background_color: '#0f0f10',
     font_color: '#fafafa',
     font_family: 'Playfair Display',
+    mutedColor: '#9a9590',
   },
   {
     name: 'Forest Trattoria',
@@ -70,6 +72,7 @@ const PRESET_THEMES = [
     background_color: '#fdfcf7',
     font_color: '#1a1a1a',
     font_family: 'Cormorant Garamond',
+    mutedColor: '#5e7a65',
   },
   {
     name: 'Cherry Blossom',
@@ -79,6 +82,7 @@ const PRESET_THEMES = [
     background_color: '#fffafc',
     font_color: '#1a1a1a',
     font_family: 'Geist Sans',
+    mutedColor: '#8a6b7a',
   },
   {
     name: 'Sunlit Café',
@@ -88,6 +92,7 @@ const PRESET_THEMES = [
     background_color: '#fffbeb',
     font_color: '#1a1a1a',
     font_family: 'Pacifico',
+    mutedColor: '#8a7a5e',
   },
   {
     name: 'Coastal Blue',
@@ -97,6 +102,7 @@ const PRESET_THEMES = [
     background_color: '#f8fafc',
     font_color: '#1a1a1a',
     font_family: 'Geist Sans',
+    mutedColor: '#6b7a96',
   },
   {
     name: 'Spice Bazaar',
@@ -106,6 +112,7 @@ const PRESET_THEMES = [
     background_color: '#fffaf3',
     font_color: '#1a1a1a',
     font_family: 'Cinzel',
+    mutedColor: '#8a5e4d',
   },
   {
     name: 'Steak House',
@@ -115,6 +122,7 @@ const PRESET_THEMES = [
     background_color: '#0a0a0a',
     font_color: '#fafafa',
     font_family: 'Bebas Neue',
+    mutedColor: '#9a8878',
   },
   {
     name: 'Lavender Brunch',
@@ -124,6 +132,7 @@ const PRESET_THEMES = [
     background_color: '#faf5ff',
     font_color: '#1a1a1a',
     font_family: 'Cormorant Garamond',
+    mutedColor: '#8b7a99',
   },
   {
     name: 'Terracotta',
@@ -133,6 +142,7 @@ const PRESET_THEMES = [
     background_color: '#fdf6f0',
     font_color: '#1a1a1a',
     font_family: 'Cinzel',
+    mutedColor: '#a07868',
   },
   {
     name: 'Charcoal Modern',
@@ -142,6 +152,7 @@ const PRESET_THEMES = [
     background_color: '#ffffff',
     font_color: '#1a1a1a',
     font_family: 'Geist Sans',
+    mutedColor: '#6f7378',
   },
   {
     name: 'Emerald Lounge',
@@ -151,6 +162,7 @@ const PRESET_THEMES = [
     background_color: '#0c1814',
     font_color: '#f0fdf4',
     font_family: 'Playfair Display',
+    mutedColor: '#5e8a78',
   },
 ];
 
@@ -1233,6 +1245,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                         onClick={() => {
                           setCard(preset.main_color); setAccent(preset.accent_color);
                           setBg(preset.background_color); setFontColor(preset.font_color);
+                          setMutedColor(preset.mutedColor ?? "#6b6560");
                           setFont(FONT_NAME_TO_VALUE[preset.font_family] ?? 'sans');
                           setSelectedPreset(preset.name); setColorCustomized(false);
                         }}

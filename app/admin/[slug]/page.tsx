@@ -57,10 +57,11 @@ export default async function AdminSlugPage({ params }: Props) {
     initialCategoryNotes[row.category] = row.note ?? "";
   }
 
-  const fontColor = restaurant.font_color ?? "#2c2a26";
-  const accent    = restaurant.accent_color ?? "#8b6914";
-  const bg        = restaurant.background_color ?? "#faf8f5";
-  const card      = restaurant.main_color ?? "#ffffff";
+  const fontColor  = restaurant.font_color ?? "#2c2a26";
+  const accent     = restaurant.accent_color ?? "#8b6914";
+  const bg         = restaurant.background_color ?? "#faf8f5";
+  const card       = restaurant.main_color ?? "#ffffff";
+  const muted      = restaurant.muted_color ?? "#6b6560";
 
   let fontFamily = "var(--font-geist-sans), system-ui, sans-serif";
   switch (restaurant.font_family) {
@@ -76,14 +77,14 @@ export default async function AdminSlugPage({ params }: Props) {
 
   const themeStyle = `
     :root {
-      --foreground: #2c2a26;
-      --accent: #8b6914;
-      --background: #faf8f5;
-      --card: #ffffff;
+      --foreground: ${fontColor};
+      --accent: ${accent};
+      --background: ${bg};
+      --card: ${card};
       --card-border: #e8e4dd;
-      --muted: #5a564f;
+      --muted: ${muted};
     }
-    body { font-family: ${fontFamily}; color: #2c2a26; }
+    body { font-family: ${fontFamily}; color: ${fontColor}; }
   `;
 
   return (

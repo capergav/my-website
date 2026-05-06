@@ -238,11 +238,11 @@ export function OnboardingTour({
           opacity,
           transition: "opacity 200ms ease",
           zIndex: 10000,
-          padding: 22,
+          overflow: "hidden",
         }}
       >
-        {/* Progress bar at top */}
-        <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: "#f5f1ea", borderTopLeftRadius: 14, borderTopRightRadius: 14, overflow: "hidden" }}>
+        {/* Progress bar — full width, clipped by overflow:hidden + borderRadius */}
+        <div style={{ height: 3, background: "#f5f1ea", width: "100%" }}>
           <div style={{
             height: "100%",
             width: `${((step + 1) / total) * 100}%`,
@@ -251,59 +251,62 @@ export function OnboardingTour({
           }} />
         </div>
 
-        {/* Header row: title + step counter */}
-        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 8 }}>
-          <h3 style={{ fontFamily: "Georgia, serif", fontSize: 19, fontWeight: 600, color: "#2c2a26", margin: 0, lineHeight: 1.3 }}>
-            {current.title}
-          </h3>
-          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#8b6914", flexShrink: 0, paddingTop: 4, whiteSpace: "nowrap" as const }}>
-            Step {step + 1} of {total}
-          </span>
-        </div>
+        {/* Padded content area */}
+        <div style={{ padding: 22 }}>
+          {/* Header row: title + step counter */}
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, marginBottom: 8 }}>
+            <h3 style={{ fontFamily: "Georgia, serif", fontSize: 19, fontWeight: 600, color: "#2c2a26", margin: 0, lineHeight: 1.3 }}>
+              {current.title}
+            </h3>
+            <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.1em", textTransform: "uppercase" as const, color: "#8b6914", flexShrink: 0, paddingTop: 4, whiteSpace: "nowrap" as const }}>
+              Step {step + 1} of {total}
+            </span>
+          </div>
 
-        {/* Body */}
-        <p style={{ fontSize: 14, lineHeight: 1.65, color: "#5a564f", margin: "0 0 18px 0" }}>
-          {current.body}
-        </p>
+          {/* Body */}
+          <p style={{ fontSize: 14, lineHeight: 1.65, color: "#5a564f", margin: "0 0 18px 0" }}>
+            {current.body}
+          </p>
 
-        {/* Button row */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <button
-            type="button"
-            onClick={finish}
-            style={{ fontSize: 13, color: "#8b6914", textDecoration: "underline", textUnderlineOffset: 4, minHeight: 40, padding: "0 4px", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit" }}
-          >
-            Skip tour
-          </button>
-          <div style={{ display: "flex", gap: 10 }}>
+          {/* Button row */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <button
               type="button"
-              onClick={handleBack}
-              disabled={isFirst}
-              style={{
-                minHeight: 42, padding: "0 18px", borderRadius: 10,
-                border: "1px solid #e8e4dd", background: "transparent",
-                color: "#5a564f", fontSize: 14,
-                cursor: isFirst ? "default" : "pointer",
-                opacity: isFirst ? 0.4 : 1,
-                pointerEvents: isFirst ? "none" : "auto",
-                fontFamily: "inherit",
-              }}
+              onClick={finish}
+              style={{ fontSize: 13, color: "#8b6914", textDecoration: "underline", textUnderlineOffset: 4, minHeight: 40, padding: "0 4px", cursor: "pointer", background: "none", border: "none", fontFamily: "inherit" }}
             >
-              Back
+              Skip tour
             </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              style={{
-                minHeight: 42, padding: "0 22px", borderRadius: 10,
-                background: "#2c2a26", color: "#faf8f5", fontSize: 14,
-                fontWeight: 600, cursor: "pointer", border: "none",
-                fontFamily: "inherit",
-              }}
-            >
-              {isLast ? "Start using DineLinks" : "Next →"}
-            </button>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                type="button"
+                onClick={handleBack}
+                disabled={isFirst}
+                style={{
+                  minHeight: 42, padding: "0 18px", borderRadius: 10,
+                  border: "1px solid #e8e4dd", background: "transparent",
+                  color: "#5a564f", fontSize: 14,
+                  cursor: isFirst ? "default" : "pointer",
+                  opacity: isFirst ? 0.4 : 1,
+                  pointerEvents: isFirst ? "none" : "auto",
+                  fontFamily: "inherit",
+                }}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                style={{
+                  minHeight: 42, padding: "0 22px", borderRadius: 10,
+                  background: "#2c2a26", color: "#faf8f5", fontSize: 14,
+                  fontWeight: 600, cursor: "pointer", border: "none",
+                  fontFamily: "inherit",
+                }}
+              >
+                {isLast ? "Start using DineLinks" : "Next →"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
