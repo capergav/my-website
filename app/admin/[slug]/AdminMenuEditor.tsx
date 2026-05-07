@@ -795,11 +795,6 @@ export function AdminMenuEditor({
         </div>
       )}
 
-      {/* Trial banner */}
-      {subStatus === 'trialing' && daysLeftInTrial !== null && (
-        <TrialBanner daysLeft={daysLeftInTrial} onSubscribe={startCheckout} />
-      )}
-
       {/* Empty state — no categories at all */}
       {isEmpty && (
         <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
@@ -1948,6 +1943,9 @@ function AddCategoryModal({
                 You can upload a category image after creating the category by editing it in &ldquo;Manage categories&rdquo;.
               </p>
             )}
+            <p className="text-xs text-[var(--muted)] mt-2 font-sans">
+              Tip: If turned on for any category, every category on your menu will display as an image card. If off for all categories, they&apos;ll show as simple text pills.
+            </p>
           </div>
 
           <div className="flex gap-3">
@@ -2630,6 +2628,35 @@ const SETTINGS_LANGUAGES = [
   { value: "it", label: "Italiano" },
 ];
 
+// ── Settings sub-components — defined at top level to prevent focus-loss on re-render ──
+
+function MiniToggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 ${checked ? "bg-[var(--accent)]" : "bg-gray-300"}`}>
+      <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform ${checked ? "translate-x-[22px] translate-y-0.5" : "translate-x-0.5 translate-y-0.5"}`} />
+    </button>
+  );
+}
+
+function SectionCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-[var(--card-border)] bg-[var(--card)] divide-y divide-[var(--card-border)] overflow-hidden">{children}</div>
+  );
+}
+
+function SettingRow({ label, sublabel, children }: { label: string; sublabel?: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-4 py-3.5 hover:bg-[var(--background)] transition-colors">
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-[var(--foreground)]">{label}</p>
+        {sublabel && <p className="text-xs text-[var(--muted)] mt-0.5">{sublabel}</p>}
+      </div>
+      <div className="flex-shrink-0">{children}</div>
+    </div>
+  );
+}
+
 function SettingsModal({
   open, onClose, slug, userEmail, subStatus, trialDaysLeft,
 }: {
@@ -2750,29 +2777,8 @@ function SettingsModal({
     return subStatus;
   })();
 
-  const MiniToggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
-    <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 ${checked ? "bg-[var(--accent)]" : "bg-gray-300"}`}>
-      <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform ${checked ? "translate-x-[22px] translate-y-0.5" : "translate-x-0.5 translate-y-0.5"}`} />
-    </button>
-  );
-
-  const SectionCard = ({ children }: { children: React.ReactNode }) => (
-    <div className="rounded-xl border border-[#e8e4dd] bg-white divide-y divide-[#e8e4dd] overflow-hidden">{children}</div>
-  );
-
-  const SettingRow = ({ label, sublabel, children }: { label: string; sublabel?: string; children: React.ReactNode }) => (
-    <div className="flex items-center justify-between gap-4 px-4 py-3.5 hover:bg-[#faf8f5] transition-colors">
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-[#2c2a26]">{label}</p>
-        {sublabel && <p className="text-xs text-[#6b6560] mt-0.5">{sublabel}</p>}
-      </div>
-      <div className="flex-shrink-0">{children}</div>
-    </div>
-  );
-
   const sectionHeader = (label: string) => (
-    <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">{label}</h2>
+    <h2 className="text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-3">{label}</h2>
   );
 
   if (!open) return null;
@@ -2811,17 +2817,17 @@ function SettingsModal({
             {sectionHeader("Account")}
             <SectionCard>
               <SettingRow label="Email" sublabel="Your login email address">
-                <span className="text-sm text-[#6b6560] font-mono">{userEmail}</span>
+                <span className="text-sm text-[var(--muted)] font-mono">{userEmail}</span>
               </SettingRow>
               <div className="px-4 py-3.5">
-                <label className="block text-sm font-medium text-[#2c2a26] mb-1.5">Display name</label>
+                <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Display name</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="e.g. Jane"
-                    className="flex-1 px-3 py-2 rounded-lg border border-[#e8e4dd] bg-white text-sm text-[#2c2a26] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    className="flex-1 px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                   />
                   <button type="button" onClick={saveProfile} disabled={savingProfile}
                     className="px-4 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
@@ -2838,7 +2844,7 @@ function SettingsModal({
             <SectionCard>
               <SettingRow label="Change password" sublabel="We'll email you a reset link">
                 <button type="button" onClick={sendPasswordReset} disabled={pwLoading || pwSent}
-                  className="px-4 py-2 text-sm font-medium border border-[#e8e4dd] rounded-lg hover:bg-[#f5f1ea] transition-colors disabled:opacity-50">
+                  className="px-4 py-2 text-sm font-medium border border-[var(--card-border)] text-[var(--foreground)] rounded-lg hover:bg-[var(--background)] transition-colors disabled:opacity-50">
                   {pwSent ? "Email sent ✓" : pwLoading ? "Sending…" : "Send reset email"}
                 </button>
               </SettingRow>
@@ -2877,13 +2883,13 @@ function SettingsModal({
             <SectionCard>
               <SettingRow label="Current plan" sublabel={planLabel}>
                 <button type="button" onClick={openPortal}
-                  className="px-4 py-2 text-sm font-medium border border-[#e8e4dd] rounded-lg hover:bg-[#f5f1ea] transition-colors">
+                  className="px-4 py-2 text-sm font-medium border border-[var(--card-border)] text-[var(--foreground)] rounded-lg hover:bg-[var(--background)] transition-colors">
                   Manage subscription
                 </button>
               </SettingRow>
               <SettingRow label="Invoices" sublabel="View and download past invoices">
                 <button type="button" onClick={openPortal}
-                  className="px-4 py-2 text-sm font-medium border border-[#e8e4dd] rounded-lg hover:bg-[#f5f1ea] transition-colors">
+                  className="px-4 py-2 text-sm font-medium border border-[var(--card-border)] text-[var(--foreground)] rounded-lg hover:bg-[var(--background)] transition-colors">
                   View invoices
                 </button>
               </SettingRow>
@@ -2895,10 +2901,10 @@ function SettingsModal({
             {sectionHeader("Preferences")}
             <SectionCard>
               <div className="px-4 py-3.5">
-                <label className="block text-sm font-medium text-[#2c2a26] mb-1.5">Default menu language</label>
-                <p className="text-xs text-[#6b6560] mb-2">The language shown first when customers open your menu.</p>
+                <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Default menu language</label>
+                <p className="text-xs text-[var(--muted)] mb-2">The language shown first when customers open your menu.</p>
                 <select value={defaultLang} onChange={(e) => setDefaultLang(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-[#e8e4dd] bg-white text-sm text-[#2c2a26] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
                   {SETTINGS_LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                 </select>
               </div>
