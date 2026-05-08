@@ -37,4 +37,5 @@ export type MenuItemRow = {
   vegetarian?: boolean | null;
   dairy_free?: boolean | null;
   spicy?: boolean | null;
+  price_suffix?: string | null;
 };

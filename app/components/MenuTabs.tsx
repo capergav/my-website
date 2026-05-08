@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { trackEvent, detectDevice } from "@/lib/analytics";
 import { useLanguage } from "@/app/context/LanguageContext";
@@ -9,7 +9,9 @@ import { TranslatedText } from "./TranslatedText";
 import {
   Sandwich, UtensilsCrossed, Coffee, IceCream, Fish, Wine, Beer,
   Soup, Pizza, Beef, Croissant, GlassWater, Flame, Salad,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
+import type { Locale } from "@/app/lib/translations";
 
 export type MenuItem = {
   id: string;
@@ -26,6 +28,7 @@ export type MenuItem = {
   vegetarian?: boolean | null;
   dairy_free?: boolean | null;
   spicy?: boolean | null;
+  price_suffix?: string | null;
 };
 
 export const DIET_FILTER_OPTIONS = [
@@ -46,6 +49,7 @@ export type MenuTabsProps = {
   categoryImageMap?: Record<string, { show: boolean; url: string | null; useBanner?: boolean; bannerUrl?: string | null; imageMode?: string | null }>;
   restaurantId?: string;
   language?: string;
+  allowAutoTranslate?: boolean;
 };
 
 // Lucide icon map for category thumbnails
@@ -112,11 +116,14 @@ function hasDetails(item: MenuItem): boolean {
   return hasDesc || hasImg || hasDiet;
 }
 
-export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, categoryImageMap = {}, restaurantId, language }: MenuTabsProps) {
-  const { t, getCategoryLabel } = useLanguage();
+export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, categoryImageMap = {}, restaurantId, language, allowAutoTranslate }: MenuTabsProps) {
+  const { t, getCategoryLabel, setLocale } = useLanguage();
   const [activeCategory, setActiveCategory] = useState(sortedCategories[0] ?? "");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [dietFilter, setDietFilter] = useState<string>("all");
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   const getSession = useCallback(() => {
     if (typeof window === "undefined") return "";
@@ -138,6 +145,36 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
       ...extra,
     });
   }, [restaurantId, getSession]);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 4);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener('scroll', updateScrollState, { passive: true });
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => { el.removeEventListener('scroll', updateScrollState); ro.disconnect(); };
+  }, [updateScrollState]);
+
+  useEffect(() => {
+    if (!allowAutoTranslate) return;
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('menusnap-locale') : null;
+    if (stored) return;
+    const browserLang = navigator.language.split('-')[0];
+    const supported: Locale[] = ["en", "fr", "zh", "ar", "es", "ko", "pa", "yue", "tl", "hi"];
+    const match = supported.find(l => l === browserLang);
+    if (match) setLocale(match);
+  }, [allowAutoTranslate, setLocale]);
+
+  const scrollLeft = () => scrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' });
+  const scrollRight = () => scrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' });
 
   if (sortedCategories.length === 0) {
     return (
@@ -193,6 +230,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
               </h1>
               <span className="font-semibold text-[var(--accent)] text-2xl flex-shrink-0 tabular-nums">
                 {formatPrice(Number(selectedItem.price))}
+                {selectedItem.price_suffix && <span className="text-lg font-normal opacity-70 ml-1">{selectedItem.price_suffix}</span>}
               </span>
             </div>
             <DietaryIcons item={selectedItem} />
@@ -220,7 +258,21 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
             {/* Left/right fade edges */}
             <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-r from-[var(--background)] to-transparent" />
             <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-l from-[var(--background)] to-transparent" />
-            <div className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 snap-x snap-mandatory">
+            {canScrollLeft && (
+              <button type="button" onClick={scrollLeft}
+                className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-8 h-8 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                aria-label="Scroll categories left">
+                <ChevronLeft size={16} />
+              </button>
+            )}
+            {canScrollRight && (
+              <button type="button" onClick={scrollRight}
+                className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-8 h-8 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                aria-label="Scroll categories right">
+                <ChevronRight size={16} />
+              </button>
+            )}
+            <div ref={scrollRef} className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 snap-x snap-mandatory">
               {sortedCategories.map((category, idx) => {
                 const isActive = activeCategory === category;
                 const handleClick = () => { setActiveCategory(category); setDietFilter("all"); fireTrack("category_view", { category }); };
@@ -400,7 +452,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
               transition={{ duration: 0.38, delay: idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
               whileHover={clickable ? { y: -2, boxShadow: '0 8px 24px -6px rgba(0,0,0,0.12)' } : {}}
               whileTap={clickable ? { scale: 0.99 } : {}}
-              className={`bg-[var(--card)] rounded-2xl overflow-hidden border border-[var(--card-border)] shadow-sm transition-colors duration-300 touch-manipulation flex flex-row ${clickable ? 'cursor-pointer hover:border-[var(--accent)]/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2' : ''}`}
+              className={`bg-[var(--card)] rounded-2xl overflow-hidden border border-[var(--card-border)] shadow-sm transition-colors duration-300 touch-manipulation flex flex-row ${item.available === false ? 'opacity-50' : ''} ${clickable ? 'cursor-pointer hover:border-[var(--accent)]/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2' : ''}`}
             >
               {/* Image on the left — only when present */}
               {item.image_url && (
@@ -428,13 +480,20 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                       transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', repeatDelay: 1 }}
                     >
                       {formatPrice(Number(item.price))}
+                      {item.price_suffix && <span className="text-sm font-normal opacity-70 ml-0.5">{item.price_suffix}</span>}
                     </motion.span>
                   ) : (
                     <span className="font-semibold text-[var(--accent)] whitespace-nowrap flex-shrink-0 tabular-nums">
                       {formatPrice(Number(item.price))}
+                      {item.price_suffix && <span className="text-sm font-normal opacity-70 ml-0.5">{item.price_suffix}</span>}
                     </span>
                   )}
                 </div>
+                {item.available === false && (
+                  <span className="inline-flex items-center mt-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+                    Currently unavailable
+                  </span>
+                )}
                 <DietaryIcons item={item} />
                 {item.description && (
                   <p className="text-[var(--muted)] mt-2 text-sm sm:text-base leading-relaxed line-clamp-2 text-wrap-force whitespace-pre-line break-words [overflow-wrap:anywhere]">

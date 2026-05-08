@@ -11,7 +11,7 @@ import type { Restaurant } from "@/app/lib/supabase";
 import { ImageUploader } from "./ImageUploader";
 import { OnboardingTour } from "./OnboardingTour";
 import { useSubscription } from "@/lib/useSubscription";
-import { CreditCard, AlertTriangle, AlertCircle, Plus, GripVertical, UtensilsCrossed } from "lucide-react";
+import { CreditCard, AlertTriangle, AlertCircle, Plus, GripVertical, UtensilsCrossed, ChevronLeft, ChevronRight } from "lucide-react";
 import { AccountDangerZone } from "./AccountDangerZone";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor,
@@ -301,6 +301,9 @@ export function AdminMenuEditor({
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
 
+  const tabScrollRef = useRef<HTMLDivElement>(null);
+  const [adminCanScrollLeft, setAdminCanScrollLeft] = useState(false);
+  const [adminCanScrollRight, setAdminCanScrollRight] = useState(false);
 
   const refreshMenuRef = useRef<(() => Promise<void>) | null>(null);
 
@@ -426,6 +429,25 @@ export function AdminMenuEditor({
 
   // Keep ref in sync so the user-fetch effect can call refreshMenu after seeding
   useEffect(() => { refreshMenuRef.current = refreshMenu; }, [refreshMenu]);
+
+  const updateAdminScrollState = useCallback(() => {
+    const el = tabScrollRef.current;
+    if (!el) return;
+    setAdminCanScrollLeft(el.scrollLeft > 4);
+    setAdminCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = tabScrollRef.current;
+    if (!el) return;
+    updateAdminScrollState();
+    const ro = new ResizeObserver(updateAdminScrollState);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [updateAdminScrollState, sortedCategories]);
+
+  const adminScrollLeft = () => tabScrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' });
+  const adminScrollRight = () => tabScrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' });
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -811,10 +833,22 @@ export function AdminMenuEditor({
         <>
           {/* Category tabs — draggable + clickable */}
           <div data-tour="tour-categories" className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
-            <div className="max-w-4xl mx-auto px-3 sm:px-6">
+            <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
+              {adminCanScrollLeft && (
+                <button type="button" onClick={adminScrollLeft}
+                  className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+                  <ChevronLeft size={14} />
+                </button>
+              )}
+              {adminCanScrollRight && (
+                <button type="button" onClick={adminScrollRight}
+                  className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+                  <ChevronRight size={14} />
+                </button>
+              )}
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
                 <SortableContext items={sortedCategories} strategy={horizontalListSortingStrategy}>
-                  <div className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 items-center">
+                  <div ref={tabScrollRef} onScroll={updateAdminScrollState} className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 items-center">
                     {sortedCategories.map((cat) => (
                       <SortableCategoryTab key={cat} name={cat}>
                         <button
@@ -1736,12 +1770,13 @@ function ItemForm({
   onSave: (p: Partial<MenuItemRow>) => void; onCancel: () => void; saving: boolean;
   existingImageUrl?: string;
 }) {
-  const [name, setName]           = useState(item?.name ?? "");
-  const [desc, setDesc]           = useState(item?.description ?? "");
-  const [price, setPrice]         = useState(item != null ? String(Number(item.price)) : "");
-  const [imgUrl, setImgUrl]       = useState(item?.image_url ?? "");
-  const [category, setCategory]   = useState(item?.category ?? "");
-  const [available, setAvailable] = useState<boolean>(item?.available ?? true);
+  const [name, setName]               = useState(item?.name ?? "");
+  const [desc, setDesc]               = useState(item?.description ?? "");
+  const [price, setPrice]             = useState(item != null ? String(Number(item.price)) : "");
+  const [priceSuffix, setPriceSuffix] = useState(item?.price_suffix ?? "");
+  const [imgUrl, setImgUrl]           = useState(item?.image_url ?? "");
+  const [category, setCategory]       = useState(item?.category ?? "");
+  const [available, setAvailable]     = useState<boolean>(item?.available ?? true);
   const [chefs, setChefs]         = useState<boolean>(item?.chefs_favorite ?? false);
   const [gluten, setGluten]       = useState<boolean>(item?.gluten_free ?? false);
   const [nut, setNut]             = useState<boolean>(item?.nut_free ?? false);
@@ -1758,6 +1793,7 @@ function ItemForm({
     if (!name.trim() || Number.isNaN(p) || p < 0 || !category) return;
     onSave({
       name: name.trim(), description: desc.trim() || null, price: p,
+      price_suffix: priceSuffix.trim() || null,
       image_url: imgUrl.trim() || null, category: category || "Other",
       available, chefs_favorite: chefs, gluten_free: gluten, nut_free: nut,
       vegan, vegetarian: veg, dairy_free: dairy, spicy,
@@ -1818,6 +1854,13 @@ function ItemForm({
                   <p className="mt-1 text-xs text-[var(--muted)]">Category is required.</p>
                 )}
               </div>
+            </div>
+            <div>
+              <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-1.5">Price suffix (optional)</label>
+              <input type="text" value={priceSuffix} onChange={(e) => setPriceSuffix(e.target.value)}
+                placeholder="/pint, /175ml, /person"
+                maxLength={20}
+                className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
             </div>
             <div>
               <label className="block text-xs font-semibold uppercase tracking-widest text-[var(--muted)] mb-2">Photo</label>
@@ -1967,7 +2010,7 @@ function AddCategoryModal({
 // ── Manage Categories Modal ───────────────────────────────────────────────────
 
 function SortableCategoryManageRow({
-  name, itemCount, showImage, imageMode, bannerItemId, categoryItems, onDelete, onToggleShowImage, onSelectImageMode,
+  name, itemCount, showImage, imageMode, bannerItemId, categoryItems, onDelete, onToggleShowImage, onSelectImageMode, isDeleting, onRename,
 }: {
   name: string;
   itemCount: number;
@@ -1978,7 +2021,11 @@ function SortableCategoryManageRow({
   onDelete: () => void;
   onToggleShowImage: (val: boolean) => void;
   onSelectImageMode: (mode: 'icon' | 'item', itemId: string | null) => void;
+  isDeleting: boolean;
+  onRename: (oldName: string, newName: string) => Promise<void>;
 }) {
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(name);
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: name });
   const itemsWithImages = categoryItems.filter((i) => i.image_url);
 
@@ -1997,19 +2044,60 @@ function SortableCategoryManageRow({
           <GripVertical size={16} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-[var(--foreground)] truncate">{name}</p>
+          {isRenaming ? (
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                value={renameValue}
+                onChange={(e) => setRenameValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') { e.preventDefault(); const t = renameValue.trim(); if (t && t !== name) onRename(name, t); setIsRenaming(false); }
+                  if (e.key === 'Escape') { setIsRenaming(false); setRenameValue(name); }
+                }}
+                autoFocus
+                className="flex-1 min-w-0 text-sm font-medium border-b border-[var(--accent)] bg-transparent text-[var(--foreground)] focus:outline-none py-0.5"
+              />
+              <button type="button"
+                onClick={() => { const t = renameValue.trim(); if (t && t !== name) onRename(name, t); setIsRenaming(false); }}
+                className="flex-shrink-0 p-0.5 text-[var(--accent)] hover:opacity-70 transition-opacity" title="Save">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 group/rename">
+              <p className="text-sm font-medium text-[var(--foreground)] truncate">{name}</p>
+              <button type="button"
+                onClick={() => { setIsRenaming(true); setRenameValue(name); }}
+                className="opacity-0 group-hover/rename:opacity-100 flex-shrink-0 p-0.5 text-[var(--muted)] hover:text-[var(--foreground)] transition-opacity" title="Rename">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+            </div>
+          )}
           <p className="text-xs text-[var(--muted)]">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
         </div>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-          title="Delete category"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </button>
+        {isDeleting ? (
+          <div className="flex-shrink-0 p-1.5">
+            <svg className="w-4 h-4 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onDelete}
+            className="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+            title="Delete category"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+          </button>
+        )}
       </div>
       {/* Show image toggle */}
       <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]">
@@ -2083,6 +2171,8 @@ function ManageCategoriesModal({
   const [imageModeMap, setImageModeMap] = useState<Record<string, string | null>>({});
   const [bannerItemMap, setBannerItemMap] = useState<Record<string, string | null>>({});
   const [busy, setBusy] = useState(false);
+  const [deletingCats, setDeletingCats] = useState<Set<string>>(new Set());
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const supabase = createSupabaseClient();
   useBodyScrollLock(true);
 
@@ -2138,17 +2228,34 @@ function ManageCategoriesModal({
         `This will unassign ${itemsInCat.length} item${itemsInCat.length > 1 ? 's' : ''} from "${catName}". They will still exist but won't appear in any tab until reassigned. Continue?`
       );
       if (!confirmed) return;
-      await supabase.from('menu_items')
-        .update({ category: null })
-        .in('id', itemsInCat.map((i) => i.id));
     }
-    await supabase.from('restaurant_categories')
-      .delete()
-      .eq('restaurant_id', restaurantId)
-      .eq('name', catName);
+    setDeletingCats(prev => { const next = new Set(prev); next.add(catName); return next; });
+    setDeleteError(null);
+    if (itemsInCat.length > 0) {
+      await supabase.from('menu_items').update({ category: null }).in('id', itemsInCat.map((i) => i.id));
+    }
+    const { error } = await supabase.from('restaurant_categories')
+      .delete().eq('restaurant_id', restaurantId).eq('name', catName);
+    setDeletingCats(prev => { const next = new Set(prev); next.delete(catName); return next; });
+    if (error) { setDeleteError(`Failed to delete "${catName}". Please try again.`); return; }
     const newCats = cats.filter((c) => c !== catName);
     setCats(newCats);
     await onUpdated(newCats);
+  };
+
+  const handleRename = async (oldName: string, newName: string) => {
+    setBusy(true);
+    await supabase.from('menu_items').update({ category: newName }).eq('restaurant_id', restaurantId).eq('category', oldName);
+    const { error } = await supabase.from('restaurant_categories').update({ name: newName }).eq('restaurant_id', restaurantId).eq('name', oldName);
+    if (!error) {
+      const newCats = cats.map(c => c === oldName ? newName : c);
+      setCats(newCats);
+      setShowImageMap(prev => { const n = { ...prev }; n[newName] = n[oldName]; delete n[oldName]; return n; });
+      setImageModeMap(prev => { const n = { ...prev }; n[newName] = n[oldName]; delete n[oldName]; return n; });
+      setBannerItemMap(prev => { const n = { ...prev }; n[newName] = n[oldName]; delete n[oldName]; return n; });
+      await onUpdated(newCats);
+    }
+    setBusy(false);
   };
 
   return (
@@ -2166,44 +2273,45 @@ function ManageCategoriesModal({
           </button>
         </div>
         <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
-          {busy && <p className="text-xs text-[var(--muted)] mb-2 font-sans">Saving order…</p>}
-          {cats.length === 0 ? (
-            <p className="text-center text-[var(--muted)] text-sm py-6 font-sans">No categories yet.</p>
-          ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={cats} strategy={verticalListSortingStrategy}>
-                <div className="space-y-2">
-                  {cats.map((cat) => (
-                    <SortableCategoryManageRow
-                      key={cat}
-                      name={cat}
-                      itemCount={grouped[cat]?.length ?? 0}
-                      showImage={showImageMap[cat] ?? false}
-                      imageMode={imageModeMap[cat] ?? null}
-                      bannerItemId={bannerItemMap[cat] ?? null}
-                      categoryItems={grouped[cat] ?? []}
-                      onDelete={() => handleDelete(cat)}
-                      onToggleShowImage={async (val) => {
-                        setShowImageMap((prev) => ({ ...prev, [cat]: val }));
-                        await supabase.from('restaurant_categories')
-                          .update({ show_image: val })
-                          .eq('restaurant_id', restaurantId)
-                          .eq('name', cat);
-                      }}
-                      onSelectImageMode={async (mode, itemId) => {
-                        setImageModeMap((prev) => ({ ...prev, [cat]: mode }));
-                        setBannerItemMap((prev) => ({ ...prev, [cat]: itemId }));
-                        await supabase.from('restaurant_categories')
-                          .update({ image_mode: mode, banner_item_id: itemId, use_banner: mode === 'item' })
-                          .eq('restaurant_id', restaurantId)
-                          .eq('name', cat);
-                      }}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
+          {busy && <p className="text-xs text-[var(--muted)] mb-2 font-sans">Saving…</p>}
+          {deleteError && (
+            <p className="text-xs text-red-600 font-sans mb-2 px-1">{deleteError}</p>
           )}
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={cats} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2">
+                {cats.map((cat) => (
+                  <SortableCategoryManageRow
+                    key={cat}
+                    name={cat}
+                    itemCount={grouped[cat]?.length ?? 0}
+                    showImage={showImageMap[cat] ?? false}
+                    imageMode={imageModeMap[cat] ?? null}
+                    bannerItemId={bannerItemMap[cat] ?? null}
+                    categoryItems={grouped[cat] ?? []}
+                    isDeleting={deletingCats.has(cat)}
+                    onDelete={() => handleDelete(cat)}
+                    onRename={handleRename}
+                    onToggleShowImage={async (val) => {
+                      setShowImageMap((prev) => ({ ...prev, [cat]: val }));
+                      await supabase.from('restaurant_categories')
+                        .update({ show_image: val })
+                        .eq('restaurant_id', restaurantId)
+                        .eq('name', cat);
+                    }}
+                    onSelectImageMode={async (mode, itemId) => {
+                      setImageModeMap((prev) => ({ ...prev, [cat]: mode }));
+                      setBannerItemMap((prev) => ({ ...prev, [cat]: itemId }));
+                      await supabase.from('restaurant_categories')
+                        .update({ image_mode: mode, banner_item_id: itemId, use_banner: mode === 'item' })
+                        .eq('restaurant_id', restaurantId)
+                        .eq('name', cat);
+                    }}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         </div>
         <div className="px-6 py-4 border-t border-[var(--card-border)]">
           <button type="button" onClick={onClose}

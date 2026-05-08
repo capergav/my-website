@@ -36,7 +36,7 @@ export default async function PublicMenuPage({ params }: Props) {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id, muted_color")
+    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id, muted_color, allow_auto_translate")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -91,7 +91,7 @@ export default async function PublicMenuPage({ params }: Props) {
   }
 
   const [{ data: menuItems }, { data: categoryNotesRows }, { data: categoryRows }] = await Promise.all([
-    supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).eq("available", true).order("sort_order", { ascending: true }).order("name", { ascending: true }),
+    supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }).order("name", { ascending: true }),
     supabase.from("category_notes").select("category, note").eq("restaurant_id", restaurant.id),
     supabase.from("restaurant_categories").select("name, show_image, image_url, banner_item_id, use_banner, image_mode").eq("restaurant_id", restaurant.id),
   ]);
@@ -187,7 +187,7 @@ export default async function PublicMenuPage({ params }: Props) {
         restaurantId={restaurant.id}
       />
       {hasItems ? (
-        <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} categoryImageMap={categoryImageMap} restaurantId={restaurant.id} />
+        <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} categoryImageMap={categoryImageMap} restaurantId={restaurant.id} allowAutoTranslate={!!(restaurant as { allow_auto_translate?: boolean }).allow_auto_translate} />
       ) : (
         <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
           <h2 className="text-2xl font-serif font-semibold" style={{ color: fontColor }}>No items yet</h2>

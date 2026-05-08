@@ -2,7 +2,7 @@ export type Locale = "en" | "fr" | "zh" | "ar" | "es" | "ko" | "pa" | "yue" | "t
 
 export const locales: { value: Locale; label: string; flag: string }[] = [
   { value: "en",  label: "English",   flag: "🇺🇸" },
-  { value: "fr",  label: "Français",  flag: "🇫🇷" },
+  { value: "fr",  label: "Français",  flag: "QC" },
   { value: "zh",  label: "中文",      flag: "🇨🇳" },
   { value: "ar",  label: "العربية",   flag: "🇸🇦" },
   { value: "es",  label: "Español",   flag: "🇪🇸" },
