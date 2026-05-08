@@ -11,7 +11,7 @@ import type { Restaurant } from "@/app/lib/supabase";
 import { ImageUploader } from "./ImageUploader";
 import { OnboardingTour } from "./OnboardingTour";
 import { useSubscription } from "@/lib/useSubscription";
-import { CreditCard, AlertTriangle, AlertCircle, Plus, GripVertical } from "lucide-react";
+import { CreditCard, AlertTriangle, AlertCircle, Plus, GripVertical, UtensilsCrossed } from "lucide-react";
 import { AccountDangerZone } from "./AccountDangerZone";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor,
@@ -1164,7 +1164,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 
   const trigger = sheetMode ? (
     <button data-tour={tourTarget} type="button" onClick={() => setOpen(true)}
-      className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-[var(--background)] text-[var(--foreground)] text-sm font-medium">
+      className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
       <svg className="w-4 h-4 text-[var(--muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
           d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
@@ -1967,16 +1967,17 @@ function AddCategoryModal({
 // ── Manage Categories Modal ───────────────────────────────────────────────────
 
 function SortableCategoryManageRow({
-  name, itemCount, useBanner, bannerItemId, categoryItems, onDelete, onToggleUseBanner, onSelectBannerItem,
+  name, itemCount, showImage, imageMode, bannerItemId, categoryItems, onDelete, onToggleShowImage, onSelectImageMode,
 }: {
   name: string;
   itemCount: number;
-  useBanner: boolean;
+  showImage: boolean;
+  imageMode: string | null;
   bannerItemId: string | null;
   categoryItems: MenuItemRow[];
   onDelete: () => void;
-  onToggleUseBanner: (val: boolean) => void;
-  onSelectBannerItem: (itemId: string | null) => void;
+  onToggleShowImage: (val: boolean) => void;
+  onSelectImageMode: (mode: 'icon' | 'item', itemId: string | null) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: name });
   const itemsWithImages = categoryItems.filter((i) => i.image_url);
@@ -2010,58 +2011,58 @@ function SortableCategoryManageRow({
           </svg>
         </button>
       </div>
-      {/* Thumbnail toggle */}
+      {/* Show image toggle */}
       <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]">
         <div>
-          <p className="text-xs font-medium text-[var(--foreground)] font-sans">Show image next to category name</p>
-          <p className="text-[10px] text-[var(--muted)] font-sans">Displays a small 40px thumbnail inline with the category heading</p>
+          <p className="text-xs font-medium text-[var(--foreground)] font-sans">Show image on category</p>
+          <p className="text-[10px] text-[var(--muted)] font-sans">Display an icon or item photo next to the category name</p>
         </div>
         <button
           type="button"
-          onClick={() => onToggleUseBanner(!useBanner)}
-          className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${useBanner ? 'bg-[var(--accent)]' : 'bg-gray-200'}`}
+          onClick={() => onToggleShowImage(!showImage)}
+          className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${showImage ? 'bg-[var(--accent)]' : 'bg-gray-200'}`}
         >
-          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${useBanner ? 'translate-x-4' : 'translate-x-0.5'}`} />
+          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${showImage ? 'translate-x-4' : 'translate-x-0.5'}`} />
         </button>
       </div>
-      {/* Thumbnail item picker — shown when use_banner is ON */}
-      {useBanner && (
+      {/* Image mode picker — only shown when show_image is ON */}
+      {showImage && (
         <div className="px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]">
-          <p className="text-[10px] font-semibold font-sans text-[var(--muted)] uppercase tracking-wide mb-2">Choose thumbnail image</p>
-          {itemsWithImages.length === 0 ? (
-            <p className="text-[11px] text-[var(--muted)] font-sans italic">Add an image to a menu item to use it as a banner</p>
-          ) : (
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {/* "No banner" option */}
+          <p className="text-[10px] font-semibold font-sans text-[var(--muted)] uppercase tracking-wide mb-2">Image type</p>
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            {/* Icon option */}
+            <button
+              type="button"
+              onClick={() => onSelectImageMode('icon', null)}
+              className={`flex-shrink-0 w-12 h-12 rounded-lg border-2 flex items-center justify-center transition-all ${
+                imageMode === 'icon' || (imageMode === null && bannerItemId === null)
+                  ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]'
+                  : 'border-gray-200 text-gray-400 hover:border-gray-400'
+              }`}
+              title="Show food icon"
+            >
+              <UtensilsCrossed size={18} strokeWidth={1.5} />
+            </button>
+            {/* Item image options */}
+            {itemsWithImages.map((item) => (
               <button
+                key={item.id}
                 type="button"
-                onClick={() => onSelectBannerItem(null)}
-                className={`flex-shrink-0 w-12 h-12 rounded-lg border-2 flex items-center justify-center text-[10px] font-sans font-medium transition-all ${
-                  bannerItemId === null
-                    ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/30 bg-[var(--accent)]/10 text-[var(--accent)]'
-                    : 'border-gray-200 text-gray-400 hover:border-gray-400'
+                onClick={() => onSelectImageMode('item', item.id)}
+                title={item.name}
+                className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
+                  imageMode === 'item' && bannerItemId === item.id
+                    ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/40'
+                    : 'border-gray-200 hover:border-gray-400 opacity-70 hover:opacity-100'
                 }`}
-                title="Use first item image (default)"
               >
-                Auto
+                <img src={item.image_url!} alt={item.name} className="w-full h-full object-cover" />
               </button>
-              {itemsWithImages.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => onSelectBannerItem(item.id)}
-                  title={item.name}
-                  className={`flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
-                    bannerItemId === item.id
-                      ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]/40'
-                      : 'border-gray-200 hover:border-gray-400 opacity-70 hover:opacity-100'
-                  }`}
-                >
-                  <img src={item.image_url!} alt={item.name} className="w-full h-full object-cover" />
-                </button>
-              ))}
-            </div>
-          )}
+            ))}
+            {itemsWithImages.length === 0 && imageMode !== 'icon' && (
+              <p className="text-[11px] text-[var(--muted)] font-sans italic self-center">Add item images to use a photo instead of the icon</p>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -2078,7 +2079,8 @@ function ManageCategoriesModal({
   onUpdated: (newCats: string[]) => Promise<void>;
 }) {
   const [cats, setCats] = useState(categories);
-  const [useBannerMap, setUseBannerMap] = useState<Record<string, boolean>>({});
+  const [showImageMap, setShowImageMap] = useState<Record<string, boolean>>({});
+  const [imageModeMap, setImageModeMap] = useState<Record<string, string | null>>({});
   const [bannerItemMap, setBannerItemMap] = useState<Record<string, string | null>>({});
   const [busy, setBusy] = useState(false);
   const supabase = createSupabaseClient();
@@ -2088,17 +2090,20 @@ function ManageCategoriesModal({
   useEffect(() => {
     supabase
       .from('restaurant_categories')
-      .select('name, use_banner, banner_item_id')
+      .select('name, show_image, image_mode, banner_item_id')
       .eq('restaurant_id', restaurantId)
       .then(({ data }) => {
         if (data) {
-          const bannerMap: Record<string, boolean> = {};
+          const showMap: Record<string, boolean> = {};
+          const modeMap: Record<string, string | null> = {};
           const itemMap: Record<string, string | null> = {};
-          for (const row of data as { name: string; use_banner: boolean | null; banner_item_id: string | null }[]) {
-            bannerMap[row.name] = row.use_banner !== false; // default true
+          for (const row of data as { name: string; show_image: boolean | null; image_mode: string | null; banner_item_id: string | null }[]) {
+            showMap[row.name] = row.show_image ?? false;
+            modeMap[row.name] = row.image_mode ?? null;
             itemMap[row.name] = row.banner_item_id ?? null;
           }
-          setUseBannerMap(bannerMap);
+          setShowImageMap(showMap);
+          setImageModeMap(modeMap);
           setBannerItemMap(itemMap);
         }
       });
@@ -2173,21 +2178,23 @@ function ManageCategoriesModal({
                       key={cat}
                       name={cat}
                       itemCount={grouped[cat]?.length ?? 0}
-                      useBanner={useBannerMap[cat] !== false}
+                      showImage={showImageMap[cat] ?? false}
+                      imageMode={imageModeMap[cat] ?? null}
                       bannerItemId={bannerItemMap[cat] ?? null}
                       categoryItems={grouped[cat] ?? []}
                       onDelete={() => handleDelete(cat)}
-                      onToggleUseBanner={async (val) => {
-                        setUseBannerMap((prev) => ({ ...prev, [cat]: val }));
+                      onToggleShowImage={async (val) => {
+                        setShowImageMap((prev) => ({ ...prev, [cat]: val }));
                         await supabase.from('restaurant_categories')
-                          .update({ use_banner: val })
+                          .update({ show_image: val })
                           .eq('restaurant_id', restaurantId)
                           .eq('name', cat);
                       }}
-                      onSelectBannerItem={async (itemId) => {
+                      onSelectImageMode={async (mode, itemId) => {
+                        setImageModeMap((prev) => ({ ...prev, [cat]: mode }));
                         setBannerItemMap((prev) => ({ ...prev, [cat]: itemId }));
                         await supabase.from('restaurant_categories')
-                          .update({ banner_item_id: itemId })
+                          .update({ image_mode: mode, banner_item_id: itemId, use_banner: mode === 'item' })
                           .eq('restaurant_id', restaurantId)
                           .eq('name', cat);
                       }}

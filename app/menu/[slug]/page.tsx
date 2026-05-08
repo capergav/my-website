@@ -93,7 +93,7 @@ export default async function PublicMenuPage({ params }: Props) {
   const [{ data: menuItems }, { data: categoryNotesRows }, { data: categoryRows }] = await Promise.all([
     supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).eq("available", true).order("sort_order", { ascending: true }).order("name", { ascending: true }),
     supabase.from("category_notes").select("category, note").eq("restaurant_id", restaurant.id),
-    supabase.from("restaurant_categories").select("name, show_image, image_url, banner_item_id, use_banner").eq("restaurant_id", restaurant.id),
+    supabase.from("restaurant_categories").select("name, show_image, image_url, banner_item_id, use_banner, image_mode").eq("restaurant_id", restaurant.id),
   ]);
 
   // Build a lookup of item images for banner_item_id resolution
@@ -102,8 +102,8 @@ export default async function PublicMenuPage({ params }: Props) {
     if (item.image_url) itemImageById[item.id] = item.image_url;
   }
 
-  const categoryImageMap: Record<string, { show: boolean; url: string | null; useBanner: boolean; bannerUrl: string | null }> = {};
-  for (const row of (categoryRows ?? []) as { name: string; show_image: boolean; image_url: string | null; banner_item_id: string | null; use_banner: boolean | null }[]) {
+  const categoryImageMap: Record<string, { show: boolean; url: string | null; useBanner: boolean; bannerUrl: string | null; imageMode: string | null }> = {};
+  for (const row of (categoryRows ?? []) as { name: string; show_image: boolean; image_url: string | null; banner_item_id: string | null; use_banner: boolean | null; image_mode: string | null }[]) {
     const useBanner = row.use_banner !== false;
     let bannerUrl: string | null = null;
     if (useBanner) {
@@ -111,7 +111,7 @@ export default async function PublicMenuPage({ params }: Props) {
         bannerUrl = itemImageById[row.banner_item_id];
       }
     }
-    categoryImageMap[row.name] = { show: row.show_image ?? false, url: row.image_url ?? null, useBanner, bannerUrl };
+    categoryImageMap[row.name] = { show: row.show_image ?? false, url: row.image_url ?? null, useBanner, bannerUrl, imageMode: row.image_mode ?? null };
   }
 
   const categoryNotes: Record<string, string> = {};

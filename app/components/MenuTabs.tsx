@@ -43,7 +43,7 @@ export type MenuTabsProps = {
   grouped: Record<string, MenuItem[]>;
   sortedCategories: string[];
   categoryNotes?: Record<string, string>;
-  categoryImageMap?: Record<string, { show: boolean; url: string | null; useBanner?: boolean; bannerUrl?: string | null }>;
+  categoryImageMap?: Record<string, { show: boolean; url: string | null; useBanner?: boolean; bannerUrl?: string | null; imageMode?: string | null }>;
   restaurantId?: string;
   language?: string;
 };
@@ -208,55 +208,110 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
   }
 
   // ── Category listing ──────────────────────────────────────────────────────
+  // If no category has show_image enabled, render simple pill tabs instead of image cards
+  const anyCategoryUsesImages = sortedCategories.some(cat => categoryImageMap[cat]?.show === true);
+
   return (
     <>
       {/* Category tab strip — hidden when only one category */}
-      {sortedCategories.length > 1 && <div className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
-        <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
-          {/* Left/right fade edges */}
-          <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-r from-[var(--background)] to-transparent" />
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-l from-[var(--background)] to-transparent" />
-          <div className="tabs-scroll flex gap-3 overflow-x-auto py-4 scrollbar-none px-1 snap-x snap-mandatory">
-            {sortedCategories.map((category, idx) => {
-              const firstImg = (grouped[category] ?? [])[0]?.image_url ?? null;
-              const isActive = activeCategory === category;
-              return (
-                <motion.button
-                  key={category}
-                  type="button"
-                  onClick={() => { setActiveCategory(category); setDietFilter("all"); fireTrack("category_view", { category }); }}
-                  className={`flex-shrink-0 w-[72px] sm:w-24 flex flex-col items-center gap-1.5 rounded-2xl transition-all duration-200 touch-manipulation py-2 snap-start ${
-                    isActive
-                      ? "ring-2 ring-[var(--main-color)] ring-offset-2 ring-offset-[var(--background)] shadow-md"
-                      : "opacity-70 hover:opacity-100"
-                  }`}
-                  initial={{ opacity: 0, x: -16 }}
-                  animate={{ opacity: isActive ? 1 : 0.7, x: 0 }}
-                  transition={{ duration: 0.35, delay: idx * 0.08, ease: [0.22, 1, 0.36, 1] }}
-                  whileTap={{ scale: 0.94 }}
-                >
-                  {/* Thumbnail */}
-                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden flex-shrink-0 transition-all duration-200">
-                    {firstImg ? (
-                      <img src={firstImg} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <CategoryIcon name={category} isActive={isActive} />
-                    )}
-                  </div>
-                  {/* Label */}
-                  <span
-                    className={`text-[10px] sm:text-xs font-semibold text-center leading-tight px-1 w-full truncate uppercase tracking-wide ${
-                      isActive ? "text-[var(--main-color)]" : "text-[var(--muted)]"
+      {sortedCategories.length > 1 && (
+        <div className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
+          <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
+            {/* Left/right fade edges */}
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-r from-[var(--background)] to-transparent" />
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-l from-[var(--background)] to-transparent" />
+            <div className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 snap-x snap-mandatory">
+              {sortedCategories.map((category, idx) => {
+                const isActive = activeCategory === category;
+                const handleClick = () => { setActiveCategory(category); setDietFilter("all"); fireTrack("category_view", { category }); };
+
+                if (!anyCategoryUsesImages) {
+                  // Simple pill tabs
+                  return (
+                    <motion.button
+                      key={category}
+                      type="button"
+                      onClick={handleClick}
+                      className={`flex-shrink-0 snap-start px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 touch-manipulation whitespace-nowrap ${
+                        isActive
+                          ? "bg-[var(--accent)] text-white shadow-sm"
+                          : "bg-[var(--card)] text-[var(--muted)] border border-[var(--card-border)] hover:border-[var(--accent)]/40 hover:text-[var(--foreground)]"
+                      }`}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.28, delay: idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                      whileTap={{ scale: 0.96 }}
+                    >
+                      {getCategoryLabel(category)}
+                    </motion.button>
+                  );
+                }
+
+                // Image card tabs (or pill for categories with show_image=false)
+                const catEntry = categoryImageMap[category];
+                const catShow = catEntry?.show === true;
+                const catImageMode = catEntry?.imageMode;
+                const catBannerUrl = catEntry?.bannerUrl ?? null;
+
+                if (!catShow) {
+                  return (
+                    <motion.button
+                      key={category}
+                      type="button"
+                      onClick={handleClick}
+                      className={`flex-shrink-0 snap-start px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 touch-manipulation whitespace-nowrap ${
+                        isActive
+                          ? "bg-[var(--accent)] text-white shadow-sm"
+                          : "bg-[var(--card)] text-[var(--muted)] border border-[var(--card-border)] hover:border-[var(--accent)]/40 hover:text-[var(--foreground)]"
+                      }`}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.28, delay: idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                      whileTap={{ scale: 0.96 }}
+                    >
+                      {getCategoryLabel(category)}
+                    </motion.button>
+                  );
+                }
+
+                return (
+                  <motion.button
+                    key={category}
+                    type="button"
+                    onClick={handleClick}
+                    className={`flex-shrink-0 w-[72px] sm:w-24 flex flex-col items-center gap-1.5 rounded-2xl transition-all duration-200 touch-manipulation py-2 snap-start ${
+                      isActive
+                        ? "ring-2 ring-[var(--main-color)] ring-offset-2 ring-offset-[var(--background)] shadow-md"
+                        : "opacity-70 hover:opacity-100"
                     }`}
+                    initial={{ opacity: 0, x: -16 }}
+                    animate={{ opacity: isActive ? 1 : 0.7, x: 0 }}
+                    transition={{ duration: 0.35, delay: idx * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                    whileTap={{ scale: 0.94 }}
                   >
-                    {getCategoryLabel(category)}
-                  </span>
-                </motion.button>
-              );
-            })}
+                    {/* Thumbnail */}
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden flex-shrink-0 transition-all duration-200">
+                      {catImageMode === 'item' && catBannerUrl ? (
+                        <img src={catBannerUrl} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <CategoryIcon name={category} isActive={isActive} />
+                      )}
+                    </div>
+                    {/* Label */}
+                    <span
+                      className={`text-[10px] sm:text-xs font-semibold text-center leading-tight px-1 w-full truncate uppercase tracking-wide ${
+                        isActive ? "text-[var(--main-color)]" : "text-[var(--muted)]"
+                      }`}
+                    >
+                      {getCategoryLabel(category)}
+                    </span>
+                  </motion.button>
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>}
+      )}
 
       {/* Category content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-[env(safe-area-inset-bottom)]">
@@ -266,13 +321,19 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
             {/* Category heading with optional inline thumbnail */}
             {(() => {
               const mapEntry = categoryImageMap[activeCategory];
-              const useBanner = mapEntry?.useBanner !== false;
+              const showImg = mapEntry?.show === true;
+              const headingImageMode = mapEntry?.imageMode;
               const thumbUrl = (mapEntry?.bannerUrl ?? mapEntry?.url) ?? null;
               return (
                 <div className="flex items-center gap-3">
-                  {useBanner && thumbUrl && (
+                  {showImg && headingImageMode === 'item' && thumbUrl && (
                     <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-[var(--card-border)] shadow-sm">
                       <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  {showImg && headingImageMode === 'icon' && (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-[var(--card-border)] shadow-sm">
+                      <CategoryIcon name={activeCategory} isActive={false} />
                     </div>
                   )}
                   <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-[var(--foreground)]">
