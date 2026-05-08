@@ -48,7 +48,8 @@
       "Bash(export PATH=\"$PATH:/c/Users/Gavin/.bun/bin\")",
       "Read(//c/Users/Gavin/.claude/plugins/marketplaces/thedotmack/**)",
       "Read(//c/Users/Gavin/.claude/plugins/**)",
-      "Bash(/c/Users/Gavin/.bun/bin/bun.exe ~/.claude/plugins/marketplaces/thedotmack/plugin/scripts/worker-service.cjs start)"
+      "Bash(/c/Users/Gavin/.bun/bin/bun.exe ~/.claude/plugins/marketplaces/thedotmack/plugin/scripts/worker-service.cjs start)",
+      "Bash(split:*)"
     ]
   }
 }

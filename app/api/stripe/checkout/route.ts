@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
 
     const { data: existing } = await supabaseAdmin
       .from('subscriptions')
-      .select('stripe_customer_id')
+      .select('stripe_customer_id, trial_end')
       .eq('user_id', userId)
       .maybeSingle();
 
@@ -23,20 +23,21 @@ export async function POST(req: NextRequest) {
       customerId = customer.id;
     }
 
-    // Trial runs 60 days from account creation, not from card addition.
-    // This way signing up on day 1 and adding a card on day 10 gives 50 remaining days, not 60 fresh.
-    const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
-    const TRIAL_DAYS = 60;
+    // Use the trial_end stored in subscriptions (set at signup) so the user
+    // keeps their remaining days instead of getting a fresh Stripe trial period.
     const now = Math.floor(Date.now() / 1000);
     let trialEnd: number | undefined;
-    if (authUser?.created_at) {
-      const createdAtSec = Math.floor(new Date(authUser.created_at).getTime() / 1000);
-      const calculatedEnd = createdAtSec + TRIAL_DAYS * 86400;
-      // Only set trial_end if it's in the future; otherwise no trial
-      if (calculatedEnd > now) trialEnd = calculatedEnd;
+
+    if (existing?.trial_end) {
+      const storedTs = Math.floor(new Date(existing.trial_end).getTime() / 1000);
+      if (storedTs > now) trialEnd = storedTs;
     } else {
-      // Fallback: grant 60 days from now if we can't determine account age
-      trialEnd = now + TRIAL_DAYS * 86400;
+      // Fallback: calculate from auth account creation date
+      const { data: { user: authUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
+      if (authUser?.created_at) {
+        const calculatedEnd = Math.floor(new Date(authUser.created_at).getTime() / 1000) + 60 * 86400;
+        if (calculatedEnd > now) trialEnd = calculatedEnd;
+      }
     }
 
     const session = await stripe.checkout.sessions.create({

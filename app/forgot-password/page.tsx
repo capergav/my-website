@@ -19,7 +19,8 @@ export default function ForgotPasswordPage() {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) {
-      setError(error.message);
+      console.error('Reset password error:', error);
+      setError(`${error.message} (${(error as { status?: number }).status ?? 'unknown'})`);
       setLoading(false);
     } else {
       setSent(true);
