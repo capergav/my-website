@@ -23,6 +23,7 @@ export async function POST(req: NextRequest) {
       device_type,
       user_agent,
       referrer,
+      visitor_id,
     } = body;
 
     // Validate required fields
@@ -58,6 +59,7 @@ export async function POST(req: NextRequest) {
       device_type: device_type ?? "desktop",
       user_agent: user_agent ?? "",
       referrer: referrer ?? "",
+      visitor_id: visitor_id ?? null,
     });
   } catch {
     // always silent

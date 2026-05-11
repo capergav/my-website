@@ -940,7 +940,7 @@ export function AdminMenuEditor({
                 whileTap={{ scale: 0.96 }}
                 transition={{ duration: 0.1 }}
               >
-                + Add item
+                + Add item to {activeCategory.length > 20 ? activeCategory.slice(0, 20) + "…" : activeCategory}
               </motion.button>
             </div>
 
@@ -1018,7 +1018,7 @@ export function AdminMenuEditor({
                               </span>
                               <motion.button type="button"
                                 onClick={() => { setEditingItem(item); setAddingNew(false); }}
-                                className="px-3 py-1.5 rounded-lg bg-[var(--main-color)] text-white text-xs font-semibold font-sans hover:opacity-90 transition-opacity"
+                                className="px-3 py-1.5 rounded-lg border border-[var(--accent)] text-[var(--accent)] text-xs font-semibold font-sans hover:bg-[var(--accent)] hover:text-white transition-all"
                                 whileTap={{ scale: 0.95 }}
                                 transition={{ duration: 0.08 }}
                               >
@@ -1033,7 +1033,6 @@ export function AdminMenuEditor({
                               >
                                 Delete
                               </motion.button>
-                              <span className="ml-auto text-[10px] text-[var(--muted)] tabular-nums">#{idx + 1}</span>
                             </div>
                           </div>
                         </div>
@@ -1056,6 +1055,7 @@ export function AdminMenuEditor({
           onCancel={() => { setEditingItem(null); setAddingNew(false); }}
           saving={saving}
           existingImageUrl={editingItem?.image_url ?? undefined}
+          initialCategory={addingNew ? activeCategory : undefined}
         />
       )}
 
@@ -1804,18 +1804,18 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
 }
 
 function ItemForm({
-  item, categories, restaurantSlug, onSave, onCancel, saving, existingImageUrl,
+  item, categories, restaurantSlug, onSave, onCancel, saving, existingImageUrl, initialCategory,
 }: {
   item?: MenuItemRow; categories: readonly string[]; restaurantSlug: string;
   onSave: (p: Partial<MenuItemRow>) => void; onCancel: () => void; saving: boolean;
-  existingImageUrl?: string;
+  existingImageUrl?: string; initialCategory?: string;
 }) {
   const [name, setName]               = useState(item?.name ?? "");
   const [desc, setDesc]               = useState(item?.description ?? "");
   const [price, setPrice]             = useState(item != null ? String(Number(item.price)) : "");
   const [priceSuffix, setPriceSuffix] = useState(item?.price_suffix ?? "");
   const [imgUrl, setImgUrl]           = useState(item?.image_url ?? "");
-  const [category, setCategory]       = useState(item?.category ?? "");
+  const [category, setCategory]       = useState(item?.category ?? initialCategory ?? "");
   const [available, setAvailable]     = useState<boolean>(item?.available ?? true);
   const [chefs, setChefs]         = useState<boolean>(item?.chefs_favorite ?? false);
   const [gluten, setGluten]       = useState<boolean>(item?.gluten_free ?? false);

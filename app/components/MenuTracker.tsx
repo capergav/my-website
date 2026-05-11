@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { trackEvent, detectDevice } from "@/lib/analytics";
+import { trackEvent, detectDevice, getVisitorId } from "@/lib/analytics";
 
 export function MenuTracker({ restaurantId }: { restaurantId: string }) {
   const firedRef = useRef(false);
@@ -16,9 +16,12 @@ export function MenuTracker({ restaurantId }: { restaurantId: string }) {
       sessionStorage.setItem("dl_session", sessionId);
     }
 
+    const visitorId = getVisitorId();
     const device = detectDevice();
     const ua = navigator.userAgent;
     const ref = document.referrer ?? "";
+    // Read stored language at fire time (after LanguageProvider has hydrated from localStorage)
+    const language = localStorage.getItem("menusnap-locale") ?? "en";
 
     const isNewSession = !sessionStorage.getItem("dl_session_started");
     if (isNewSession) {
@@ -30,6 +33,8 @@ export function MenuTracker({ restaurantId }: { restaurantId: string }) {
         device_type: device,
         user_agent: ua,
         referrer: ref,
+        visitor_id: visitorId,
+        language,
       });
     }
 
@@ -40,6 +45,8 @@ export function MenuTracker({ restaurantId }: { restaurantId: string }) {
       device_type: device,
       user_agent: ua,
       referrer: ref,
+      visitor_id: visitorId,
+      language,
     });
   }, [restaurantId]);
 

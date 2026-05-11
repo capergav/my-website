@@ -200,24 +200,49 @@ export function OnboardingTour({
   const handleNext = () => { if (isLast) finish(); else setStep((s) => s + 1); };
   const handleBack = () => { if (!isFirst) setStep((s) => s - 1); };
 
+  const isMobileWindow = typeof window !== "undefined" && window.innerWidth < 768;
+
   return (
     <>
       {/* Spotlight — or full-page dim for steps without a target */}
       {spotlight ? (
-        <div
-          style={{
-            position: "fixed",
-            top:    spotlight.top,
-            left:   spotlight.left,
-            width:  spotlight.width,
-            height: spotlight.height,
-            borderRadius: 8,
-            boxShadow: "0 0 0 4px rgba(139,105,20,0.55), 0 0 0 9999px rgba(44,42,38,0.45)",
-            zIndex: 9998,
-            pointerEvents: "none",
-            transition: "all 350ms cubic-bezier(0.4,0,0.2,1)",
-          }}
-        />
+        <>
+          <div
+            style={{
+              position: "fixed",
+              top:    spotlight.top,
+              left:   spotlight.left,
+              width:  spotlight.width,
+              height: spotlight.height,
+              borderRadius: 8,
+              animation: "spotlight-pulse 2s ease-in-out infinite",
+              zIndex: 9998,
+              pointerEvents: "none",
+              transition: "top 350ms cubic-bezier(0.4,0,0.2,1), left 350ms cubic-bezier(0.4,0,0.2,1), width 350ms cubic-bezier(0.4,0,0.2,1), height 350ms cubic-bezier(0.4,0,0.2,1)",
+            }}
+          />
+          {!isMobileWindow && (
+            <div
+              style={{
+                position: "fixed",
+                top: spotlight.top - 36,
+                left: spotlight.left + spotlight.width / 2,
+                transform: "translateX(-50%)",
+                background: "#2c2a26",
+                color: "#faf8f5",
+                fontSize: 12,
+                fontWeight: 600,
+                padding: "4px 10px",
+                borderRadius: 6,
+                whiteSpace: "nowrap",
+                zIndex: 9999,
+                pointerEvents: "none",
+              }}
+            >
+              {current.title} ↓
+            </div>
+          )}
+        </>
       ) : (
         <div style={{ position: "fixed", inset: 0, background: "rgba(44,42,38,0.45)", zIndex: 9998, pointerEvents: "none" }} />
       )}

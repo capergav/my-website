@@ -130,7 +130,7 @@ function hasDetails(item: MenuItem): boolean {
 }
 
 export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, categoryImageMap = {}, restaurantId, language, allowAutoTranslate, showCurrencySymbol = true }: MenuTabsProps) {
-  const { t, getCategoryLabel, setLocale } = useLanguage();
+  const { t, getCategoryLabel, setLocale, locale } = useLanguage();
   const [activeCategory, setActiveCategory] = useState(sortedCategories[0] ?? "");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [dietFilter, setDietFilter] = useState<string>("all");
@@ -312,7 +312,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                 const isActive = activeCategory === category;
                 const handleClick = () => {
                   if (tabDragRef.current.didDrag) { tabDragRef.current.didDrag = false; return; }
-                  setActiveCategory(category); setDietFilter("all"); fireTrack("category_view", { category });
+                  setActiveCategory(category); setDietFilter("all"); fireTrack("category_view", { category, language: locale });
                 };
 
                 if (!anyCategoryUsesImages) {
@@ -477,12 +477,12 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
               key={item.id}
               role={clickable ? "button" : undefined}
               tabIndex={clickable ? 0 : undefined}
-              onClick={clickable ? () => { setSelectedItem(item); fireTrack("item_click", { item_id: item.id, category: item.category ?? activeCategory }); } : undefined}
+              onClick={clickable ? () => { setSelectedItem(item); fireTrack("item_click", { item_id: item.id, category: item.category ?? activeCategory, language: locale }); } : undefined}
               onKeyDown={clickable ? (e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   setSelectedItem(item);
-                  fireTrack("item_click", { item_id: item.id, category: item.category ?? activeCategory });
+                  fireTrack("item_click", { item_id: item.id, category: item.category ?? activeCategory, language: locale });
                 }
               } : undefined}
               initial={{ opacity: 0, y: 18 }}

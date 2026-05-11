@@ -19,6 +19,16 @@ export function detectDevice(): DeviceType {
   return "desktop";
 }
 
+export function getVisitorId(): string {
+  const key = "dl_visitor_id";
+  let id = localStorage.getItem(key);
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem(key, id);
+  }
+  return id;
+}
+
 export function useSessionId(): string {
   const ref = useRef<string>("");
   if (typeof window !== "undefined") {
@@ -42,12 +52,14 @@ export async function trackEvent(payload: {
   device_type: DeviceType;
   user_agent: string;
   referrer: string;
+  visitor_id?: string | null;
 }): Promise<void> {
   try {
+    const visitor_id = payload.visitor_id ?? (typeof window !== "undefined" ? getVisitorId() : null);
     await fetch("/api/analytics", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({ ...payload, visitor_id }),
     });
   } catch {
     // silent failure — never break the menu

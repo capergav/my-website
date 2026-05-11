@@ -43,12 +43,12 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
   // Fetch all events in range + prev period
   const [{ data: events }, { data: prevEvents }, { data: menuItems }] = await Promise.all([
     admin.from("menu_analytics").select("*").eq("restaurant_id", restaurant.id).gte("created_at", since),
-    admin.from("menu_analytics").select("event_type, session_id").eq("restaurant_id", restaurant.id).gte("created_at", prevSince).lt("created_at", since),
+    admin.from("menu_analytics").select("event_type, session_id, visitor_id").eq("restaurant_id", restaurant.id).gte("created_at", prevSince).lt("created_at", since),
     admin.from("menu_items").select("id, name, category").eq("restaurant_id", restaurant.id),
   ]);
 
   const allEvents = (events ?? []) as AnalyticsEvent[];
-  const allPrev = (prevEvents ?? []) as { event_type: string; session_id: string }[];
+  const allPrev = (prevEvents ?? []) as { event_type: string; session_id: string; visitor_id: string | null }[];
   const items = (menuItems ?? []) as { id: string; name: string; category: string | null }[];
 
   // ── Aggregations (JS, fine until 100k+ events) ──────────────────────────────
@@ -61,6 +61,9 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
   // Prev period
   const prevPageViews = allPrev.filter((e) => e.event_type === "page_view").length;
   const prevSessions = new Set(allPrev.map((e) => e.session_id));
+  const prevUniqueVisitorIds = new Set(
+    allPrev.filter((e) => e.event_type === "page_view" && e.visitor_id).map((e) => e.visitor_id)
+  );
 
   // Trend %
   const trendPct = (curr: number, prev: number) => {
@@ -68,15 +71,19 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
     return Math.round(((curr - prev) / prev) * 100);
   };
 
-  // Top language
+  // Top language (from stored language on all events)
   const langCounts: Record<string, number> = {};
   for (const e of allEvents) {
     if (e.language) langCounts[e.language] = (langCounts[e.language] ?? 0) + 1;
   }
-  for (const e of allEvents.filter((e) => e.event_type === "page_view")) {
-    langCounts["en"] = (langCounts["en"] ?? 0) + 1;
-  }
   const topLang = Object.entries(langCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "en";
+
+  // Unique visitors: prefer distinct visitor_id, fall back to distinct session_id for old data
+  const uniqueVisitorIds = new Set(
+    pageViews.filter((e) => e.visitor_id).map((e) => e.visitor_id)
+  );
+  const uniqueVisitors = uniqueVisitorIds.size > 0 ? uniqueVisitorIds.size : sessions.size;
+  const prevUniqueVisitors = prevUniqueVisitorIds.size > 0 ? prevUniqueVisitorIds.size : prevSessions.size;
 
   // Avg items viewed per session
   const clicksPerSession: Record<string, number> = {};
@@ -151,11 +158,11 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
 
   const stats = {
     totalScans: pageViews.length,
-    uniqueVisitors: sessions.size,
+    uniqueVisitors,
     avgItems,
     topLang,
     trendScans: trendPct(pageViews.length, prevPageViews),
-    trendVisitors: trendPct(sessions.size, prevSessions.size),
+    trendVisitors: trendPct(uniqueVisitors, prevUniqueVisitors),
   };
 
   return (
@@ -183,6 +190,7 @@ type AnalyticsEvent = {
   category: string | null;
   language: string | null;
   session_id: string;
+  visitor_id: string | null;
   device_type: string;
   user_agent: string;
   referrer: string;

@@ -58,7 +58,7 @@ export default async function AdminSlugPage({ params }: Props) {
   }
 
   const fontColor  = restaurant.font_color ?? "#2c2a26";
-  const accent     = restaurant.accent_color ?? "#8b6914";
+  const accent     = restaurant.accent_color ?? "#2c2a26";
   const bg         = restaurant.background_color ?? "#faf8f5";
   const card       = restaurant.main_color ?? "#ffffff";
   const muted      = restaurant.muted_color ?? "#6b6560";
