@@ -401,6 +401,21 @@ export function AdminMenuEditor({
     setTimeout(() => setMessage(null), 3000);
   }, []);
 
+  // Show success toast when Stripe redirects back after a completed checkout
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('subscription') === 'success' || params.get('subscribed') === 'true') {
+      setMessage({ type: 'ok', text: "You're subscribed! Welcome to DineLinks Pro." });
+      setTimeout(() => setMessage(null), 5000);
+      // Clean URL so refreshing doesn't re-show the toast
+      const clean = new URL(window.location.href);
+      clean.searchParams.delete('subscription');
+      clean.searchParams.delete('subscribed');
+      window.history.replaceState({}, '', clean.toString());
+    }
+  }, []);
+
   const refreshMenu = useCallback(async () => {
     const [itemsResult, catsResult] = await Promise.all([
       supabase
@@ -1656,7 +1671,7 @@ function TrialBanner({
   onSubscribe,
 }: {
   daysLeft: number | null;
-  onSubscribe: () => void;
+  onSubscribe: () => void | Promise<void>;
 }) {
   const [loading, setLoading] = useState(false);
 
@@ -1667,21 +1682,8 @@ function TrialBanner({
 
   const handleClick = async () => {
     setLoading(true);
-    try {
-      const res = await fetch('/api/stripe/checkout', { method: 'POST' });
-      const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else {
-        alert(data.error ?? 'Unable to start checkout. Email support@dinelinks.com');
-      }
-    } catch {
-      alert('Unable to start checkout. Email support@dinelinks.com');
-    }
-    setLoading(false);
+    try { await onSubscribe(); } finally { setLoading(false); }
   };
-
-  void onSubscribe; // exposed for external callers; internal click uses handleClick
 
   return (
     <div className="px-4 pt-4 pb-2">
