@@ -10,6 +10,7 @@ export function LanguageDropdown({ trackRestaurantId }: { trackRestaurantId?: st
   const { locale, setLocale } = useLanguage();
   const [open, setOpen] = useState(false);
   const [popupStyle, setPopupStyle] = useState<CSSProperties>({});
+  const [portalVars, setPortalVars] = useState<CSSProperties>({});
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLUListElement>(null);
 
@@ -58,7 +59,20 @@ export function LanguageDropdown({ trackRestaurantId }: { trackRestaurantId?: st
   }, []);
 
   const handleToggle = () => {
-    if (!open) calculatePosition();
+    if (!open) {
+      calculatePosition();
+      // Read scoped CSS vars from the button (which is inside the restaurant theme wrapper)
+      // and copy them to the portal so var(--accent) resolves correctly outside the wrapper
+      if (buttonRef.current) {
+        const cs = getComputedStyle(buttonRef.current);
+        setPortalVars({
+          "--accent":      cs.getPropertyValue("--accent").trim()      || "#8b6914",
+          "--card":        cs.getPropertyValue("--card").trim()        || "#ffffff",
+          "--card-border": cs.getPropertyValue("--card-border").trim() || "rgba(44,42,38,0.15)",
+          "--foreground":  cs.getPropertyValue("--foreground").trim()  || "#2c2a26",
+        } as CSSProperties);
+      }
+    }
     setOpen((o) => !o);
   };
 
@@ -93,7 +107,7 @@ export function LanguageDropdown({ trackRestaurantId }: { trackRestaurantId?: st
         <ul
           ref={popupRef}
           role="listbox"
-          style={{ ...popupStyle, animation: 'dropIn 0.12s ease-out' }}
+          style={{ ...popupStyle, ...portalVars, animation: 'dropIn 0.12s ease-out' }}
           className="py-1 rounded-xl bg-[var(--card)] border border-[var(--card-border)] shadow-2xl overflow-hidden"
         >
           {locales.map((opt) => (

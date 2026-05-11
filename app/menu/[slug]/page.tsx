@@ -36,7 +36,7 @@ export default async function PublicMenuPage({ params }: Props) {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id, muted_color, allow_auto_translate")
+    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id, muted_color, allow_auto_translate, show_currency_symbol")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -187,7 +187,7 @@ export default async function PublicMenuPage({ params }: Props) {
         restaurantId={restaurant.id}
       />
       {hasItems ? (
-        <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} categoryImageMap={categoryImageMap} restaurantId={restaurant.id} allowAutoTranslate={!!(restaurant as { allow_auto_translate?: boolean }).allow_auto_translate} />
+        <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} categoryImageMap={categoryImageMap} restaurantId={restaurant.id} allowAutoTranslate={!!(restaurant as { allow_auto_translate?: boolean }).allow_auto_translate} showCurrencySymbol={(restaurant as { show_currency_symbol?: boolean | null }).show_currency_symbol !== false} />
       ) : (
         <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
           <h2 className="text-2xl font-serif font-semibold" style={{ color: fontColor }}>No items yet</h2>

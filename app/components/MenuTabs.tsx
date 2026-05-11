@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback, useRef, useEffect } from "react";
+import { useState, useMemo, useCallback, useRef, useEffect, type ReactNode } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { trackEvent, detectDevice } from "@/lib/analytics";
 import { useLanguage } from "@/app/context/LanguageContext";
@@ -50,7 +50,17 @@ export type MenuTabsProps = {
   restaurantId?: string;
   language?: string;
   allowAutoTranslate?: boolean;
+  showCurrencySymbol?: boolean;
 };
+
+// Renders a category name: uses static translation table for known categories,
+// falls back to <TranslatedText> for custom/unknown category names.
+function CategoryName({ name }: { name: string }): ReactNode {
+  const { getCategoryLabel } = useLanguage();
+  const staticLabel = getCategoryLabel(name);
+  if (staticLabel !== name) return staticLabel;
+  return <TranslatedText text={name} />;
+}
 
 // Lucide icon map for category thumbnails
 type LucideIcon = React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>;
@@ -105,7 +115,10 @@ function CategoryIcon({ name, isActive }: { name: string; isActive: boolean }) {
   );
 }
 
-function formatPrice(price: number): string {
+function formatPrice(price: number, showSymbol = true): string {
+  if (!showSymbol) {
+    return new Intl.NumberFormat('en-CA', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(price);
+  }
   return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(price);
 }
 
@@ -116,7 +129,7 @@ function hasDetails(item: MenuItem): boolean {
   return hasDesc || hasImg || hasDiet;
 }
 
-export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, categoryImageMap = {}, restaurantId, language, allowAutoTranslate }: MenuTabsProps) {
+export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, categoryImageMap = {}, restaurantId, language, allowAutoTranslate, showCurrencySymbol = true }: MenuTabsProps) {
   const { t, getCategoryLabel, setLocale } = useLanguage();
   const [activeCategory, setActiveCategory] = useState(sortedCategories[0] ?? "");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -124,6 +137,8 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  // Drag-to-scroll state for category tab strip
+  const tabDragRef = useRef({ active: false, startX: 0, scrollLeft: 0, didDrag: false });
 
   const getSession = useCallback(() => {
     if (typeof window === "undefined") return "";
@@ -229,7 +244,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                 <TranslatedText text={selectedItem.name} />
               </h1>
               <span className="font-semibold text-[var(--accent)] text-2xl flex-shrink-0 tabular-nums">
-                {formatPrice(Number(selectedItem.price))}
+                {formatPrice(Number(selectedItem.price), showCurrencySymbol)}
                 {selectedItem.price_suffix && <span className="text-lg font-normal opacity-70 ml-1">{selectedItem.price_suffix}</span>}
               </span>
             </div>
@@ -272,10 +287,33 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                 <ChevronRight size={16} />
               </button>
             )}
-            <div ref={scrollRef} className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 snap-x snap-mandatory">
+            <div
+              ref={scrollRef}
+              className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 snap-x snap-mandatory"
+              onPointerDown={(e) => {
+                const el = scrollRef.current;
+                if (!el) return;
+                tabDragRef.current = { active: true, startX: e.clientX, scrollLeft: el.scrollLeft, didDrag: false };
+              }}
+              onPointerMove={(e) => {
+                const drag = tabDragRef.current;
+                const el = scrollRef.current;
+                if (!drag.active || !el || e.buttons === 0) return;
+                const dx = e.clientX - drag.startX;
+                if (Math.abs(dx) > 5) {
+                  drag.didDrag = true;
+                  el.scrollLeft = drag.scrollLeft - dx;
+                }
+              }}
+              onPointerUp={() => { tabDragRef.current.active = false; }}
+              onPointerLeave={() => { tabDragRef.current.active = false; }}
+            >
               {sortedCategories.map((category, idx) => {
                 const isActive = activeCategory === category;
-                const handleClick = () => { setActiveCategory(category); setDietFilter("all"); fireTrack("category_view", { category }); };
+                const handleClick = () => {
+                  if (tabDragRef.current.didDrag) { tabDragRef.current.didDrag = false; return; }
+                  setActiveCategory(category); setDietFilter("all"); fireTrack("category_view", { category });
+                };
 
                 if (!anyCategoryUsesImages) {
                   // Simple pill tabs
@@ -294,7 +332,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                       transition={{ duration: 0.28, delay: idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
                       whileTap={{ scale: 0.96 }}
                     >
-                      {getCategoryLabel(category)}
+                      <CategoryName name={category} />
                     </motion.button>
                   );
                 }
@@ -321,7 +359,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                       transition={{ duration: 0.28, delay: idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
                       whileTap={{ scale: 0.96 }}
                     >
-                      {getCategoryLabel(category)}
+                      <CategoryName name={category} />
                     </motion.button>
                   );
                 }
@@ -355,7 +393,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                         isActive ? "text-[var(--main-color)]" : "text-[var(--muted)]"
                       }`}
                     >
-                      {getCategoryLabel(category)}
+                      <CategoryName name={category} />
                     </span>
                   </motion.button>
                 );
@@ -389,7 +427,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                     </div>
                   )}
                   <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-[var(--foreground)]">
-                    {getCategoryLabel(activeCategory)}
+                    <CategoryName name={activeCategory} />
                   </h2>
                 </div>
               );
@@ -479,12 +517,12 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                       animate={{ scale: [1, 1.06, 1] }}
                       transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', repeatDelay: 1 }}
                     >
-                      {formatPrice(Number(item.price))}
+                      {formatPrice(Number(item.price), showCurrencySymbol)}
                       {item.price_suffix && <span className="text-sm font-normal opacity-70 ml-0.5">{item.price_suffix}</span>}
                     </motion.span>
                   ) : (
                     <span className="font-semibold text-[var(--accent)] whitespace-nowrap flex-shrink-0 tabular-nums">
-                      {formatPrice(Number(item.price))}
+                      {formatPrice(Number(item.price), showCurrencySymbol)}
                       {item.price_suffix && <span className="text-sm font-normal opacity-70 ml-0.5">{item.price_suffix}</span>}
                     </span>
                   )}

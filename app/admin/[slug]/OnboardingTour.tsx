@@ -85,9 +85,11 @@ export function OnboardingTour({
     if (tourKey > 0) { setStep(0); setVisible(true); }
   }, [tourKey]);
 
-  // Body scroll lock
+  // Body scroll lock — desktop only; on mobile the user needs to scroll to see targets
   useEffect(() => {
     if (!visible) return;
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    if (isMobile) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
@@ -127,12 +129,11 @@ export function OnboardingTour({
       return;
     }
 
-    // Scroll target into upper third of viewport
+    // Scroll target into view — desktop only; mobile users scroll manually
     const el = document.querySelector(s.selector);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      await new Promise<void>((r) => setTimeout(r, 50));
-      window.scrollBy({ top: -80, behavior: "smooth" });
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    if (!isMobile && el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
       await new Promise<void>((r) => setTimeout(r, 400));
     }
     if (token.cancelled) return;
@@ -157,7 +158,8 @@ export function OnboardingTour({
     return () => { token.cancelled = true; };
   }, [step, visible, positionStep]);
 
-  // Recalculate spotlight on resize/scroll
+  // Recalculate spotlight on resize (scroll listener removed — it caused repeated
+  // positionStep calls that fought with the smooth-scroll animation on mobile)
   useEffect(() => {
     if (!visible) return;
     let debounce: ReturnType<typeof setTimeout> | null = null;
@@ -167,13 +169,11 @@ export function OnboardingTour({
         const token = { cancelled: false };
         tokenRef.current = token;
         positionStep(step, token);
-      }, 100);
+      }, 150);
     };
     window.addEventListener("resize", handler);
-    window.addEventListener("scroll", handler, true);
     return () => {
       window.removeEventListener("resize", handler);
-      window.removeEventListener("scroll", handler, true);
       if (debounce) clearTimeout(debounce);
     };
   }, [visible, step, positionStep]);

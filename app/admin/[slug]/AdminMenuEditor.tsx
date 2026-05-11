@@ -304,6 +304,7 @@ export function AdminMenuEditor({
   const tabScrollRef = useRef<HTMLDivElement>(null);
   const [adminCanScrollLeft, setAdminCanScrollLeft] = useState(false);
   const [adminCanScrollRight, setAdminCanScrollRight] = useState(false);
+  const adminTabDragRef = useRef({ active: false, startX: 0, scrollLeft: 0, didDrag: false });
 
   const refreshMenuRef = useRef<(() => Promise<void>) | null>(null);
 
@@ -848,13 +849,37 @@ export function AdminMenuEditor({
               )}
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
                 <SortableContext items={sortedCategories} strategy={horizontalListSortingStrategy}>
-                  <div ref={tabScrollRef} onScroll={updateAdminScrollState} className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 items-center">
+                  <div
+                    ref={tabScrollRef}
+                    onScroll={updateAdminScrollState}
+                    className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 items-center"
+                    onPointerDown={(e) => {
+                      const el = tabScrollRef.current;
+                      if (!el || (e.target as HTMLElement).closest('button')) return;
+                      adminTabDragRef.current = { active: true, startX: e.clientX, scrollLeft: el.scrollLeft, didDrag: false };
+                    }}
+                    onPointerMove={(e) => {
+                      const drag = adminTabDragRef.current;
+                      const el = tabScrollRef.current;
+                      if (!drag.active || !el || e.buttons === 0) return;
+                      const dx = e.clientX - drag.startX;
+                      if (Math.abs(dx) > 5) {
+                        drag.didDrag = true;
+                        el.scrollLeft = drag.scrollLeft - dx;
+                      }
+                    }}
+                    onPointerUp={() => { adminTabDragRef.current.active = false; }}
+                    onPointerLeave={() => { adminTabDragRef.current.active = false; }}
+                  >
                     {sortedCategories.map((cat) => (
                       <SortableCategoryTab key={cat} name={cat}>
                         <button
                           type="button"
                           onPointerDown={(e) => e.stopPropagation()}
-                          onClick={() => setActiveCategory(cat)}
+                          onClick={() => {
+                            if (adminTabDragRef.current.didDrag) { adminTabDragRef.current.didDrag = false; return; }
+                            setActiveCategory(cat);
+                          }}
                           className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all select-none font-sans ${
                             activeCategory === cat
                               ? "bg-[var(--accent)] text-white shadow-sm"
@@ -1150,6 +1175,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
   const [fontOpen, setFontOpen]           = useState(false);
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [colorCustomized, setColorCustomized] = useState(false);
+  const [showCurrencySymbol, setShowCurrencySymbol] = useState(true);
 
   useBodyScrollLock(open);
 
@@ -1165,6 +1191,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       setName(restaurant.name ?? "");
       setHeroUrl(restaurant.hero_image_url ?? "");
       setLogoUrl(restaurant.logo_url ?? "");
+      setShowCurrencySymbol(restaurant.show_currency_symbol !== false);
       setFontOpen(false);
       setSelectedPreset(null);
       setColorCustomized(false);
@@ -1175,15 +1202,16 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
 
   const save = () => {
     onSave({
-      main_color:       card,
-      accent_color:     accent,
-      background_color: bg || null,
-      font_color:       fontColor || null,
-      muted_color:      mutedColor.trim() || null,
-      font_family:      font,
-      name:             name.trim() || null,
-      hero_image_url:   heroUrl.trim() || null,
-      logo_url:         logoUrl.trim() || null,
+      main_color:           card,
+      accent_color:         accent,
+      background_color:     bg || null,
+      font_color:           fontColor || null,
+      muted_color:          mutedColor.trim() || null,
+      font_family:          font,
+      name:                 name.trim() || null,
+      hero_image_url:       heroUrl.trim() || null,
+      logo_url:             logoUrl.trim() || null,
+      show_currency_symbol: showCurrencySymbol,
     } as Partial<Restaurant>);
     setOpen(false);
     onClose?.();
@@ -1246,7 +1274,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                 <div className="px-3 pt-2 pb-0.5">
                   <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: fontColor, opacity: 0.5 }}>Mains</p>
                 </div>
-                {[{ n: "Grilled Salmon", d: "Lemon butter, fresh herbs", p: "$24" }, { n: "Pasta Primavera", d: "Fresh vegetables, olive oil", p: "$18" }].map(item => (
+                {[{ n: "Grilled Salmon", d: "Lemon butter, fresh herbs", p: showCurrencySymbol ? "$24" : "24" }, { n: "Pasta Primavera", d: "Fresh vegetables, olive oil", p: showCurrencySymbol ? "$18" : "18" }].map(item => (
                   <div key={item.n} className="mx-3 mb-2 rounded-lg overflow-hidden flex border" style={{ borderColor: `${fontColor}18`, background: card }}>
                     <div className="w-10 h-10 flex-shrink-0 bg-gray-200" />
                     <div className="px-2 py-1.5 flex-1 min-w-0">
@@ -1372,6 +1400,16 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                       </div>
                       <span className="text-xs font-mono text-[var(--muted)] uppercase tracking-wide">{mutedColor}</span>
                     </div>
+                  </div>
+
+                  {/* Currency symbol toggle */}
+                  <div className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-4 py-3">
+                    <Toggle
+                      label="Show $ symbol on prices"
+                      checked={showCurrencySymbol}
+                      onChange={setShowCurrencySymbol}
+                    />
+                    <p className="text-xs text-[var(--muted)] mt-1">When off, prices display as numbers only (e.g. &ldquo;18&rdquo; instead of &ldquo;$18&rdquo;).</p>
                   </div>
 
                   {/* Font */}

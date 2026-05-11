@@ -54,6 +54,7 @@ export type Restaurant = {
   brand_bg_2?: string | null;
   brand_font_2?: string | null;
   muted_color?: string | null;
+  show_currency_symbol?: boolean | null;
 };
 
 export type CategoryNote = {
