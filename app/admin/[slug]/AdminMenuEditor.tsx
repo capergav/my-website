@@ -217,16 +217,16 @@ function SortableMenuItem({ item, children }: { item: MenuItemRow; children: Rea
     position: 'relative',
   };
   return (
-    <div ref={setNodeRef} style={style} {...attributes}>
+    <div ref={setNodeRef} style={style} {...attributes} className="flex items-stretch">
       <div
         {...listeners}
-        className="absolute left-0 top-0 bottom-0 w-9 flex flex-col items-center justify-center gap-0.5 cursor-grab active:cursor-grabbing touch-none z-10 rounded-l-xl bg-[var(--card-border)]/30 hover:bg-[var(--main-color)]/10 group transition-colors admin-drag-handle"
+        className="flex-shrink-0 w-9 flex flex-col items-center justify-center gap-0.5 cursor-grab active:cursor-grabbing touch-none z-10 rounded-l-xl bg-[var(--card-border)]/30 hover:bg-[var(--main-color)]/10 group transition-colors admin-drag-handle"
         title="Drag to reorder"
       >
         <GripVertical size={18} className="text-[var(--muted)] group-hover:text-[var(--main-color)] transition-colors" />
         <span className="text-[8px] text-[var(--muted)] group-hover:text-[var(--main-color)] opacity-0 group-hover:opacity-100 transition-opacity font-medium leading-none">Drag</span>
       </div>
-      <div className="pl-9">{children}</div>
+      <div className="flex-1 min-w-0">{children}</div>
     </div>
   );
 }
@@ -968,7 +968,7 @@ export function AdminMenuEditor({
                   {items.map((item, idx) => (
                     <SortableMenuItem key={item.id} item={item}>
                       <motion.div
-                        className={`bg-[var(--card)] rounded-2xl border border-[var(--card-border)] overflow-hidden shadow-sm ${
+                        className={`bg-[var(--card)] rounded-2xl border border-[var(--card-border)] overflow-visible shadow-sm ${
                           item.available === false ? "opacity-50" : ""
                         }`}
                         whileHover={{ y: -2, boxShadow: '0 6px 20px -4px rgba(0,0,0,0.12)', borderColor: 'var(--main-color)' }}

@@ -156,6 +156,9 @@ export default async function PublicMenuPage({ params }: Props) {
     case "cinzel":   fontFamily = "var(--font-cinzel), serif"; break;
   }
 
+  const muted = (restaurant as { muted_color?: string | null }).muted_color ?? `${fontColor}99`;
+  const themeStyle = `:root{--font-body:${fontFamily};--foreground:${fontColor};--accent:${accent};--background:${bg};--card:${card};--muted:${muted};--card-border:${fontColor}26}body{color:var(--foreground);font-family:var(--font-body),system-ui,sans-serif}`;
+
   const hasItems = sortedCategories.length > 0;
 
   return (
@@ -178,6 +181,7 @@ export default async function PublicMenuPage({ params }: Props) {
         minHeight: "100vh",
       } as React.CSSProperties}
     >
+      <style dangerouslySetInnerHTML={{ __html: themeStyle }} />
       <MenuTracker restaurantId={restaurant.id} />
 
       <HeroWithLang
@@ -190,7 +194,7 @@ export default async function PublicMenuPage({ params }: Props) {
         <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} categoryImageMap={categoryImageMap} restaurantId={restaurant.id} allowAutoTranslate={!!(restaurant as { allow_auto_translate?: boolean }).allow_auto_translate} showCurrencySymbol={(restaurant as { show_currency_symbol?: boolean | null }).show_currency_symbol !== false} />
       ) : (
         <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
-          <h2 className="text-2xl font-serif font-semibold" style={{ color: fontColor }}>No items yet</h2>
+          <h2 className="text-2xl font-semibold" style={{ color: fontColor }}>No items yet</h2>
           <p className="text-sm mt-2 max-w-xs" style={{ color: `${fontColor}99` }}>This menu is still being set up. Check back soon.</p>
         </div>
       )}

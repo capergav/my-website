@@ -240,7 +240,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
 
           <div className={selectedItem.image_url ? "mt-6 sm:mt-8 min-w-0" : "mt-6 min-w-0"}>
             <div className="flex justify-between items-start gap-4 flex-wrap">
-              <h1 className="font-serif text-3xl sm:text-4xl font-semibold text-[var(--foreground)] min-w-0 text-wrap-balance">
+              <h1 className="text-3xl sm:text-4xl font-semibold text-[var(--foreground)] min-w-0 text-wrap-balance">
                 <TranslatedText text={selectedItem.name} />
               </h1>
               <span className="font-semibold text-[var(--accent)] text-2xl flex-shrink-0 tabular-nums">
@@ -426,7 +426,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                       <CategoryIcon name={activeCategory} isActive={false} />
                     </div>
                   )}
-                  <h2 className="font-serif text-2xl sm:text-3xl font-semibold text-[var(--foreground)]">
+                  <h2 className="text-2xl sm:text-3xl font-semibold text-[var(--foreground)]">
                     <CategoryName name={activeCategory} />
                   </h2>
                 </div>
@@ -508,7 +508,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
               {/* Content */}
               <div className="p-4 sm:p-5 min-w-0 flex-1 flex flex-col justify-center">
                 <div className="flex justify-between items-baseline gap-3">
-                  <h3 className="font-serif text-lg sm:text-xl font-semibold text-[var(--foreground)] min-w-0 text-wrap-balance">
+                  <h3 className="text-lg sm:text-xl font-semibold text-[var(--foreground)] min-w-0 text-wrap-balance">
                     <TranslatedText text={item.name} />
                   </h3>
                   {item.chefs_favorite ? (

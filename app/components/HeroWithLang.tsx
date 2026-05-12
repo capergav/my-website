@@ -24,7 +24,7 @@ export function HeroWithLang({
     return (
       <div className="bg-[var(--card)] border-b border-[var(--card-border)] px-4 py-5 flex items-center justify-between gap-3">
         <h1
-          className="font-serif font-semibold text-xl text-[var(--foreground)] truncate"
+          className="font-semibold text-xl text-[var(--foreground)] truncate"
           style={{ animation: "heroFadeUp 0.4s ease-out both" }}
         >
           {title}
@@ -60,7 +60,7 @@ export function HeroWithLang({
           />
         )}
         <h1
-          className={`font-serif font-semibold text-white tracking-wide drop-shadow-lg ${logoUrl ? "text-2xl lg:text-3xl" : "text-4xl sm:text-5xl lg:text-6xl"}`}
+          className={`font-semibold text-white tracking-wide drop-shadow-lg ${logoUrl ? "text-2xl lg:text-3xl" : "text-4xl sm:text-5xl lg:text-6xl"}`}
           style={{ animation: "heroFadeUp 0.4s ease-out both" }}
         >
           {title}
