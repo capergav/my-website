@@ -22,7 +22,6 @@ type Props = {
   slug: string;
   userEmail: string;
   displayName: string;
-  notifyWeeklyAnalytics: boolean;
   notifyTrialEnding: boolean;
   notifyProductUpdates: boolean;
   defaultLanguage: string;
@@ -61,7 +60,7 @@ function MiniToggle({ checked, onChange }: { checked: boolean; onChange: (v: boo
 
 export function SettingsClient({
   slug, userEmail, displayName: initialDisplayName,
-  notifyWeeklyAnalytics: initWeekly, notifyTrialEnding: initTrial,
+  notifyTrialEnding: initTrial,
   notifyProductUpdates: initProduct, defaultLanguage: initLang,
   subStatus, trialDaysLeft,
 }: Props) {
@@ -71,7 +70,6 @@ export function SettingsClient({
   const [displayName, setDisplayName] = useState(initialDisplayName);
   const [savingProfile, setSavingProfile] = useState(false);
 
-  const [notifyWeekly, setNotifyWeekly] = useState(initWeekly);
   const [notifyTrial, setNotifyTrial]   = useState(initTrial);
   const [notifyProduct, setNotifyProduct] = useState(initProduct);
   const [savingNotifs, setSavingNotifs] = useState(false);
@@ -100,7 +98,6 @@ export function SettingsClient({
     setSavingNotifs(true);
     const { error } = await supabase.auth.updateUser({
       data: {
-        notify_weekly_analytics: notifyWeekly,
         notify_trial_ending: notifyTrial,
         notify_product_updates: notifyProduct,
       },
@@ -235,9 +232,6 @@ export function SettingsClient({
       <section>
         {sectionHeader("Notifications")}
         <SectionCard>
-          <SettingRow label="Weekly analytics digest" sublabel="Summary of menu views and clicks every Monday">
-            <MiniToggle checked={notifyWeekly} onChange={(v) => { setNotifyWeekly(v); }} />
-          </SettingRow>
           <SettingRow label="Trial ending reminders" sublabel="Emails when your trial is about to expire">
             <MiniToggle checked={notifyTrial} onChange={(v) => { setNotifyTrial(v); }} />
           </SettingRow>

@@ -423,7 +423,7 @@ const BEFORE_ITEMS = [
 
 const AFTER_ITEMS = [
   "📱 One digital menu, always live",
-  "💰 No print costs ever",
+  "💰 Update menus without reprinting",
   "🔄 Update prices in seconds",
   "✨ Mark items 86'd instantly",
   "🌍 10 languages, one menu",
@@ -845,7 +845,7 @@ export default function HomePage() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {[
               { target: 30,       suffix: " min", label: "Average setup time" },
-              { target: 0,        suffix: "",     label: "Reprints after going digital" },
+              { target: 0,        suffix: "",     label: "menu reprints" },
               { target: 10,       suffix: "",     label: "Languages supported" },
               { target: "Always", suffix: "",     label: "Up-to-date menu" },
             ].map(({ target, suffix, label }, i) => (

@@ -993,7 +993,7 @@ export function AdminMenuEditor({
                                   </span>
                                 )}
                               </div>
-                              <span className="font-semibold text-[var(--accent)] tabular-nums text-sm flex-shrink-0">
+                              <span className="font-semibold text-[var(--accent)] tabular-nums text-base flex-shrink-0">
                                 {Number.isInteger(Number(item.price)) ? `$${Number(item.price)}` : `$${Number(item.price).toFixed(2)}`}
                               </span>
                             </div>
@@ -1321,7 +1321,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                           setFont(FONT_NAME_TO_VALUE[preset.font_family] ?? 'sans');
                           setSelectedPreset(preset.name); setColorCustomized(false);
                         }}
-                        className={`relative flex flex-col gap-2 p-3 rounded-xl border text-left transition-all ${
+                        className={`relative flex flex-col gap-2 p-3 rounded-xl border bg-white text-left transition-all ${
                           isSelected
                             ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/30 shadow-md"
                             : "border-gray-200 hover:border-[var(--accent)]/40 hover:shadow-sm"
@@ -1340,8 +1340,8 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                           <span className="w-4 h-4 rounded-full shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.accent_color }} />
                         </div>
                         <div>
-                          <p className="text-xs font-semibold font-sans text-[var(--foreground)] leading-tight">{preset.name}</p>
-                          <p className="text-[10px] font-sans text-[var(--muted)] mt-0.5 leading-tight">{preset.description}</p>
+                          <p className="text-xs font-semibold font-sans text-gray-900 leading-tight">{preset.name}</p>
+                          <p className="text-[10px] font-sans text-gray-500 mt-0.5 leading-tight">{preset.description}</p>
                         </div>
                       </button>
                     );
@@ -2827,14 +2827,13 @@ function SettingsModal({
   const [loaded, setLoaded] = useState(false);
 
   const [displayName, setDisplayName] = useState("");
-  const [notifyWeekly, setNotifyWeekly] = useState(false);
   const [notifyTrial, setNotifyTrial] = useState(true);
   const [notifyProduct, setNotifyProduct] = useState(false);
   const [defaultLang, setDefaultLang] = useState("en");
 
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [savingNotifs, setSavingNotifs] = useState(false);
-  const [savingPrefs, setSavingPrefs] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [pwLoading, setPwLoading] = useState(false);
   const [pwSent, setPwSent] = useState(false);
 
@@ -2848,10 +2847,10 @@ function SettingsModal({
       if (!data.user) return;
       const meta = data.user.user_metadata ?? {};
       setDisplayName(meta.display_name ?? "");
-      setNotifyWeekly(meta.notify_weekly_analytics ?? false);
       setNotifyTrial(meta.notify_trial_ending ?? true);
       setNotifyProduct(meta.notify_product_updates ?? false);
       setDefaultLang(meta.default_language ?? "en");
+      setIsDirty(false);
       setLoaded(true);
     });
   }, [open, loaded, supabase]);
@@ -2863,30 +2862,35 @@ function SettingsModal({
     setTimeout(() => setMsg(null), 3500);
   };
 
-  const saveProfile = async () => {
-    setSavingProfile(true);
-    const { error } = await supabase.auth.updateUser({ data: { display_name: displayName.trim() || null } });
-    setSavingProfile(false);
-    if (error) showMsg("err", error.message);
-    else showMsg("ok", "Profile saved.");
-  };
-
-  const saveNotifs = async () => {
-    setSavingNotifs(true);
+  const handleSave = async () => {
+    setSaving(true);
     const { error } = await supabase.auth.updateUser({
-      data: { notify_weekly_analytics: notifyWeekly, notify_trial_ending: notifyTrial, notify_product_updates: notifyProduct },
+      data: {
+        display_name: displayName.trim() || null,
+        notify_trial_ending: notifyTrial,
+        notify_product_updates: notifyProduct,
+        default_language: defaultLang,
+      },
     });
-    setSavingNotifs(false);
+    setSaving(false);
     if (error) showMsg("err", error.message);
-    else showMsg("ok", "Preferences saved.");
+    else { showMsg("ok", "Settings saved."); setIsDirty(false); }
   };
 
-  const savePrefs = async () => {
-    setSavingPrefs(true);
-    const { error } = await supabase.auth.updateUser({ data: { default_language: defaultLang } });
-    setSavingPrefs(false);
-    if (error) showMsg("err", error.message);
-    else showMsg("ok", "Preferences saved.");
+  const handleClose = () => {
+    if (isDirty) { setShowDiscardConfirm(true); } else { onClose(); }
+  };
+
+  const handleSaveAndClose = async () => {
+    await handleSave();
+    setShowDiscardConfirm(false);
+    onClose();
+  };
+
+  const handleDiscard = () => {
+    setShowDiscardConfirm(false);
+    setIsDirty(false);
+    onClose();
   };
 
   const sendPasswordReset = async () => {
@@ -2940,9 +2944,11 @@ function SettingsModal({
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
-      style={{ animation: "fadeIn 0.15s ease-out" }}>
+      style={{ animation: "fadeIn 0.15s ease-out" }}
+      onClick={handleClose}>
       <div className="flex flex-col w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl bg-[var(--card)] shadow-2xl"
-        style={{ animation: "modalIn 0.15s ease-out" }}>
+        style={{ animation: "modalIn 0.15s ease-out" }}
+        onClick={(e) => e.stopPropagation()}>
 
         {/* Header */}
         <div className="flex-shrink-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
@@ -2950,7 +2956,7 @@ function SettingsModal({
             <h2 className="text-base font-semibold text-[var(--foreground)]">Account settings</h2>
             <p className="text-xs text-[var(--muted)] mt-0.5">These settings apply to your DineLinks account, not your menu.</p>
           </div>
-          <button type="button" onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
+          <button type="button" onClick={handleClose} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -2980,14 +2986,10 @@ function SettingsModal({
                   <input
                     type="text"
                     value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
+                    onChange={(e) => { setDisplayName(e.target.value); setIsDirty(true); }}
                     placeholder="e.g. Jane"
                     className="flex-1 px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                   />
-                  <button type="button" onClick={saveProfile} disabled={savingProfile}
-                    className="px-4 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
-                    {savingProfile ? "Saving…" : "Save"}
-                  </button>
                 </div>
               </div>
             </SectionCard>
@@ -3016,20 +3018,13 @@ function SettingsModal({
           <section>
             {sectionHeader("Notifications")}
             <SectionCard>
-              <SettingRow label="Weekly analytics digest" sublabel="Summary of menu views and clicks every Monday">
-                <MiniToggle checked={notifyWeekly} onChange={setNotifyWeekly} />
-              </SettingRow>
               <SettingRow label="Trial ending reminders" sublabel="Emails when your trial is about to expire">
-                <MiniToggle checked={notifyTrial} onChange={setNotifyTrial} />
+                <MiniToggle checked={notifyTrial} onChange={(v) => { setNotifyTrial(v); setIsDirty(true); }} />
               </SettingRow>
               <SettingRow label="Product updates" sublabel="New features and announcements from DineLinks (opt-in)">
-                <MiniToggle checked={notifyProduct} onChange={setNotifyProduct} />
+                <MiniToggle checked={notifyProduct} onChange={(v) => { setNotifyProduct(v); setIsDirty(true); }} />
               </SettingRow>
             </SectionCard>
-            <button type="button" onClick={saveNotifs} disabled={savingNotifs}
-              className="mt-3 px-5 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
-              {savingNotifs ? "Saving…" : "Save notification settings"}
-            </button>
           </section>
 
           {/* BILLING */}
@@ -3058,16 +3053,12 @@ function SettingsModal({
               <div className="px-4 py-3.5">
                 <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Default menu language</label>
                 <p className="text-xs text-[var(--muted)] mb-2">The language shown first when customers open your menu.</p>
-                <select value={defaultLang} onChange={(e) => setDefaultLang(e.target.value)}
+                <select value={defaultLang} onChange={(e) => { setDefaultLang(e.target.value); setIsDirty(true); }}
                   className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
                   {SETTINGS_LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                 </select>
               </div>
             </SectionCard>
-            <button type="button" onClick={savePrefs} disabled={savingPrefs}
-              className="mt-3 px-5 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
-              {savingPrefs ? "Saving…" : "Save preferences"}
-            </button>
           </section>
 
           {/* DANGER ZONE */}
@@ -3079,12 +3070,36 @@ function SettingsModal({
 
         {/* Footer */}
         <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)]">
-          <button type="button" onClick={onClose}
-            className="font-sans w-full py-2.5 rounded-xl border border-[var(--card-border)] text-[var(--foreground)] font-medium text-sm hover:bg-[var(--background)] transition-colors">
-            Done
+          <button type="button" onClick={handleSave} disabled={saving}
+            className="font-sans w-full py-2.5 rounded-xl bg-[var(--accent)] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
+            {saving ? "Saving…" : "Save"}
           </button>
         </div>
       </div>
+
+      {/* Unsaved changes confirmation */}
+      {showDiscardConfirm && (
+        <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/70 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+            <h3 className="text-base font-semibold text-[#2c2a26] mb-2">You have unsaved changes.</h3>
+            <p className="text-sm text-[#6b6560] mb-5">Save before closing?</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={handleDiscard}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
+                Discard
+              </button>
+              <button type="button" onClick={() => setShowDiscardConfirm(false)}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
+                Cancel
+              </button>
+              <button type="button" onClick={handleSaveAndClose} disabled={saving}
+                className="flex-1 py-2.5 rounded-xl bg-[#8b6914] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50">
+                Save & close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
