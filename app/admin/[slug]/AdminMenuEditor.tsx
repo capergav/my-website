@@ -31,138 +31,120 @@ const D_BG     = "#faf8f5";
 const D_TEXT   = "#2c2a26";
 const D_CARD   = "#ffffff";
 
-const FONT_NAME_TO_VALUE: Record<string, string> = {
-  'Playfair Display': 'playfair',
-  'Geist Sans': 'sans',
-  'Pacifico': 'pacifico',
-  'Cinzel': 'cinzel',
-  'Bebas Neue': 'bebas',
-  'Cormorant Garamond': 'serif',
-  'Poppins': 'poppins',
-  'Geist Mono': 'mono',
-  'Orbitron': 'orbitron',
-};
+function getFontStack(family: string) {
+  switch (family) {
+    case "serif":    return "'Cormorant Garamond', Georgia, serif";
+    case "playfair": return "'Playfair Display', Georgia, serif";
+    case "cinzel":   return "'Cinzel', Georgia, serif";
+    case "pacifico": return "'Pacifico', cursive";
+    case "mono":     return "'Geist Mono', monospace";
+    case "poppins":  return "'Poppins', sans-serif";
+    case "bebas":    return "'Bebas Neue', sans-serif";
+    case "orbitron": return "'Orbitron', sans-serif";
+    default:         return "'Geist Sans', system-ui, sans-serif";
+  }
+}
 
-const PRESET_THEMES = [
+const PRESETS = [
   {
-    name: 'Classic Gold',
-    description: 'Timeless upscale dining',
-    main_color: '#8b6914',
-    accent_color: '#c9a030',
-    background_color: '#ffffff',
-    font_color: '#1a1a1a',
-    font_family: 'Playfair Display',
-    mutedColor: '#6b6560',
+    name: "Linen",
+    description: "Warm minimalist café",
+    background: "#faf5ec",
+    main: "#ffffff",
+    accent: "#8b1a1a",
+    fontColor: "#2c2520",
+    mutedColor: "#6b5e54",
+    fontFamily: "serif",
   },
   {
-    name: 'Midnight Brass',
-    description: 'Dark elegant brasserie',
-    main_color: '#d4a84b',
-    accent_color: '#f0c674',
-    background_color: '#0f0f10',
-    font_color: '#fafafa',
-    font_family: 'Playfair Display',
-    mutedColor: '#9a9590',
+    name: "Bistro",
+    description: "Classic French bistro",
+    background: "#f4ede0",
+    main: "#fffbf3",
+    accent: "#1a3a2e",
+    fontColor: "#1f1d18",
+    mutedColor: "#6b6258",
+    fontFamily: "playfair",
   },
   {
-    name: 'Forest Trattoria',
-    description: 'Rustic Italian',
-    main_color: '#1f5132',
-    accent_color: '#3d8b54',
-    background_color: '#fdfcf7',
-    font_color: '#1a1a1a',
-    font_family: 'Cormorant Garamond',
-    mutedColor: '#5e7a65',
+    name: "Modern",
+    description: "Clean contemporary",
+    background: "#ffffff",
+    main: "#f8f8f5",
+    accent: "#1f1d1a",
+    fontColor: "#1f1d1a",
+    mutedColor: "#7a7670",
+    fontFamily: "sans",
   },
   {
-    name: 'Cherry Blossom',
-    description: 'Soft modern Japanese',
-    main_color: '#c2185b',
-    accent_color: '#ec407a',
-    background_color: '#fffafc',
-    font_color: '#1a1a1a',
-    font_family: 'Geist Sans',
-    mutedColor: '#8a6b7a',
+    name: "Coastal",
+    description: "Seaside dining",
+    background: "#f4f7fa",
+    main: "#ffffff",
+    accent: "#1d4470",
+    fontColor: "#1a2535",
+    mutedColor: "#6b7785",
+    fontFamily: "sans",
   },
   {
-    name: 'Sunlit Café',
-    description: 'Bright cozy bakery',
-    main_color: '#d97706',
-    accent_color: '#fbbf24',
-    background_color: '#fffbeb',
-    font_color: '#1a1a1a',
-    font_family: 'Pacifico',
-    mutedColor: '#8a7a5e',
+    name: "Trattoria",
+    description: "Italian warmth",
+    background: "#f7f3e8",
+    main: "#fffbf0",
+    accent: "#4a5d23",
+    fontColor: "#2b3514",
+    mutedColor: "#7a7560",
+    fontFamily: "cinzel",
   },
   {
-    name: 'Coastal Blue',
-    description: 'Fresh seafood',
-    main_color: '#1e40af',
-    accent_color: '#3b82f6',
-    background_color: '#f8fafc',
-    font_color: '#1a1a1a',
-    font_family: 'Geist Sans',
-    mutedColor: '#6b7a96',
+    name: "Tokyo",
+    description: "Japanese minimal",
+    background: "#ffffff",
+    main: "#fafafa",
+    accent: "#c8553d",
+    fontColor: "#1f1f1f",
+    mutedColor: "#6b6b6b",
+    fontFamily: "sans",
   },
   {
-    name: 'Spice Bazaar',
-    description: 'Bold South Asian',
-    main_color: '#9a1f1f',
-    accent_color: '#dc2626',
-    background_color: '#fffaf3',
-    font_color: '#1a1a1a',
-    font_family: 'Cinzel',
-    mutedColor: '#8a5e4d',
+    name: "Old World",
+    description: "Heritage steakhouse",
+    background: "#1f1d1a",
+    main: "#2a2723",
+    accent: "#c89a4e",
+    fontColor: "#f4ede0",
+    mutedColor: "#a8a39c",
+    fontFamily: "playfair",
   },
   {
-    name: 'Steak House',
-    description: 'Industrial grill',
-    main_color: '#7f1d1d',
-    accent_color: '#dc2626',
-    background_color: '#0a0a0a',
-    font_color: '#fafafa',
-    font_family: 'Bebas Neue',
-    mutedColor: '#9a8878',
+    name: "Wine Cellar",
+    description: "Sommelier picks",
+    background: "#1f1015",
+    main: "#2c1820",
+    accent: "#c9a55a",
+    fontColor: "#f4e8d8",
+    mutedColor: "#b8a89c",
+    fontFamily: "cinzel",
   },
   {
-    name: 'Lavender Brunch',
-    description: 'Soft elegant café',
-    main_color: '#6b21a8',
-    accent_color: '#a855f7',
-    background_color: '#faf5ff',
-    font_color: '#1a1a1a',
-    font_family: 'Cormorant Garamond',
-    mutedColor: '#8b7a99',
+    name: "Scandi",
+    description: "Nordic café",
+    background: "#f8f8f5",
+    main: "#ffffff",
+    accent: "#6b8270",
+    fontColor: "#2a2a28",
+    mutedColor: "#7a7872",
+    fontFamily: "sans",
   },
   {
-    name: 'Terracotta',
-    description: 'Mediterranean warmth',
-    main_color: '#9a3412',
-    accent_color: '#ea580c',
-    background_color: '#fdf6f0',
-    font_color: '#1a1a1a',
-    font_family: 'Cinzel',
-    mutedColor: '#a07868',
-  },
-  {
-    name: 'Charcoal Modern',
-    description: 'Minimalist contemporary',
-    main_color: '#525252',
-    accent_color: '#a3a3a3',
-    background_color: '#ffffff',
-    font_color: '#1a1a1a',
-    font_family: 'Geist Sans',
-    mutedColor: '#6f7378',
-  },
-  {
-    name: 'Emerald Lounge',
-    description: 'Sophisticated cocktail bar',
-    main_color: '#10b981',
-    accent_color: '#34d399',
-    background_color: '#0c1814',
-    font_color: '#f0fdf4',
-    font_family: 'Playfair Display',
-    mutedColor: '#5e8a78',
+    name: "Brunch",
+    description: "Sunday morning",
+    background: "#fbf6ed",
+    main: "#fffaf0",
+    accent: "#b85a3e",
+    fontColor: "#2e2520",
+    mutedColor: "#7a6f65",
+    fontFamily: "pacifico",
   },
 ];
 
@@ -1307,47 +1289,83 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
               </div>
 
               {/* PRESETS */}
-              <section>
-                <h3 className="text-xs font-semibold font-sans uppercase tracking-widest text-gray-500 mb-3">Presets</h3>
-                <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
-                  {PRESET_THEMES.map((preset) => {
+              <div className="space-y-3">
+                <div className="text-xs uppercase tracking-widest text-gray-500">Choose a theme</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {PRESETS.map((preset) => {
                     const isSelected = selectedPreset === preset.name;
                     return (
-                      <button key={preset.name} type="button"
+                      <button
+                        key={preset.name}
+                        type="button"
                         onClick={() => {
-                          setCard(preset.main_color); setAccent(preset.accent_color);
-                          setBg(preset.background_color); setFontColor(preset.font_color);
-                          setMutedColor(preset.mutedColor ?? "#6b6560");
-                          setFont(FONT_NAME_TO_VALUE[preset.font_family] ?? 'sans');
-                          setSelectedPreset(preset.name); setColorCustomized(false);
+                          setCard(preset.main);
+                          setAccent(preset.accent);
+                          setBg(preset.background);
+                          setFontColor(preset.fontColor);
+                          setMutedColor(preset.mutedColor);
+                          setFont(preset.fontFamily);
+                          setSelectedPreset(preset.name);
+                          setColorCustomized(false);
                         }}
-                        className={`relative flex flex-col gap-2 p-3 rounded-xl border bg-white text-left transition-all ${
-                          isSelected
-                            ? "border-[var(--accent)] ring-2 ring-[var(--accent)]/30 shadow-md"
-                            : "border-gray-200 hover:border-[var(--accent)]/40 hover:shadow-sm"
-                        }`}
+                        style={{
+                          backgroundColor: preset.background,
+                          color: preset.fontColor,
+                          fontFamily: getFontStack(preset.fontFamily),
+                          border: isSelected ? "2px solid var(--accent)" : "1px solid rgba(0,0,0,0.08)",
+                          borderRadius: 12,
+                          padding: 16,
+                          textAlign: "left",
+                          cursor: "pointer",
+                          overflow: "hidden",
+                          transition: "transform 150ms",
+                          boxShadow: isSelected ? "0 0 0 3px var(--accent-30, rgba(139,105,20,0.2))" : undefined,
+                        }}
+                        className="hover:scale-[1.02] active:scale-[0.98]"
                       >
-                        {isSelected && (
-                          <span className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: preset.main_color }}>
-                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                            </svg>
-                          </span>
-                        )}
-                        <div className="flex items-center gap-1">
-                          <span className="w-6 h-6 rounded-md shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.main_color }} />
-                          <span className="w-6 h-6 rounded-md shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.background_color }} />
-                          <span className="w-4 h-4 rounded-full shadow-sm flex-shrink-0 border border-black/10" style={{ background: preset.accent_color }} />
+                        <div style={{
+                          fontSize: 10,
+                          textTransform: "uppercase",
+                          letterSpacing: "0.08em",
+                          color: preset.mutedColor,
+                          marginBottom: 4,
+                        }}>
+                          {preset.name}
                         </div>
-                        <div>
-                          <p className="text-xs font-semibold font-sans text-gray-900 leading-tight">{preset.name}</p>
-                          <p className="text-[10px] font-sans text-gray-500 mt-0.5 leading-tight">{preset.description}</p>
+                        <div style={{
+                          backgroundColor: preset.main,
+                          borderRadius: 8,
+                          padding: 10,
+                          marginTop: 8,
+                        }}>
+                          <div style={{
+                            fontWeight: 600,
+                            fontSize: 13,
+                            color: preset.fontColor,
+                            marginBottom: 2,
+                          }}>
+                            Sample Dish
+                          </div>
+                          <div style={{
+                            fontSize: 11,
+                            color: preset.mutedColor,
+                            marginBottom: 4,
+                          }}>
+                            {preset.description}
+                          </div>
+                          <div style={{
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: preset.accent,
+                          }}>
+                            $18
+                          </div>
                         </div>
                       </button>
                     );
                   })}
                 </div>
-              </section>
+              </div>
 
 
                   {/* Colors */}
