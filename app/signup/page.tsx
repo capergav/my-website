@@ -21,6 +21,17 @@ function EyeIcon({ open }: { open: boolean }) {
   );
 }
 
+function generateSlug(restaurantName: string): string {
+  return restaurantName
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 40)
+    + "-" + Math.random().toString(36).slice(2, 6);
+}
+
 function validatePassword(pw: string): string | null {
   if (pw.length < 8) return "Password must be at least 8 characters.";
   if (!/[A-Z]/.test(pw)) return "Password must contain at least one uppercase letter.";
@@ -57,10 +68,11 @@ export default function SignupPage() {
     if (pwError) { setError(pwError); return; }
     if (password !== confirmPassword) { setError("Passwords do not match."); return; }
     setLoading(true);
+    const slug = generateSlug(restaurantName.trim());
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { restaurant_name: restaurantName.trim() } },
+      options: { data: { restaurant_name: restaurantName.trim(), restaurant_slug: slug } },
     });
     if (error) { setError(error.message); setLoading(false); }
     else { router.push("/admin"); router.refresh(); }

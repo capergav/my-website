@@ -41,7 +41,7 @@ export function HeroWithLang({
   }
 
   return (
-    <div className="relative h-72 lg:h-80 overflow-hidden">
+    <div className="relative h-36 sm:h-48 md:h-64 lg:h-80 overflow-hidden">
       <img
         src={heroImageUrl}
         alt={title}

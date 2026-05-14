@@ -2068,7 +2068,7 @@ function AddCategoryModal({
 // ── Manage Categories Modal ───────────────────────────────────────────────────
 
 function SortableCategoryManageRow({
-  name, itemCount, showImage, imageMode, bannerItemId, categoryItems, onDelete, onToggleShowImage, onSelectImageMode, isDeleting, onRename,
+  name, itemCount, showImage, imageMode, bannerItemId, categoryItems, onDelete, onSelectImageMode, isDeleting, onRename,
 }: {
   name: string;
   itemCount: number;
@@ -2077,7 +2077,6 @@ function SortableCategoryManageRow({
   bannerItemId: string | null;
   categoryItems: MenuItemRow[];
   onDelete: () => void;
-  onToggleShowImage: (val: boolean) => void;
   onSelectImageMode: (mode: 'icon' | 'item', itemId: string | null) => void;
   isDeleting: boolean;
   onRename: (oldName: string, newName: string) => Promise<void>;
@@ -2157,20 +2156,6 @@ function SortableCategoryManageRow({
           </button>
         )}
       </div>
-      {/* Show image toggle */}
-      <div className="flex items-center justify-between gap-3 px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]">
-        <div>
-          <p className="text-xs font-medium text-[var(--foreground)] font-sans">Show image on category</p>
-          <p className="text-[10px] text-[var(--muted)] font-sans">Display an icon or item photo next to the category name</p>
-        </div>
-        <button
-          type="button"
-          onClick={() => onToggleShowImage(!showImage)}
-          className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${showImage ? 'bg-[var(--accent)]' : 'bg-gray-200'}`}
-        >
-          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${showImage ? 'translate-x-4' : 'translate-x-0.5'}`} />
-        </button>
-      </div>
       {/* Image mode picker — only shown when show_image is ON */}
       {showImage && (
         <div className="px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]">
@@ -2231,6 +2216,7 @@ function ManageCategoriesModal({
   const [busy, setBusy] = useState(false);
   const [deletingCats, setDeletingCats] = useState<Set<string>>(new Set());
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [masterShowImages, setMasterShowImages] = useState(false);
   const supabase = createSupabaseClient();
   useBodyScrollLock(true);
 
@@ -2253,6 +2239,7 @@ function ManageCategoriesModal({
           setShowImageMap(showMap);
           setImageModeMap(modeMap);
           setBannerItemMap(itemMap);
+          setMasterShowImages(Object.values(showMap).some(Boolean));
         }
       });
   }, [restaurantId, supabase]);
@@ -2316,6 +2303,21 @@ function ManageCategoriesModal({
     setBusy(false);
   };
 
+  const handleToggleMasterShowImages = async (val: boolean) => {
+    setMasterShowImages(val);
+    const updatedMap: Record<string, boolean> = {};
+    for (const cat of cats) updatedMap[cat] = val;
+    setShowImageMap(updatedMap);
+    setBusy(true);
+    for (const cat of cats) {
+      await supabase.from('restaurant_categories')
+        .update({ show_image: val })
+        .eq('restaurant_id', restaurantId)
+        .eq('name', cat);
+    }
+    setBusy(false);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" style={{ animation: 'fadeIn 0.15s ease-out' }}>
       <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-sm" style={{ animation: 'modalIn 0.15s ease-out' }}>
@@ -2335,6 +2337,47 @@ function ManageCategoriesModal({
           {deleteError && (
             <p className="text-xs text-red-600 font-sans mb-2 px-1">{deleteError}</p>
           )}
+          {/* Master show images toggle */}
+          <div className="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-[var(--card-border)]">
+            <p className="text-sm font-medium text-[var(--foreground)] font-sans">Show images next to category names</p>
+            <button
+              type="button"
+              onClick={() => handleToggleMasterShowImages(!masterShowImages)}
+              className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${masterShowImages ? 'bg-[var(--accent)]' : 'bg-gray-200'}`}
+            >
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${masterShowImages ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
+          {/* Illustration: text only vs with images */}
+          {!masterShowImages && (
+            <div className="flex gap-4 mb-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--card-border)]">
+              <div className="flex-1 text-center">
+                <div className="flex gap-1 justify-center flex-wrap mb-1.5">
+                  {["Mains", "Drinks", "Desserts"].map((n) => (
+                    <span key={n} className="px-2 py-0.5 rounded-full bg-[var(--card-border)] text-[10px] text-[var(--muted)] font-medium font-sans">{n}</span>
+                  ))}
+                </div>
+                <p className="text-[10px] text-[var(--muted)] font-sans">Text only</p>
+              </div>
+              <div className="flex-1 text-center">
+                <div className="flex gap-1.5 justify-center mb-1.5">
+                  {["Mains", "Drinks"].map((n) => (
+                    <div key={n} className="flex flex-col items-center gap-0.5">
+                      <div className="w-8 h-8 rounded-lg bg-[var(--card-border)] flex items-center justify-center">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="opacity-40">
+                          <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
+                        </svg>
+                      </div>
+                      <span className="text-[9px] text-[var(--muted)] font-sans">{n}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-[var(--muted)] font-sans">With images</p>
+              </div>
+            </div>
+          )}
+
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={cats} strategy={verticalListSortingStrategy}>
               <div className="space-y-2">
@@ -2343,20 +2386,13 @@ function ManageCategoriesModal({
                     key={cat}
                     name={cat}
                     itemCount={grouped[cat]?.length ?? 0}
-                    showImage={showImageMap[cat] ?? false}
+                    showImage={masterShowImages}
                     imageMode={imageModeMap[cat] ?? null}
                     bannerItemId={bannerItemMap[cat] ?? null}
                     categoryItems={grouped[cat] ?? []}
                     isDeleting={deletingCats.has(cat)}
                     onDelete={() => handleDelete(cat)}
                     onRename={handleRename}
-                    onToggleShowImage={async (val) => {
-                      setShowImageMap((prev) => ({ ...prev, [cat]: val }));
-                      await supabase.from('restaurant_categories')
-                        .update({ show_image: val })
-                        .eq('restaurant_id', restaurantId)
-                        .eq('name', cat);
-                    }}
                     onSelectImageMode={async (mode, itemId) => {
                       setImageModeMap((prev) => ({ ...prev, [cat]: mode }));
                       setBannerItemMap((prev) => ({ ...prev, [cat]: itemId }));
@@ -3088,10 +3124,16 @@ function SettingsModal({
 
         {/* Footer */}
         <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)]">
-          <button type="button" onClick={handleSave} disabled={saving}
-            className="font-sans w-full py-2.5 rounded-xl bg-[var(--accent)] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
-            {saving ? "Saving…" : "Save"}
-          </button>
+          <div className="flex gap-3 justify-end">
+            <button type="button" onClick={onClose}
+              className="font-sans px-5 h-10 rounded-lg border border-[var(--card-border)] text-[var(--muted)] text-sm hover:bg-[var(--card-border)]/30">
+              Cancel
+            </button>
+            <button type="button" onClick={handleSave} disabled={saving}
+              className="font-sans px-5 h-10 rounded-xl bg-[var(--accent)] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
+              {saving ? "Saving…" : "Save"}
+            </button>
+          </div>
         </div>
       </div>
 

@@ -45,7 +45,7 @@ const STEPS: Step[] = [
     id: "done",
     selector: null,
     title: "You're ready",
-    body: "Add your real menu items whenever you're ready. Your 60-day free trial is active — no credit card needed to start.",
+    body: "You're all set. Add your real menu items, customize your theme, and share your QR code with customers.",
   },
 ];
 
@@ -204,6 +204,17 @@ export function OnboardingTour({
 
   return (
     <>
+      {/* Full-screen click catcher — blocks all page interaction during tour */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 9997,
+          pointerEvents: "all",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      />
+
       {/* Spotlight — or full-page dim for steps without a target */}
       {spotlight ? (
         <>

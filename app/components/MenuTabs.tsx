@@ -406,7 +406,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
       {/* Category content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-[env(safe-area-inset-bottom)]">
         {/* Header + filter */}
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
+        <div className="flex flex-row items-center justify-between gap-2 mb-4">
           <div className="min-w-0">
             {/* Category heading with optional inline thumbnail */}
             {(() => {
@@ -426,7 +426,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                       <CategoryIcon name={activeCategory} isActive={false} />
                     </div>
                   )}
-                  <h2 className="text-2xl sm:text-3xl font-semibold text-[var(--foreground)]">
+                  <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[var(--foreground)]">
                     <CategoryName name={activeCategory} />
                   </h2>
                 </div>
@@ -442,7 +442,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
             <select
               value={dietFilter}
               onChange={(e) => setDietFilter(e.target.value)}
-              className="w-full sm:w-auto min-w-[150px] px-3 py-2 rounded-xl border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] cursor-pointer"
+              className="max-w-[120px] sm:max-w-none sm:min-w-[150px] px-2 py-1 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] cursor-pointer"
               aria-label={t("filter.all")}
             >
               {DIET_FILTER_OPTIONS.map((opt) => (
@@ -506,7 +506,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
               )}
 
               {/* Content */}
-              <div className="p-4 sm:p-5 min-w-0 flex-1 flex flex-col justify-center">
+              <div className="p-3 sm:p-5 min-w-0 flex-1 flex flex-col justify-center">
                 <div className="flex justify-between items-baseline gap-3">
                   <h3 className="text-lg sm:text-xl font-semibold text-[var(--foreground)] min-w-0 text-wrap-balance">
                     <TranslatedText text={item.name} />
