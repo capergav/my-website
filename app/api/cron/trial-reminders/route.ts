@@ -85,5 +85,57 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Cancellation warning: subscriptions set to cancel within the next 24 hours
+  const cancelWindowEnd = new Date(now.getTime() + 86400000).toISOString();
+  const { data: cancelingSubs } = await admin
+    .from("subscriptions")
+    .select("user_id, current_period_end")
+    .eq("status", "active")
+    .eq("cancel_at_period_end", true)
+    .gte("current_period_end", now.toISOString())
+    .lte("current_period_end", cancelWindowEnd);
+
+  for (const sub of cancelingSubs ?? []) {
+    const { data: { user } } = await admin.auth.admin.getUserById(sub.user_id);
+    if (!user?.email) continue;
+
+    const name = (user.user_metadata?.restaurant_name as string | undefined) ?? "there";
+
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "DineLinks <noreply@dinelinks.com>",
+        to: user.email,
+        subject: "Your DineLinks subscription ends tomorrow",
+        html: `
+          <div style="font-family: Georgia, serif; max-width: 520px; margin: 0 auto; padding: 40px 20px;">
+            <h1 style="color: #2c2a26;">Your subscription ends tomorrow</h1>
+            <p style="color: #6b6560; line-height: 1.6;">Hi ${name},</p>
+            <p style="color: #6b6560; line-height: 1.6;">
+              Your DineLinks subscription is set to cancel tomorrow. After it ends, your menu will go offline.
+            </p>
+            <p style="color: #6b6560; line-height: 1.6;">
+              If you'd like to keep your menu live, you can resubscribe anytime from your admin panel.
+            </p>
+            <a href="https://dinelinks.com/admin"
+               style="display: inline-block; background: #8b6914; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 20px;">
+              Resubscribe
+            </a>
+            <p style="color: #6b6560; line-height: 1.6; margin-top: 24px;">
+              If you meant to cancel, no action needed.
+            </p>
+            <p style="color: #9a9591; font-size: 13px; margin-top: 40px;">
+              — The DineLinks team
+            </p>
+          </div>
+        `,
+      }),
+    });
+  }
+
   return NextResponse.json({ ok: true });
 }

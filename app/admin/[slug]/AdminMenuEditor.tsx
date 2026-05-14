@@ -10,7 +10,7 @@ import type { MenuItemRow } from "@/app/lib/constants";
 import type { Restaurant } from "@/app/lib/supabase";
 import { ImageUploader } from "./ImageUploader";
 import { OnboardingTour } from "./OnboardingTour";
-import { useSubscription } from "@/lib/useSubscription";
+import { useSubscription, type SubStatus } from "@/lib/useSubscription";
 import { CreditCard, AlertTriangle, AlertCircle, Plus, GripVertical, UtensilsCrossed, ChevronLeft, ChevronRight } from "lucide-react";
 import { AccountDangerZone } from "./AccountDangerZone";
 import {
@@ -281,6 +281,7 @@ export function AdminMenuEditor({
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [hasCompletedTour, setHasCompletedTour] = useState(true); // default true: don't flash tour before we know
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
 
   const tabScrollRef = useRef<HTMLDivElement>(null);
@@ -323,7 +324,7 @@ export function AdminMenuEditor({
     });
   }, [supabase, restaurantId, initialGrouped]);
 
-  const { status: subStatus, isActive, daysLeftInTrial, isTrialExpired } = useSubscription(user?.id);
+  const { status: subStatus, isActive, daysLeftInTrial, isTrialExpired, cancelAtPeriodEnd, periodEnd } = useSubscription(user?.id);
 
   const startCheckout = async () => {
     if (!user) return;
@@ -341,29 +342,32 @@ export function AdminMenuEditor({
 
   const openPortal = async () => {
     if (!user) return;
-    const res = await fetch('/api/stripe/portal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id, restaurantSlug }),
-    });
-    const data = await res.json();
-    if (data.url) window.location.href = data.url;
-    else if (data.error === 'No subscription found') {
-      // No Stripe customer yet — fall through to checkout
-      startCheckout();
+    setPortalLoading(true);
+    try {
+      const res = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, restaurantSlug }),
+      });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+      else if (data.error === 'No subscription found') startCheckout();
+    } finally {
+      setPortalLoading(false);
     }
   };
 
-  // Smart billing: trialing without payment method → checkout; else → portal
   const handleBilling = () => {
-    if (subStatus === 'trialing' || subStatus === 'none') {
-      startCheckout();
-    } else {
+    if (subStatus === 'active') {
       openPortal();
+    } else {
+      startCheckout();
     }
   };
 
-  const billingLabel = (subStatus === 'trialing' || subStatus === 'none') ? 'Start subscription' : 'Manage billing';
+  const billingLabel = subStatus === 'active'
+    ? (cancelAtPeriodEnd ? 'Resubscribe' : 'Manage subscription')
+    : 'Subscribe';
 
   // ── Live font update (colors stay as DineLinks brand) ────────────────────
   useEffect(() => {
@@ -681,8 +685,16 @@ export function AdminMenuEditor({
 
         {/* Desktop action row */}
         <div className="hidden sm:flex absolute top-4 end-4 items-center gap-2 z-20">
-          {subStatus === 'trialing' && (
-            <TrialPill daysLeft={daysLeftInTrial} onSubscribe={startCheckout} loading={checkoutLoading} />
+          {(subStatus === 'trialing' || subStatus === 'active' || subStatus === 'canceled') && (
+            <BillingPill
+              subStatus={subStatus}
+              daysLeft={daysLeftInTrial}
+              cancelAtPeriodEnd={cancelAtPeriodEnd}
+              periodEnd={periodEnd}
+              onCheckout={startCheckout}
+              onPortal={openPortal}
+              loading={checkoutLoading || portalLoading}
+            />
           )}
           <AdminMenuPanel
             onOpenTheme={() => setThemeOpen(true)}
@@ -1768,39 +1780,61 @@ function TrialBanner({
   );
 }
 
-function TrialPill({ daysLeft, onSubscribe, loading }: { daysLeft: number | null; onSubscribe: () => void; loading: boolean }) {
-  if (daysLeft === null) return null;
+function BillingPill({
+  subStatus, daysLeft, cancelAtPeriodEnd, periodEnd, onCheckout, onPortal, loading,
+}: {
+  subStatus: SubStatus;
+  daysLeft: number | null;
+  cancelAtPeriodEnd: boolean;
+  periodEnd: Date | null;
+  onCheckout: () => void;
+  onPortal: () => void;
+  loading: boolean;
+}) {
+  const isTrialingExpired = subStatus === 'trialing' && daysLeft !== null && daysLeft <= 0;
+  const isUrgentTrial = subStatus === 'trialing' && daysLeft !== null && daysLeft <= 7 && !isTrialingExpired;
 
-  const isExpired = daysLeft <= 0;
-  const isUrgent  = daysLeft <= 7 && !isExpired;
+  let label: string;
+  let onClick: () => void;
+  let pillCls: string;
 
-  const bg = 'bg-[var(--accent)] hover:opacity-90';
-  const ring = isExpired
-    ? 'ring-2 ring-offset-2 ring-offset-[var(--background)] ring-[var(--accent)]'
-    : isUrgent
-    ? 'ring-1 ring-offset-2 ring-offset-[var(--background)] ring-[var(--accent)]'
-    : '';
+  if (subStatus === 'active' && !cancelAtPeriodEnd) {
+    label = 'Manage subscription';
+    onClick = onPortal;
+    pillCls = 'bg-[var(--card)] border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/40';
+  } else if (subStatus === 'active' && cancelAtPeriodEnd) {
+    const dateStr = periodEnd
+      ? periodEnd.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
+      : '';
+    label = `Resubscribe${dateStr ? ` — ends ${dateStr}` : ''}`;
+    onClick = onPortal;
+    pillCls = 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100';
+  } else if (subStatus === 'canceled' || isTrialingExpired) {
+    label = 'Subscribe to continue — $25 CAD/mo';
+    onClick = onCheckout;
+    pillCls = 'bg-red-600 border-transparent text-white hover:opacity-90';
+  } else {
+    // trialing (not expired)
+    label = daysLeft !== null ? `${daysLeft}d left — Subscribe $25 CAD/mo` : 'Subscribe — $25 CAD/mo';
+    onClick = onCheckout;
+    pillCls = 'bg-[var(--accent)] border-transparent text-white hover:opacity-90';
+  }
 
-  const label = isExpired
-    ? 'Trial ended — Subscribe'
-    : `${daysLeft}d left — Subscribe`;
+  const ring = isUrgentTrial ? 'ring-1 ring-offset-2 ring-offset-[var(--background)] ring-[var(--accent)]' : '';
 
   return (
     <button
       type="button"
-      onClick={onSubscribe}
+      onClick={onClick}
       disabled={loading}
-      title={isExpired
-        ? 'Your trial has ended. Subscribe to keep your menu live.'
-        : `${daysLeft} day${daysLeft === 1 ? '' : 's'} left in your free trial`}
-      className={`min-h-[44px] px-3.5 py-2 rounded-xl ${bg} ${ring} text-white font-medium text-sm border border-transparent inline-flex items-center gap-2 disabled:opacity-60 transition-opacity`}
+      className={`min-h-[44px] px-3.5 py-2 rounded-xl ${pillCls} ${ring} font-medium text-sm border inline-flex items-center gap-2 disabled:opacity-60 transition-opacity`}
     >
-      <span className="relative flex h-2 w-2 flex-shrink-0">
-        {!isExpired && (
+      {subStatus === 'trialing' && !isTrialingExpired && (
+        <span className="relative flex h-2 w-2 flex-shrink-0">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-50" />
-        )}
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-      </span>
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
+        </span>
+      )}
       <span>{loading ? 'Redirecting…' : label}</span>
     </button>
   );
