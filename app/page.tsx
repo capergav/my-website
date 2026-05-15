@@ -401,7 +401,7 @@ const STEPS = [
 
 const LANGUAGES = [
   { flag: "🇨🇦", name: "English" },
-  { flag: "🇫🇷", name: "Français" },
+  { flag: "🏴󠁣󠁡󠁱󠁣󠁿", name: "Français" },
   { flag: "🇪🇸", name: "Español" },
   { flag: "🇸🇦", name: "العربية", rtl: true },
   { flag: "🇨🇳", name: "中文" },

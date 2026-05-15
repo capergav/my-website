@@ -19,7 +19,7 @@ const CHART_COLORS = [
 
 const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
-  fr: "Français",
+  fr: "Français 🏴󠁣󠁡󠁱󠁣󠁿",
   es: "Español",
   ar: "العربية",
   zh: "中文",
@@ -95,6 +95,20 @@ export function AnalyticsClient({
   langData, hourData, hasData,
 }: Props) {
   const router = useRouter();
+
+  // Adjust UTC hourData to browser local timezone
+  const tzOffsetHours = new Date().getTimezoneOffset() / 60; // positive = behind UTC
+  const localHourMap: Record<number, number> = {};
+  for (let i = 0; i < 24; i++) localHourMap[i] = 0;
+  for (const { hour, count } of hourData) {
+    const utcH = parseInt(hour.split(":")[0]);
+    const localH = ((utcH - tzOffsetHours) % 24 + 24) % 24;
+    localHourMap[localH] = (localHourMap[localH] ?? 0) + count;
+  }
+  const adjustedHourData = Array.from({ length: 24 }, (_, i) => ({
+    hour: `${i.toString().padStart(2, "0")}:00`,
+    count: localHourMap[i],
+  }));
 
   const rangeLabel = days === 7 ? "Last 7 days" : days === 30 ? "Last 30 days" : "Last 90 days";
 
@@ -317,7 +331,7 @@ export function AnalyticsClient({
           </h2>
           <div style={{ height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={hourData} margin={{ top: 0, right: 5, left: -20, bottom: 0 }}>
+              <BarChart data={adjustedHourData} margin={{ top: 0, right: 5, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke={`${DARK}10`} vertical={false} />
                 <XAxis
                   dataKey="hour"
@@ -335,6 +349,9 @@ export function AnalyticsClient({
               </BarChart>
             </ResponsiveContainer>
           </div>
+          <p className="text-xs text-[#2c2a26]/40 mt-2 text-right">
+            Times shown in your local timezone ({Intl.DateTimeFormat().resolvedOptions().timeZone})
+          </p>
         </div>
 
         {/* Item performance table */}
