@@ -1303,7 +1303,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
               {/* PRESETS */}
               <div className="space-y-3">
                 <div className="text-xs uppercase tracking-widest text-gray-500">Choose a theme</div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-2">
                   {PRESETS.map((preset) => {
                     const isSelected = selectedPreset === preset.name;
                     return (
@@ -1321,57 +1321,31 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                           setColorCustomized(false);
                         }}
                         style={{
-                          backgroundColor: preset.background,
-                          color: preset.fontColor,
-                          fontFamily: getFontStack(preset.fontFamily),
-                          border: isSelected ? "2px solid var(--accent)" : "1px solid rgba(0,0,0,0.08)",
-                          borderRadius: 12,
-                          padding: 16,
-                          textAlign: "left",
+                          background: "white",
+                          border: isSelected ? "2px solid #2c2a26" : "1px solid #e8e4dd",
+                          borderRadius: 10,
+                          padding: "10px 12px",
                           cursor: "pointer",
-                          overflow: "hidden",
-                          transition: "transform 150ms",
-                          boxShadow: isSelected ? "0 0 0 3px var(--accent-30, rgba(139,105,20,0.2))" : undefined,
+                          textAlign: "left",
+                          width: "100%",
+                          transition: "border-color 150ms",
                         }}
-                        className="hover:scale-[1.02] active:scale-[0.98]"
                       >
-                        <div style={{
-                          fontSize: 10,
-                          textTransform: "uppercase",
-                          letterSpacing: "0.08em",
-                          color: preset.mutedColor,
-                          marginBottom: 4,
-                        }}>
+                        <div style={{ display: "flex", gap: 4, marginBottom: 6 }}>
+                          {[preset.background, preset.main, preset.accent, preset.fontColor].map((color, i) => (
+                            <div key={i} style={{
+                              width: 20, height: 20, borderRadius: 4,
+                              background: color,
+                              border: "1px solid rgba(0,0,0,0.1)",
+                              flexShrink: 0,
+                            }} />
+                          ))}
+                        </div>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: "#2c2a26" }}>
                           {preset.name}
                         </div>
-                        <div style={{
-                          backgroundColor: preset.main,
-                          borderRadius: 8,
-                          padding: 10,
-                          marginTop: 8,
-                        }}>
-                          <div style={{
-                            fontWeight: 600,
-                            fontSize: 13,
-                            color: preset.fontColor,
-                            marginBottom: 2,
-                          }}>
-                            Sample Dish
-                          </div>
-                          <div style={{
-                            fontSize: 11,
-                            color: preset.mutedColor,
-                            marginBottom: 4,
-                          }}>
-                            {preset.description}
-                          </div>
-                          <div style={{
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: preset.accent,
-                          }}>
-                            $18
-                          </div>
+                        <div style={{ fontSize: 11, color: "#6b6560", marginTop: 2 }}>
+                          {preset.description}
                         </div>
                       </button>
                     );
