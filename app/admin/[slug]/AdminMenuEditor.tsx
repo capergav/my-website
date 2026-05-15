@@ -2465,7 +2465,9 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 
 async function composeQR(opts: {
   slug: string;
-  style: QRStyleKey;
+  fgColor: string;
+  bgColor: string;
+  textColor: string;
   template: "simple" | "tagline" | "table";
   size: QRSizeKey;
   includeLogo: boolean;
@@ -2478,14 +2480,13 @@ async function composeQR(opts: {
   canvas: HTMLCanvasElement;
   skipText?: boolean;
 }) {
-  const { slug, style, template, size, includeLogo, logoBg, logoBgShape, logoBgColor, tagline, header, logoUrl, canvas, skipText } = opts;
+  const { slug, fgColor, bgColor, textColor, template, size, includeLogo, logoBg, logoBgShape, logoBgColor, tagline, header, logoUrl, canvas, skipText } = opts;
   const px = SIZES_MAP[size];
-  const st = QR_STYLES_MAP[style];
   const url = window.location.origin + "/menu/" + slug;
 
   const qrDataUrl = await QRCode.toDataURL(url, {
     width: px, margin: 2,
-    color: { dark: st.fg, light: st.bg },
+    color: { dark: fgColor, light: bgColor },
     errorCorrectionLevel: "H",
   });
 
@@ -2498,14 +2499,14 @@ async function composeQR(opts: {
   canvas.width = px + padding * 2;
   canvas.height = headerH + px + taglineH + watermarkH + padding * (headerH ? 3 : 2);
 
-  ctx.fillStyle = st.bg;
+  ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   let y = padding;
 
   if (template === "table") {
     if (!skipText) {
-      ctx.fillStyle = st.fg;
+      ctx.fillStyle = textColor;
       ctx.font = `bold ${px * 0.07}px Georgia, serif`;
       ctx.textAlign = "center";
       ctx.fillText(header, canvas.width / 2, y + px * 0.08);
@@ -2545,7 +2546,7 @@ async function composeQR(opts: {
 
   if (template === "tagline" || template === "table") {
     if (!skipText) {
-      ctx.fillStyle = st.fg;
+      ctx.fillStyle = textColor;
       ctx.font = `${px * 0.04}px Georgia, serif`;
       ctx.textAlign = "center";
       ctx.fillText(tagline, canvas.width / 2, y + px * 0.04);
@@ -2555,7 +2556,7 @@ async function composeQR(opts: {
 
   // Watermark
   ctx.globalAlpha = 0.55;
-  ctx.fillStyle = st.fg;
+  ctx.fillStyle = textColor;
   ctx.font = `${px * 0.022}px system-ui, -apple-system, sans-serif`;
   ctx.textAlign = "right";
   const wmY = canvas.height - padding * 0.5;
@@ -2589,16 +2590,38 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   const logoUrl = (restaurant as Restaurant & { logo_url?: string | null })?.logo_url ?? null;
   const restaurantName = restaurant?.name ?? "Your Restaurant";
 
-  const [qrStyle, setQrStyle]           = useState<QRStyleKey>("classic");
-  const [qrTemplate, setQrTemplate]     = useState<"simple" | "tagline" | "table">("simple");
-  const [qrSize, setQrSize]             = useState<QRSizeKey>("medium");
-  const [qrIncludeLogo, setQrIncludeLogo] = useState(true);
-  const [qrLogoBg, setQrLogoBg]         = useState(false);
-  const [qrLogoBgShape, setQrLogoBgShape] = useState<"circle" | "square" | "rounded">("circle");
-  const [qrLogoBgColor, setQrLogoBgColor] = useState("#ffffff");
-  const [qrTagline, setQrTagline]       = useState("Scan to view our menu");
-  const [qrHeader, setQrHeader]         = useState(restaurantName);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const brandFg = restaurant?.accent_color ?? "#8b6914";
+  const brandBg = restaurant?.background_color ?? "#faf8f5";
+
+  const stylePresets: Record<QRStyleKey, { fg: string; bg: string; frame: string; label: string }> = {
+    classic: { fg: "#000000", bg: "#ffffff", frame: "#000000", label: "Classic" },
+    brand:   { fg: brandFg,   bg: brandBg,   frame: brandFg,   label: "Brand"   },
+    gold:    { fg: "#8b6914", bg: "#faf8f5", frame: "#8b6914", label: "Gold"    },
+    dark:    { fg: "#faf8f5", bg: "#1f1d1a", frame: "#faf8f5", label: "Dark"    },
+  };
+
+  const selectStyle = (key: QRStyleKey) => {
+    const p = stylePresets[key];
+    setQrStyle(key);
+    setCustomQrColor(p.fg);
+    setCustomBgColor(p.bg);
+    setCustomFrameColor(p.frame);
+  };
+
+  const [qrStyle, setQrStyle]                   = useState<QRStyleKey>("classic");
+  const [customQrColor, setCustomQrColor]         = useState("#000000");
+  const [customBgColor, setCustomBgColor]         = useState("#ffffff");
+  const [customFrameColor, setCustomFrameColor]   = useState("#000000");
+  const [showCustomColors, setShowCustomColors]   = useState(false);
+  const [qrTemplate, setQrTemplate]               = useState<"simple" | "tagline" | "table">("simple");
+  const [qrSize, setQrSize]                       = useState<QRSizeKey>("medium");
+  const [qrIncludeLogo, setQrIncludeLogo]         = useState(true);
+  const [qrLogoBg, setQrLogoBg]                   = useState(false);
+  const [qrLogoBgShape, setQrLogoBgShape]         = useState<"circle" | "square" | "rounded">("circle");
+  const [qrLogoBgColor, setQrLogoBgColor]         = useState("#ffffff");
+  const [qrTagline, setQrTagline]                 = useState("Scan to view our menu");
+  const [qrHeader, setQrHeader]                   = useState(restaurantName);
+  const [isDownloading, setIsDownloading]         = useState(false);
 
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const downloadCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -2607,7 +2630,9 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
   const commonOpts = useCallback(() => ({
     slug,
-    style: qrStyle,
+    fgColor: customQrColor,
+    bgColor: customBgColor,
+    textColor: customFrameColor,
     template: qrTemplate,
     size: qrSize,
     includeLogo: qrIncludeLogo,
@@ -2617,7 +2642,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     tagline: qrTagline,
     header: qrHeader,
     logoUrl,
-  }), [slug, qrStyle, qrTemplate, qrSize, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrTagline, qrHeader, logoUrl]);
+  }), [slug, customQrColor, customBgColor, customFrameColor, qrTemplate, qrSize, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrTagline, qrHeader, logoUrl]);
 
   // Live preview — rendered at 4× display size for crisp text, no text drawn (inputs overlay instead)
   useEffect(() => {
@@ -2699,7 +2724,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                   style={{
                     top: '3.5%',
                     fontSize: 13,
-                    color: QR_STYLES_MAP[qrStyle].fg,
+                    color: customFrameColor,
                     padding: '2px 4px',
                   }}
                 />
@@ -2715,7 +2740,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                   style={{
                     bottom: qrTemplate === 'table' ? '8%' : '7%',
                     fontSize: 10,
-                    color: QR_STYLES_MAP[qrStyle].fg,
+                    color: customFrameColor,
                     padding: '2px 4px',
                     fontFamily: 'Georgia, serif',
                   }}
@@ -2726,24 +2751,82 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
           {/* Style */}
           <div>
-            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Style</p>
-            <div className="flex gap-2 flex-wrap">
-              {(Object.entries(QR_STYLES_MAP) as [QRStyleKey, { fg: string; bg: string }][]).map(([key, s]) => (
-                <button key={key} type="button" onClick={() => setQrStyle(key)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${qrStyle === key ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/50"}`}>
-                  <span className="flex gap-1">
-                    <span className="inline-block w-3 h-3 rounded-full border border-gray-200" style={{ background: s.fg }} />
-                    <span className="inline-block w-3 h-3 rounded-full border border-gray-200" style={{ background: s.bg }} />
-                  </span>
-                  {key.charAt(0).toUpperCase() + key.slice(1)}
-                </button>
-              ))}
+            <p className="text-xs uppercase tracking-widest text-gray-500 mb-2">Style</p>
+            <div className="grid grid-cols-2 gap-2">
+              {(Object.keys(stylePresets) as QRStyleKey[]).map((key) => {
+                const p = stylePresets[key];
+                const isSelected = qrStyle === key;
+                return (
+                  <button key={key} type="button" onClick={() => selectStyle(key)}
+                    style={{
+                      background: p.bg,
+                      border: isSelected ? "2.5px solid #2c2a26" : "1.5px solid #e8e4dd",
+                      borderRadius: 10,
+                      padding: "12px 10px",
+                      cursor: "pointer",
+                      textAlign: "center" as const,
+                      transition: "border-color 150ms",
+                      display: "flex",
+                      flexDirection: "column" as const,
+                      alignItems: "center",
+                      gap: 6,
+                    }}>
+                    {/* Mini QR icon */}
+                    <svg width="32" height="32" viewBox="0 0 28 28" fill={p.fg}>
+                      <rect x="1" y="1" width="10" height="10" rx="1.5" fill="none" stroke={p.fg} strokeWidth="1.5"/>
+                      <rect x="3.5" y="3.5" width="5" height="5" rx="0.5"/>
+                      <rect x="17" y="1" width="10" height="10" rx="1.5" fill="none" stroke={p.fg} strokeWidth="1.5"/>
+                      <rect x="19.5" y="3.5" width="5" height="5" rx="0.5"/>
+                      <rect x="1" y="17" width="10" height="10" rx="1.5" fill="none" stroke={p.fg} strokeWidth="1.5"/>
+                      <rect x="3.5" y="19.5" width="5" height="5" rx="0.5"/>
+                      <rect x="14" y="14" width="3" height="3" rx="0.5"/>
+                      <rect x="18" y="14" width="3" height="3" rx="0.5"/>
+                      <rect x="22" y="14" width="3" height="3" rx="0.5"/>
+                      <rect x="14" y="18" width="3" height="3" rx="0.5"/>
+                      <rect x="22" y="18" width="3" height="3" rx="0.5"/>
+                      <rect x="14" y="22" width="3" height="3" rx="0.5"/>
+                      <rect x="18" y="22" width="3" height="3" rx="0.5"/>
+                      <rect x="22" y="22" width="3" height="3" rx="0.5"/>
+                    </svg>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: p.frame }}>{p.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Customize colors collapsible */}
+            <div className="mt-3">
+              <button type="button" onClick={() => setShowCustomColors(v => !v)}
+                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                <svg className={`w-3 h-3 transition-transform ${showCustomColors ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+                Customize colors
+              </button>
+              {showCustomColors && (
+                <div className="mt-3 grid grid-cols-3 gap-3">
+                  {([
+                    { label: "QR color",     value: customQrColor,    set: setCustomQrColor    },
+                    { label: "Background",   value: customBgColor,    set: setCustomBgColor    },
+                    { label: "Frame & text", value: customFrameColor, set: setCustomFrameColor },
+                  ] as { label: string; value: string; set: (v: string) => void }[]).map(({ label, value, set }) => (
+                    <div key={label} className="flex flex-col items-center gap-1.5">
+                      <div className="relative w-9 h-9">
+                        <input type="color" value={value} onChange={e => { set(e.target.value); setQrStyle("classic" as QRStyleKey); }}
+                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                        <div className="w-9 h-9 rounded-lg border-2 border-gray-200 shadow-sm" style={{ background: value }} />
+                      </div>
+                      <span className="text-[10px] text-gray-500 text-center leading-tight">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Template */}
           <div>
-            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-3">Template</p>
+            <p className="text-xs uppercase tracking-widest text-gray-500 mb-3">Template</p>
             <div className="grid grid-cols-3 gap-3">
               {([
                 { id: "simple" as const, label: "QR only" },
@@ -2765,11 +2848,16 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                 </div>
               ))}
             </div>
+            {(qrTemplate === "tagline" || qrTemplate === "table") && (
+              <p style={{ fontSize: 12, color: "#6b6560", marginTop: 6 }}>
+                💡 Tip: you can edit the tagline text in the preview above.
+              </p>
+            )}
           </div>
 
           {/* Size */}
           <div>
-            <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Output size</p>
+            <p className="text-xs uppercase tracking-widest text-gray-500 mb-2">Output size</p>
             <div className="flex gap-2">
               {(["small", "medium", "large"] as QRSizeKey[]).map(s => (
                 <button key={s} type="button" onClick={() => setQrSize(s)}
