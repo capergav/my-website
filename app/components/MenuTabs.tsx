@@ -117,9 +117,9 @@ function CategoryIcon({ name, isActive }: { name: string; isActive: boolean }) {
 
 function formatPrice(price: number, showSymbol = true): string {
   if (!showSymbol) {
-    return new Intl.NumberFormat('en-CA', { minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(price);
+    return new Intl.NumberFormat('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(price);
   }
-  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(price);
+  return new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(price);
 }
 
 function hasDetails(item: MenuItem): boolean {
@@ -389,7 +389,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                     </div>
                     {/* Label */}
                     <span
-                      className={`text-[10px] sm:text-xs font-semibold text-center leading-tight px-1 w-full truncate uppercase tracking-wide ${
+                      className={`text-[10px] sm:text-xs font-semibold text-center leading-tight px-1 w-full line-clamp-2 uppercase tracking-wide ${
                         isActive ? "text-[var(--foreground)]" : "text-[var(--muted)]"
                       }`}
                     >

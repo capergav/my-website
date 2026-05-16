@@ -38,12 +38,15 @@ function DLLogoNav({ width = 32, height = 29 }: { scrolled: boolean; width?: num
 
 // ── CountUp ────────────────────────────────────────────────────────────────────
 function CountUp({ to, duration = 1.5, prefix = "", suffix = "" }: { to: number | string; duration?: number; prefix?: string; suffix?: string }) {
-  const [val, setVal] = useState<number | string>(typeof to === 'number' ? 0 : to);
+  const [val, setVal] = useState<number | string>(to);
   const ref = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     if (typeof to !== 'number') { setVal(to); return; }
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReduced) return;
     const obs = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
+        setVal(0);
         const start = performance.now();
         const tick = (now: number) => {
           const t = Math.min(1, (now - start) / (duration * 1000));
@@ -146,7 +149,7 @@ const DEMO_TRANSLATIONS: Record<string, DemoLang> = {
   "Filipino": { categoryName: "Pangunahing Putahe", categoryNote: "Lahat ng pangunahing putahe ay may kasamang sopas o salad at tinapay.", items: ["Inihaw na Pato", "Atlantikong Salmon", "Krema Brulée"] },
   "हिन्दी":   { categoryName: "मुख्य व्यंजन", categoryNote: "सभी मुख्य व्यंजन सूप या सलाद और घर की बनी रोटी के साथ परोसे जाते हैं।", items: ["सीयर्ड डक कॉन्फिट", "अटलांटिक सालमन", "क्रेम ब्रूले"] },
 };
-const DEMO_PRICES = ["$24", "$22", "$14"];
+const DEMO_PRICES = ["$24.00", "$22.00", "$14.00"];
 const DEMO_IMAGES = [CT_STEAK_URL, CT_SALMON_URL, CT_DESSERT_URL];
 
 function LiveTranslationDemo({ rm }: { rm: boolean }) {
@@ -655,7 +658,7 @@ export default function HomePage() {
             </p>
 
             <span className="inline-flex items-center gap-2 rounded-full border border-[#8b6914]/40 bg-[#8b6914]/8 px-4 py-1.5 text-sm text-[#8b6914] font-semibold">
-              ✦ 2 months free · No credit card required
+              ✦ 60-day free trial · No credit card required
             </span>
 
             <motion.h1
@@ -690,7 +693,7 @@ export default function HomePage() {
                     href={isLoggedIn ? '/admin' : '/signup'}
                     className="hero-primary-cta bg-[#8b6914] text-white rounded-xl px-7 py-3.5 text-base font-semibold hover:opacity-90 transition-opacity inline-flex items-center gap-2"
                   >
-                    <span>{isLoggedIn ? 'Go to my menu' : 'Get started'}</span>
+                    <span>{isLoggedIn ? 'Go to my menu' : 'Start free — 60 days'}</span>
                     <motion.span
                       animate={ctaHovered && !rm ? { x: 4 } : { x: 0 }}
                       transition={{ type: 'spring', stiffness: 400, damping: 17 }}
@@ -733,7 +736,7 @@ export default function HomePage() {
             <div className="mt-4 flex gap-5 flex-wrap text-sm text-[#6b6560] justify-center lg:justify-start">
               <span>✓ No setup fee</span>
               <span>✓ Live in 30 minutes</span>
-              <span className="font-bold text-[#8b6914]">✓ First 2 months free</span>
+              <span className="font-bold text-[#8b6914]">✓ 60-day free trial</span>
             </div>
             <p className="mt-2 text-sm font-semibold text-[#8b6914] flex items-center gap-2 justify-center lg:justify-start">
               <span className="live-dot inline-block w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />
@@ -802,19 +805,18 @@ export default function HomePage() {
                       <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-20 h-20 object-cover flex-shrink-0" />
                       <div className="p-2.5">
                         <p className="text-sm font-serif font-semibold text-[#2c2a26]">Seared Duck Confit</p>
-                        <p className="text-[#8b6914] text-sm font-bold">$24</p>
+                        <p className="text-[#8b6914] text-sm font-bold">$24.00</p>
                         <div className="flex items-center gap-1.5 mt-0.5 opacity-60 text-[#2c2a26]">
                           <Star size={11} aria-label="Chef's pick" />
                           <WheatOff size={11} aria-label="Gluten-free" />
                         </div>
                       </div>
                     </div>
-                    <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden opacity-55">
+                    <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
                       <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-20 h-20 object-cover flex-shrink-0" />
                       <div className="p-2.5">
                         <p className="text-sm font-serif font-semibold text-[#2c2a26]">Atlantic Salmon</p>
-                        <p className="text-[#8b6914] text-sm font-bold">22</p>
-                        <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] font-medium text-gray-500">Currently unavailable</span>
+                        <p className="text-[#8b6914] text-sm font-bold">$22.00</p>
                         <div className="flex items-center gap-1.5 mt-0.5 opacity-60 text-[#2c2a26]">
                           <WheatOff size={11} />
                           <Leaf size={11} />
@@ -1332,7 +1334,7 @@ export default function HomePage() {
               className="pricing-banner-shine rounded-2xl px-6 py-4 text-center mb-6 shadow-md"
               {...enter(0.05)}
             >
-              <p className="text-base font-bold text-white">🎉 <span className="underline underline-offset-2">First 2 months free</span> — no credit card required</p>
+              <p className="text-base font-bold text-white">🎉 <span className="underline underline-offset-2">60-day free trial</span> — no credit card required</p>
               <p className="text-xs text-white/80 mt-1">Start today, pay nothing for 60 days</p>
             </motion.div>
 
@@ -1383,7 +1385,7 @@ export default function HomePage() {
                   {isLoggedIn ? 'Go to my menu →' : 'Get started →'}
                 </Link>
               </motion.div>
-              <p className="mt-3 text-[#faf8f5]/50 text-xs text-center">No credit card required · 2 months free · Cancel anytime</p>
+              <p className="mt-3 text-[#faf8f5]/50 text-xs text-center">No credit card required · 60-day free trial · Cancel anytime</p>
             </motion.div>
           </div>
         </div>
@@ -1436,7 +1438,7 @@ export default function HomePage() {
           >
             Ready to go digital?
           </motion.h2>
-          <p className="text-2xl font-semibold text-white max-w-md mx-auto mt-5">First 2 months free — no credit card required.</p>
+          <p className="text-2xl font-semibold text-white max-w-md mx-auto mt-5">60-day free trial — no credit card required.</p>
           <motion.div
             className="inline-block mt-10"
             whileHover={rm ? {} : { scale: 1.03, y: -2 }}

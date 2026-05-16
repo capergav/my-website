@@ -65,7 +65,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2 className="font-semibold text-base mb-2">Your rights</h2>
-              <p>You can: View, edit, or delete your menu data at any time from your admin panel. Export your data on request. Delete your account permanently from your account settings, which will remove all associated data within 30 days. Request a copy of all data we hold about you by emailing <a href="mailto:privacy@dinelinks.com" className="text-[#8b6914] underline">privacy@dinelinks.com</a>.</p>
+              <p>You can: View, edit, or delete your menu data at any time from your admin panel. Export your data on request. Delete your account permanently from your account settings, which will remove all associated data within 30 days. Request a copy of all data we hold about you by emailing <a href="mailto:hello@dinelinks.com" className="text-[#8b6914] underline">hello@dinelinks.com</a>.</p>
             </section>
 
             <section>
@@ -85,7 +85,7 @@ export default function PrivacyPage() {
 
             <section>
               <h2 className="font-semibold text-base mb-2">Contact</h2>
-              <p>Questions? Email <a href="mailto:privacy@dinelinks.com" className="text-[#8b6914] underline">privacy@dinelinks.com</a> or use our <Link href="/contact" className="text-[#8b6914] underline">contact page</Link>.</p>
+              <p>Questions? Email <a href="mailto:hello@dinelinks.com" className="text-[#8b6914] underline">hello@dinelinks.com</a> or use our <Link href="/contact" className="text-[#8b6914] underline">contact page</Link>.</p>
             </section>
           </div>
 

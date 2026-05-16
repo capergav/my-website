@@ -111,7 +111,7 @@ export default function SignupPage() {
 
         {/* Trial callout */}
         <div className="w-full bg-[#8b6914] rounded-2xl px-5 py-3 text-center mb-3 shadow-lg">
-          <p className="text-white font-semibold text-sm">🎉 First 2 months free — no credit card required</p>
+          <p className="text-white font-semibold text-sm">🎉 60-day free trial — no credit card required</p>
         </div>
 
         {/* Frosted glass card */}

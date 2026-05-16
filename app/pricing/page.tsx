@@ -32,13 +32,13 @@ export default function PricingPage() {
           <p className="text-[#6b6560] mt-2">Simple, honest pricing</p>
         </div>
         <div className="rounded-2xl bg-[#8b6914] px-6 py-4 text-center mb-4 shadow-md">
-          <p className="text-base font-bold text-white">🎉 <span className="underline underline-offset-2">First 2 months free</span> — no credit card required</p>
+          <p className="text-base font-bold text-white">🎉 <span className="underline underline-offset-2">60-day free trial</span> — no credit card required</p>
           <p className="text-xs text-white/70 mt-1">Start today, pay nothing for 60 days</p>
         </div>
         <div className="bg-[#2c2a26] rounded-3xl border-2 border-[#8b6914]/50 p-8 text-white">
           <div className="text-center">
             <p className="text-5xl font-serif font-semibold">$25</p>
-            <p className="text-sm text-white/60 mt-1">per month, after 2-month free trial</p>
+            <p className="text-sm text-white/60 mt-1">per month, after 60-day free trial</p>
           </div>
           <hr className="my-6 border-white/10"/>
           <ul className="space-y-2.5 text-sm text-white/80">
@@ -48,7 +48,7 @@ export default function PricingPage() {
           </ul>
           <button onClick={handleGetStarted} disabled={loading}
             className="w-full mt-8 bg-[#8b6914] text-white font-semibold py-3 rounded-xl hover:opacity-90 transition disabled:opacity-50">
-            {loading ? 'Loading...' : 'Start 2 months free'}
+            {loading ? 'Loading...' : 'Start 60-day free trial'}
           </button>
           <p className="text-xs text-white/40 text-center mt-3">No credit card required · Cancel anytime</p>
         </div>

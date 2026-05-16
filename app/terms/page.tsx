@@ -66,7 +66,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="font-semibold text-base mb-2">Refunds</h2>
-              <p>All payments are non-refundable except where required by law. If you experience a billing error, contact us within 30 days at <a href="mailto:billing@dinelinks.com" className="text-[#8b6914] underline">billing@dinelinks.com</a>.</p>
+              <p>All payments are non-refundable except where required by law. If you experience a billing error, contact us within 30 days at <a href="mailto:hello@dinelinks.com" className="text-[#8b6914] underline">hello@dinelinks.com</a>.</p>
             </section>
 
             <section>
@@ -106,7 +106,7 @@ export default function TermsPage() {
 
             <section>
               <h2 className="font-semibold text-base mb-2">Contact</h2>
-              <p>Questions? Email <a href="mailto:legal@dinelinks.com" className="text-[#8b6914] underline">legal@dinelinks.com</a>.</p>
+              <p>Questions? Email <a href="mailto:hello@dinelinks.com" className="text-[#8b6914] underline">hello@dinelinks.com</a>.</p>
             </section>
           </div>
 

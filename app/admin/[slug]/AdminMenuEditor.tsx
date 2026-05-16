@@ -611,11 +611,11 @@ export function AdminMenuEditor({
           </div>
           <h2 className="text-2xl font-serif font-semibold text-[#2c2a26] mb-2">Start your free trial</h2>
           <p className="text-sm text-[#6b6560] mb-6">
-            Get full access to DineLinks for 2 months free, then $25 CAD/month. Cancel anytime.
+            Get full access to DineLinks for 60 days free, then $25 CAD/month. Cancel anytime.
           </p>
           <button onClick={startCheckout} disabled={checkoutLoading}
             className="w-full bg-[var(--main-color,#8b6914)] text-white font-semibold py-3.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
-            {checkoutLoading ? 'Loading...' : 'Start 2 months free'}
+            {checkoutLoading ? 'Loading...' : 'Start 60-day free trial'}
           </button>
           <p className="text-xs text-[#6b6560] mt-4">No credit card required</p>
           <button onClick={() => supabase.auth.signOut().then(() => router.push('/'))}
@@ -1011,7 +1011,7 @@ export function AdminMenuEditor({
                                 )}
                               </div>
                               <span className="font-semibold text-[var(--accent)] tabular-nums text-base flex-shrink-0">
-                                {Number.isInteger(Number(item.price)) ? `$${Number(item.price)}` : `$${Number(item.price).toFixed(2)}`}
+                                {`$${Number(item.price).toFixed(2)}`}
                               </span>
                             </div>
                             {item.description && (
