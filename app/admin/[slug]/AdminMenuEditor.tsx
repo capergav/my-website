@@ -291,6 +291,29 @@ export function AdminMenuEditor({
 
   const refreshMenuRef = useRef<(() => Promise<void>) | null>(null);
 
+  // Sync CSS variables immediately when restaurant state changes (e.g. after theme save)
+  useEffect(() => {
+    if (!restaurant || typeof document === "undefined") return;
+    const root = document.documentElement;
+    if (restaurant.font_color)        root.style.setProperty("--foreground", restaurant.font_color);
+    if (restaurant.accent_color)      root.style.setProperty("--accent",     restaurant.accent_color);
+    if (restaurant.background_color)  root.style.setProperty("--background", restaurant.background_color);
+    if (restaurant.main_color)        root.style.setProperty("--card",       restaurant.main_color);
+    if (restaurant.muted_color)       root.style.setProperty("--muted",      restaurant.muted_color);
+    let fontFamily = "var(--font-geist-sans), system-ui, sans-serif";
+    switch (restaurant.font_family) {
+      case "serif":    fontFamily = "var(--font-cormorant), Georgia, serif"; break;
+      case "mono":     fontFamily = "var(--font-geist-mono), monospace"; break;
+      case "poppins":  fontFamily = "var(--font-poppins), sans-serif"; break;
+      case "playfair": fontFamily = "var(--font-playfair), serif"; break;
+      case "bebas":    fontFamily = "var(--font-bebas), sans-serif"; break;
+      case "pacifico": fontFamily = "var(--font-pacifico), cursive"; break;
+      case "orbitron": fontFamily = "var(--font-orbitron), sans-serif"; break;
+      case "cinzel":   fontFamily = "var(--font-cinzel), serif"; break;
+    }
+    document.body.style.fontFamily = fontFamily;
+  }, [restaurant]);
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
       if (!data.user) return;
@@ -499,7 +522,7 @@ export function AdminMenuEditor({
     }
     const { error } = await supabase.from("restaurants").update(updates).eq("id", restaurantId);
     if (error) { showMsg("err", error.message); }
-    else { setRestaurant(p => p ? { ...p, ...updates } : null); showMsg("ok", "Saved — reload menu to see changes"); }
+    else { setRestaurant(p => p ? { ...p, ...updates } : null); showMsg("ok", "Theme saved."); }
     setSaving(false);
   };
 
@@ -2657,22 +2680,56 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     }).catch(() => {});
   }, [commonOpts]);
 
-  const downloadQR = async () => {
+  const handleDownloadQR = async () => {
     setIsDownloading(true);
     try {
       const canvas = downloadCanvasRef.current ?? document.createElement("canvas");
       await composeQR({ ...commonOpts(), canvas });
-      canvas.toBlob(blob => {
-        if (!blob) return;
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `dinelinks-qr-${qrTemplate}-${qrStyle}-${qrSize}.png`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      const filename = `${slug || "menu"}-qr.png`;
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          alert("Couldn't generate QR code. Try again.");
+          setIsDownloading(false);
+          return;
+        }
+
+        // 1. Try Web Share API — best on iOS and modern mobile
+        if (typeof navigator !== "undefined" && navigator.canShare) {
+          const file = new File([blob], filename, { type: "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({ files: [file], title: "Your DineLinks QR code" });
+              setIsDownloading(false);
+              return;
+            } catch (err) {
+              if ((err as Error).name === "AbortError") { setIsDownloading(false); return; }
+              // non-abort error: fall through to standard download
+            }
+          }
+        }
+
+        // 2. Standard anchor download — works on desktop
+        try {
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = filename;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        } catch {
+          // 3. Last resort — open in new tab for manual save
+          const url = URL.createObjectURL(blob);
+          window.open(url, "_blank");
+        }
+
+        setIsDownloading(false);
       }, "image/png");
-    } finally {
+    } catch (err) {
+      console.error("QR download failed:", err);
+      alert("Couldn't download QR code. Try again or take a screenshot.");
       setIsDownloading(false);
     }
   };
@@ -2907,10 +2964,13 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
         {/* Footer */}
         <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)]">
-          <button type="button" onClick={downloadQR} disabled={isDownloading}
+          <button type="button" onClick={handleDownloadQR} disabled={isDownloading}
             className="w-full py-2.5 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
             {isDownloading ? "Generating…" : "Download PNG"}
           </button>
+          <p className="text-xs text-[var(--muted)] mt-2 sm:hidden text-center">
+            Tip: tap Download then save to Photos or share via Messages.
+          </p>
         </div>
         <canvas ref={downloadCanvasRef} className="hidden" />
       </div>
