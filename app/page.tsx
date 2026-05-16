@@ -330,7 +330,7 @@ const FEATURES = [
       </svg>
     ),
     title: "Your brand, your style",
-    desc: "Set your colors, font, hero photo, and logo. Every menu is completely unique to your restaurant.",
+    desc: "Choose from 10 curated theme presets or build your own with a custom color picker. Upload your logo, hero photo, and category images.",
   },
   {
     icon: (
@@ -339,7 +339,7 @@ const FEATURES = [
       </svg>
     ),
     title: "Dietary labels",
-    desc: "Mark dishes as vegan, gluten-free, spicy, nut-free, and more. Guests filter in one tap.",
+    desc: "Chef's favorite, vegan, gluten-free, spicy, nut-free, dairy-free, vegetarian — mark any dish and guests filter in one tap.",
   },
   {
     icon: <BarChart3 className="w-5 h-5" />,
@@ -353,7 +353,7 @@ const FEATURES = [
       </svg>
     ),
     title: "Custom categories",
-    desc: "Starters, mains, desserts — or anything you want. Full control over your menu structure and order.",
+    desc: "Starters, mains, desserts — or anything you want. Add category images, write category notes, and drag-to-reorder.",
   },
   {
     icon: (
@@ -362,7 +362,7 @@ const FEATURES = [
       </svg>
     ),
     title: "QR code ready",
-    desc: "Every menu gets a shareable link and QR code the moment you sign up. Print, post, share.",
+    desc: "4 styles and 3 templates (QR Only, With Tagline, Table Card). Download as PNG and print or post anywhere. Shareable link included.",
   },
 ];
 
@@ -772,7 +772,7 @@ export default function HomePage() {
                         <text x="12" y="17" textAnchor="middle" fill="#c9a030" fontFamily="Georgia,serif" fontSize="13" fontWeight="600">C</text>
                       </svg>
                     </div>
-                    <div className="absolute top-3 right-3 bg-[#2c2a26]/80 text-white text-xs px-2.5 py-1 rounded-lg flex items-center gap-1">EN ▾</div>
+                    <div className="absolute top-3 right-3 bg-[#2c2a26]/80 text-white text-xs px-2.5 py-1 rounded-lg flex items-center gap-1">🏴󠁣󠁡󠁱󠁣󠁿 FR ▾</div>
                   </div>
                   <div className="bg-white border-b border-gray-100 flex gap-3 px-3 py-3 overflow-x-auto">
                     {[
@@ -809,14 +809,15 @@ export default function HomePage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
+                    <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden opacity-55">
                       <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-20 h-20 object-cover flex-shrink-0" />
                       <div className="p-2.5">
                         <p className="text-sm font-serif font-semibold text-[#2c2a26]">Atlantic Salmon</p>
-                        <p className="text-[#8b6914] text-sm font-bold">$22</p>
+                        <p className="text-[#8b6914] text-sm font-bold">22</p>
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-1.5 py-0.5 text-[9px] font-medium text-gray-500">Currently unavailable</span>
                         <div className="flex items-center gap-1.5 mt-0.5 opacity-60 text-[#2c2a26]">
-                          <WheatOff size={11} aria-label="Gluten-free" />
-                          <Leaf size={11} aria-label="Dairy-free" />
+                          <WheatOff size={11} />
+                          <Leaf size={11} />
                         </div>
                       </div>
                     </div>
@@ -1060,8 +1061,10 @@ export default function HomePage() {
 
             {/* Category tabs */}
             <div className="bg-[#faf8f5]/95 border-b border-[#2c2a26]/8 px-4 py-2.5 flex items-center gap-2 overflow-x-auto">
-              <span className="bg-[#8b6914] text-white text-xs font-semibold px-4 py-1.5 rounded-xl flex-shrink-0 flex items-center gap-1.5">
-                <svg className="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16"/></svg>
+              <span className="bg-[#8b6914] text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex-shrink-0 flex items-center gap-1.5">
+                <div className="w-5 h-5 rounded overflow-hidden flex-shrink-0">
+                  <img src={CT_STEAK_URL} className="w-full h-full object-cover" alt="" />
+                </div>
                 Mains
               </span>
               <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl flex-shrink-0">Starters</span>
@@ -1135,6 +1138,29 @@ export default function HomePage() {
             <div className="bg-[#faf8f5] border-t border-[#2c2a26]/8 px-5 py-2.5 flex items-center justify-between">
               <span className="text-xs text-[#6b6560]">3 items in Mains</span>
               <span className="text-xs text-emerald-600 font-medium">All changes saved ✓</span>
+            </div>
+
+            {/* Theme presets row */}
+            <div className="bg-white border-t border-[#2c2a26]/8 px-4 py-3">
+              <p className="text-[9px] font-semibold uppercase tracking-widest text-[#6b6560] mb-2">Theme presets</p>
+              <div className="flex gap-2 flex-wrap">
+                {[
+                  { name: "Classic", colors: ["#2c2a26", "#8b6914", "#faf8f5"], active: true },
+                  { name: "Ocean",   colors: ["#1e3a5f", "#2563eb", "#eff6ff"], active: false },
+                  { name: "Forest",  colors: ["#1a3d2b", "#16a34a", "#f0fdf4"], active: false },
+                  { name: "Berry",   colors: ["#3d1a4a", "#9333ea", "#faf5ff"], active: false },
+                ].map((preset) => (
+                  <div key={preset.name} className={`rounded-lg border-2 px-2 py-1.5 flex items-center gap-1.5 ${preset.active ? "border-[#8b6914]" : "border-transparent bg-[#faf8f5]"}`}>
+                    <div className="flex gap-0.5">
+                      {preset.colors.map((c, ci) => (
+                        <div key={ci} className="w-3.5 h-3.5 rounded-sm flex-shrink-0" style={{ background: c }} />
+                      ))}
+                    </div>
+                    <p className="text-[9px] text-[#6b6560] font-medium">{preset.name}</p>
+                    {preset.active && <span className="text-[8px] bg-[#8b6914] text-white rounded px-1 py-0.5 leading-none">Active</span>}
+                  </div>
+                ))}
+              </div>
             </div>
           </motion.div>
 
@@ -1343,7 +1369,7 @@ export default function HomePage() {
               <p className="text-sm text-[#faf8f5]/60 mt-2">Everything you need to go digital</p>
               <hr className="my-6 border-[#faf8f5]/10" />
               <ul className="space-y-3 text-sm text-[#faf8f5]/80">
-                {["1 digital menu","Unlimited menu items","10 languages supported","QR code & shareable link","Dietary labels & filters","Custom categories","Real-time updates","Custom colors & fonts","Upload logo & photos","Priority email support"].map((f) => (
+                {["1 digital menu","Unlimited menu items","10 languages with auto-translation","4 QR code styles — downloadable PNG","10 curated theme presets + color picker","Dietary labels & filters","Item availability toggle","Drag-to-reorder items & categories","Live analytics dashboard","Upload logo & photos"].map((f) => (
                   <li key={f} className="flex items-center gap-2"><span className="text-[#c9a030]">✓</span> {f}</li>
                 ))}
               </ul>

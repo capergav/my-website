@@ -275,14 +275,14 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
             <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-l from-[var(--background)] to-transparent" />
             {canScrollLeft && (
               <button type="button" onClick={scrollLeft}
-                className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-8 h-8 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
                 aria-label="Scroll categories left">
                 <ChevronLeft size={16} />
               </button>
             )}
             {canScrollRight && (
               <button type="button" onClick={scrollRight}
-                className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-8 h-8 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
                 aria-label="Scroll categories right">
                 <ChevronRight size={16} />
               </button>
@@ -324,8 +324,8 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                       onClick={handleClick}
                       className={`flex-shrink-0 snap-start px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 touch-manipulation whitespace-nowrap ${
                         isActive
-                          ? "bg-[var(--accent)] text-white shadow-sm"
-                          : "bg-[var(--card)] text-[var(--muted)] border border-[var(--card-border)] hover:border-[var(--accent)]/40 hover:text-[var(--foreground)]"
+                          ? "bg-[var(--accent)]/10 text-[var(--foreground)] border-2 border-[var(--accent)] shadow-sm"
+                          : "bg-[var(--card)] text-[var(--foreground)] border border-[var(--card-border)] hover:border-[var(--accent)]/40"
                       }`}
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -351,8 +351,8 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                       onClick={handleClick}
                       className={`flex-shrink-0 snap-start px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 touch-manipulation whitespace-nowrap ${
                         isActive
-                          ? "bg-[var(--accent)] text-white shadow-sm"
-                          : "bg-[var(--card)] text-[var(--muted)] border border-[var(--card-border)] hover:border-[var(--accent)]/40 hover:text-[var(--foreground)]"
+                          ? "bg-[var(--accent)]/10 text-[var(--foreground)] border-2 border-[var(--accent)] shadow-sm"
+                          : "bg-[var(--card)] text-[var(--foreground)] border border-[var(--card-border)] hover:border-[var(--accent)]/40"
                       }`}
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -390,7 +390,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                     {/* Label */}
                     <span
                       className={`text-[10px] sm:text-xs font-semibold text-center leading-tight px-1 w-full truncate uppercase tracking-wide ${
-                        isActive ? "text-[var(--main-color)]" : "text-[var(--muted)]"
+                        isActive ? "text-[var(--foreground)]" : "text-[var(--muted)]"
                       }`}
                     >
                       <CategoryName name={category} />
