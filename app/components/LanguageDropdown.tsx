@@ -84,12 +84,7 @@ export function LanguageDropdown({ trackRestaurantId }: { trackRestaurantId?: st
         ref={buttonRef}
         type="button"
         onClick={handleToggle}
-        className="flex items-center gap-1.5 min-h-[40px] px-3 py-1.5 rounded-xl font-medium text-sm touch-manipulation border shadow-sm transition-opacity hover:opacity-80"
-        style={{
-          background:  "var(--foreground)",
-          color:       "var(--background)",
-          borderColor: "var(--accent)",
-        }}
+        className="flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-full bg-[var(--card)] text-[var(--foreground)] font-medium text-sm border border-[var(--card-border)] shadow-sm hover:shadow-md transition-shadow touch-manipulation"
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label="Change language"
@@ -108,7 +103,7 @@ export function LanguageDropdown({ trackRestaurantId }: { trackRestaurantId?: st
           ref={popupRef}
           role="listbox"
           style={{ ...popupStyle, ...portalVars, animation: 'dropIn 0.12s ease-out' }}
-          className="py-1 rounded-xl bg-[var(--card)] border border-[var(--card-border)] shadow-2xl overflow-hidden"
+          className="py-1 rounded-xl bg-[var(--card)] border border-[var(--card-border)] shadow-xl overflow-hidden"
         >
           {locales.map((opt) => (
             <li key={opt.value} role="option" aria-selected={locale === opt.value}>
