@@ -187,8 +187,11 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
                 <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
                 <p className="absolute bottom-3 w-full text-center text-white font-serif text-lg font-semibold drop-shadow">The Copper Table</p>
-                <div className="absolute top-3 right-3 bg-[#2c2a26]/80 text-white text-xs px-2.5 py-1 rounded-lg">
-                  {activeLang.length > 6 ? activeLang.slice(0,5)+'…' : activeLang} ▾
+                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-sm">
+                  <span className="text-xs font-medium text-gray-900">{activeLang.length > 8 ? activeLang.slice(0,7)+'…' : activeLang}</span>
+                  <svg className="w-3.5 h-3.5 text-gray-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
                 </div>
               </div>
               <div className="mx-3 mt-3 mb-1">
@@ -260,34 +263,34 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
             </div>
           </motion.div>
 
-          {/* Language pills */}
+          {/* Language selector — matches real dropdown UI */}
           <div className="flex-1">
-            <p className="text-sm font-semibold text-[#2c2a26] mb-4 text-center lg:text-left">Choose a language:</p>
-            <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
-              {Object.keys(DEMO_TRANSLATIONS).map((lang, i) => (
-                <motion.button
-                  key={lang}
-                  type="button"
-                  onClick={() => setActiveLang(lang)}
-                  className={`rounded-full border px-5 py-2.5 flex items-center gap-2 text-sm font-medium transition-all ${
-                    activeLang === lang
-                      ? "bg-[#8b6914] border-[#8b6914] text-white shadow-md"
-                      : "bg-white border-[#8b6914]/25 text-[#2c2a26] hover:border-[#8b6914]/60 hover:shadow-sm"
-                  }`}
-                  {...(rm ? {} : {
-                    initial: { opacity: 0, scale: 0.85, y: 15 },
-                    whileInView: { opacity: 1, scale: 1, y: 0 },
-                    viewport: { once: true },
-                    transition: { duration: 0.4, delay: i * 0.07, ease: [0.22, 1, 0.36, 1] },
-                    whileHover: { scale: activeLang === lang ? 1 : 1.05 },
-                    whileTap: { scale: 0.97 },
-                  })}
-                >
-                  <span>{LANGUAGES[i]?.flag ?? "🌐"}</span>
-                  <span>{lang}</span>
-                  {lang === "العربية" && <span className="text-[10px] opacity-60 ml-1">RTL</span>}
-                </motion.button>
-              ))}
+            <p className="text-sm font-semibold text-[#2c2a26] mb-4 text-center lg:text-left">Tap a language to preview it live:</p>
+            <div className="flex flex-col items-center lg:items-start gap-2">
+              {/* Trigger pill */}
+              <div className="flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-[#2c2a26] font-medium text-sm w-52 select-none">
+                <span className="flex-1">{activeLang}</span>
+                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+              {/* Dropdown list */}
+              <div className="w-52 rounded-xl bg-white border border-gray-200 shadow-xl overflow-hidden">
+                {Object.keys(DEMO_TRANSLATIONS).map((lang) => (
+                  <button
+                    key={lang}
+                    type="button"
+                    onClick={() => setActiveLang(lang)}
+                    className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors touch-manipulation ${
+                      activeLang === lang
+                        ? "bg-[#8b6914]/15 text-[#8b6914]"
+                        : "text-[#2c2a26] hover:bg-gray-50"
+                    }`}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
             </div>
             <motion.div
               className="mt-8 rounded-2xl border border-[#8b6914]/30 bg-[#8b6914]/5 p-5"
@@ -1082,14 +1085,32 @@ export default function HomePage() {
               </div>
             </div>
 
+            {/* Theme presets — 2-col grid, visible directly */}
+            <div className="bg-white border-b border-[#2c2a26]/8 px-4 py-4">
+              <p className="text-[9px] font-semibold uppercase tracking-widest text-[#6b6560] mb-3">Theme Presets</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { name: "Linen",   colors: ["#5c4a3a", "#c9985a", "#faf5ee"], active: true  },
+                  { name: "Bistro",  colors: ["#2d1a0e", "#b5451b", "#fef9f5"], active: false },
+                  { name: "Modern",  colors: ["#111827", "#6366f1", "#f8fafc"], active: false },
+                  { name: "Coastal", colors: ["#0c3547", "#0ea5e9", "#f0f9ff"], active: false },
+                ].map((preset) => (
+                  <div key={preset.name} className={`rounded-xl border-2 px-3 py-2 flex items-center gap-2 ${preset.active ? "border-[#8b6914] bg-[#8b6914]/5" : "border-[#2c2a26]/8 bg-[#faf8f5]"}`}>
+                    <div className="flex gap-1">
+                      {preset.colors.map((c, ci) => (
+                        <div key={ci} className="w-4 h-4 rounded-sm flex-shrink-0" style={{ background: c }} />
+                      ))}
+                    </div>
+                    <p className="text-xs text-[#2c2a26] font-medium flex-1">{preset.name}</p>
+                    {preset.active && <span className="text-[9px] bg-[#8b6914] text-white rounded-full px-1.5 py-0.5 leading-none flex-shrink-0">Active</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Category tabs */}
             <div className="bg-[#faf8f5]/95 border-b border-[#2c2a26]/8 px-4 py-2.5 flex items-center gap-2 overflow-x-auto">
-              <span className="bg-[#8b6914] text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex-shrink-0 flex items-center gap-1.5">
-                <div className="w-5 h-5 rounded overflow-hidden flex-shrink-0">
-                  <img src={CT_STEAK_URL} className="w-full h-full object-cover" alt="" />
-                </div>
-                Mains
-              </span>
+              <span className="bg-[#8b6914] text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex-shrink-0">Mains</span>
               <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl flex-shrink-0">Starters</span>
               <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl flex-shrink-0">Desserts</span>
               <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl flex-shrink-0">Cocktails</span>
@@ -1119,38 +1140,24 @@ export default function HomePage() {
             {/* Item rows */}
             <div className="space-y-2 mx-4 mt-3 mb-4">
               {[
-                { name: "Seared Duck Confit", price: "$24.00", desc: "24-hour confit leg, cherry jus, roasted fingerlings", img: CT_STEAK_URL, avail: true, num: 1, icons: [<Star key="s" size={11} />, <WheatOff key="w" size={11} />] },
-                { name: "Atlantic Salmon", price: "$22.00", desc: "Pan-seared fillet, lemon beurre blanc, wilted greens", img: CT_SALMON_URL, avail: false, num: 2, icons: [<WheatOff key="w" size={11} />, <Leaf key="l" size={11} />] },
-                { name: "Crème Brûlée", price: "$14.00", desc: "Classic vanilla custard, caramelised sugar top", img: CT_DESSERT_URL, avail: true, num: 3, icons: [<Star key="s" size={11} />] },
+                { name: "Seared Duck Confit", price: "$24.00", desc: "24-hour confit leg, cherry jus, roasted fingerlings", img: CT_STEAK_URL, avail: true },
+                { name: "Atlantic Salmon",    price: "$22.00", desc: "Pan-seared fillet, lemon beurre blanc, wilted greens", img: CT_SALMON_URL, avail: false },
+                { name: "Crème Brûlée",       price: "$14.00", desc: "Classic vanilla custard, caramelised sugar top", img: CT_DESSERT_URL, avail: true },
               ].map((item) => (
-                <div key={item.name} className="flex items-stretch bg-white rounded-2xl border border-[#2c2a26]/8 overflow-hidden shadow-sm">
-                  {/* Drag handle */}
-                  <div className="flex flex-col items-center justify-center px-2 gap-0.5 border-r border-[#2c2a26]/8 py-3 bg-[#2c2a26]/3">
-                    <svg className="w-4 h-4 text-[#8b6914]/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16"/></svg>
-                    <span className="text-[9px] text-[#6b6560]">Drag</span>
-                  </div>
-                  {/* Image */}
-                  <div className="w-20 h-20 overflow-hidden bg-gray-100 flex-shrink-0">
-                    <img src={item.img} className="w-full h-full object-cover" alt={item.name} />
-                  </div>
-                  {/* Details */}
-                  <div className="p-3 flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <span style={{ fontFamily: "Georgia, serif" }} className={`text-sm font-semibold text-[#2c2a26] ${item.avail ? '' : 'opacity-50'}`}>{item.name}</span>
-                      <span className="text-[#8b6914] text-sm font-bold flex-shrink-0">{item.price}</span>
+                <div key={item.name} className="flex gap-3 p-3 bg-white rounded-xl border border-[#2c2a26]/8">
+                  <img src={item.img} className="w-16 h-16 rounded-lg object-cover flex-shrink-0" alt={item.name} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start gap-2">
+                      <span className="font-semibold text-sm text-[#2c2a26]">{item.name}</span>
+                      <span className="font-semibold text-sm text-[#8b6914] flex-shrink-0">{item.price}</span>
                     </div>
-                    <p className="text-[#6b6560] text-xs mt-0.5 line-clamp-1">{item.desc}</p>
-                    <div className="flex items-center gap-1.5 mt-1 opacity-60 text-[#2c2a26]">
-                      {item.icons}
-                    </div>
-                    <div className="mt-1.5 flex gap-1.5 flex-wrap items-center">
-                      <span className={`text-[10px] border rounded-full px-2 py-0.5 flex items-center gap-1 ${item.avail ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full inline-block ${item.avail ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                        {item.avail ? 'Available' : 'Unavailable'}
+                    <p className="text-xs text-[#6b6560] mt-0.5 line-clamp-1">{item.desc}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 ${item.avail ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500"}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full inline-block ${item.avail ? "bg-emerald-500" : "bg-gray-400"}`} />
+                        {item.avail ? "Available" : "Unavailable"}
                       </span>
-                      <span className="text-[10px] bg-[#8b6914] text-white rounded-lg px-2.5 py-0.5 font-semibold">Edit</span>
-                      <span className="text-[10px] text-[#6b6560] hover:text-red-600 rounded-lg px-1.5 py-0.5">Delete</span>
-                      <span className="ml-auto text-[9px] text-[#6b6560]/60">#{item.num}</span>
+                      <span className="text-[10px] bg-[#8b6914]/10 text-[#8b6914] px-2 py-0.5 rounded-full font-medium">Edit</span>
                     </div>
                   </div>
                 </div>
@@ -1163,34 +1170,6 @@ export default function HomePage() {
               <span className="text-xs text-emerald-600 font-medium">All changes saved ✓</span>
             </div>
 
-            {/* Theme presets row */}
-            <div className="bg-white border-t border-[#2c2a26]/8 px-4 py-3">
-              <p className="text-[9px] font-semibold uppercase tracking-widest text-[#6b6560] mb-2">Theme presets</p>
-              <div className="flex gap-2 flex-wrap">
-                {[
-                  { name: "Classic",   colors: ["#2c2a26", "#8b6914", "#faf8f5"], active: true  },
-                  { name: "Ocean",     colors: ["#1e3a5f", "#2563eb", "#eff6ff"], active: false },
-                  { name: "Forest",    colors: ["#1a3d2b", "#16a34a", "#f0fdf4"], active: false },
-                  { name: "Berry",     colors: ["#3d1a4a", "#9333ea", "#faf5ff"], active: false },
-                  { name: "Slate",     colors: ["#1e293b", "#64748b", "#f8fafc"], active: false },
-                  { name: "Rose",      colors: ["#4a0d1f", "#e11d48", "#fff1f2"], active: false },
-                  { name: "Amber",     colors: ["#431407", "#ea580c", "#fff7ed"], active: false },
-                  { name: "Teal",      colors: ["#042f2e", "#0d9488", "#f0fdfa"], active: false },
-                  { name: "Ink",       colors: ["#09090b", "#a1a1aa", "#fafafa"], active: false },
-                  { name: "Blush",     colors: ["#3b0764", "#c026d3", "#fdf4ff"], active: false },
-                ].map((preset) => (
-                  <div key={preset.name} className={`rounded-lg border-2 px-2 py-1.5 flex items-center gap-1.5 ${preset.active ? "border-[#8b6914]" : "border-transparent bg-[#faf8f5]"}`}>
-                    <div className="flex gap-0.5">
-                      {preset.colors.map((c, ci) => (
-                        <div key={ci} className="w-3.5 h-3.5 rounded-sm flex-shrink-0" style={{ background: c }} />
-                      ))}
-                    </div>
-                    <p className="text-[9px] text-[#6b6560] font-medium">{preset.name}</p>
-                    {preset.active && <span className="text-[8px] bg-[#8b6914] text-white rounded px-1 py-0.5 leading-none">Active</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-10 max-w-4xl mx-auto">
