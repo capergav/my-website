@@ -440,7 +440,7 @@ export default function HomePage() {
   const isMobile = useIsMobile();
 
   const [scrolled, setScrolled] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true); // default to logged-in state
   const [ctaHovered, setCtaHovered] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [newsletterEmail, setNewsletterEmail] = useState('');
