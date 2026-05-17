@@ -1048,7 +1048,7 @@ export default function HomePage() {
               <div className="absolute top-3 right-3 flex items-center gap-2">
                 <span className="bg-[#8b6914] text-white text-[11px] px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-white opacity-90" />
-                  14d left
+                  38d left — Subscribe
                 </span>
                 <span className="bg-white/20 text-white text-[11px] px-2.5 py-1.5 rounded-lg border border-white/40 font-medium flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1082,7 +1082,7 @@ export default function HomePage() {
               <div className="flex-1" />
               <span className="bg-[#8b6914] text-white text-xs px-4 py-1.5 rounded-xl flex-shrink-0 font-semibold flex items-center gap-1">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
-                Add item
+                Add item to Mains
               </span>
             </div>
 
@@ -1098,9 +1098,9 @@ export default function HomePage() {
             {/* Item rows */}
             <div className="space-y-2 mx-4 mt-3 mb-4">
               {[
-                { name: "Seared Duck Confit", price: "$24", desc: "24-hour confit leg, cherry jus, roasted fingerlings", img: CT_STEAK_URL, avail: true, num: 1, icons: [<Star key="s" size={11} />, <WheatOff key="w" size={11} />] },
-                { name: "Atlantic Salmon", price: "$22", desc: "Pan-seared fillet, lemon beurre blanc, wilted greens", img: CT_SALMON_URL, avail: false, num: 2, icons: [<WheatOff key="w" size={11} />, <Leaf key="l" size={11} />] },
-                { name: "Crème Brûlée", price: "$14", desc: "Classic vanilla custard, caramelised sugar top", img: CT_DESSERT_URL, avail: true, num: 3, icons: [<Star key="s" size={11} />] },
+                { name: "Seared Duck Confit", price: "$24.00", desc: "24-hour confit leg, cherry jus, roasted fingerlings", img: CT_STEAK_URL, avail: true, num: 1, icons: [<Star key="s" size={11} />, <WheatOff key="w" size={11} />] },
+                { name: "Atlantic Salmon", price: "$22.00", desc: "Pan-seared fillet, lemon beurre blanc, wilted greens", img: CT_SALMON_URL, avail: false, num: 2, icons: [<WheatOff key="w" size={11} />, <Leaf key="l" size={11} />] },
+                { name: "Crème Brûlée", price: "$14.00", desc: "Classic vanilla custard, caramelised sugar top", img: CT_DESSERT_URL, avail: true, num: 3, icons: [<Star key="s" size={11} />] },
               ].map((item) => (
                 <div key={item.name} className="flex items-stretch bg-white rounded-2xl border border-[#2c2a26]/8 overflow-hidden shadow-sm">
                   {/* Drag handle */}
@@ -1147,10 +1147,16 @@ export default function HomePage() {
               <p className="text-[9px] font-semibold uppercase tracking-widest text-[#6b6560] mb-2">Theme presets</p>
               <div className="flex gap-2 flex-wrap">
                 {[
-                  { name: "Classic", colors: ["#2c2a26", "#8b6914", "#faf8f5"], active: true },
-                  { name: "Ocean",   colors: ["#1e3a5f", "#2563eb", "#eff6ff"], active: false },
-                  { name: "Forest",  colors: ["#1a3d2b", "#16a34a", "#f0fdf4"], active: false },
-                  { name: "Berry",   colors: ["#3d1a4a", "#9333ea", "#faf5ff"], active: false },
+                  { name: "Classic",   colors: ["#2c2a26", "#8b6914", "#faf8f5"], active: true  },
+                  { name: "Ocean",     colors: ["#1e3a5f", "#2563eb", "#eff6ff"], active: false },
+                  { name: "Forest",    colors: ["#1a3d2b", "#16a34a", "#f0fdf4"], active: false },
+                  { name: "Berry",     colors: ["#3d1a4a", "#9333ea", "#faf5ff"], active: false },
+                  { name: "Slate",     colors: ["#1e293b", "#64748b", "#f8fafc"], active: false },
+                  { name: "Rose",      colors: ["#4a0d1f", "#e11d48", "#fff1f2"], active: false },
+                  { name: "Amber",     colors: ["#431407", "#ea580c", "#fff7ed"], active: false },
+                  { name: "Teal",      colors: ["#042f2e", "#0d9488", "#f0fdfa"], active: false },
+                  { name: "Ink",       colors: ["#09090b", "#a1a1aa", "#fafafa"], active: false },
+                  { name: "Blush",     colors: ["#3b0764", "#c026d3", "#fdf4ff"], active: false },
                 ].map((preset) => (
                   <div key={preset.name} className={`rounded-lg border-2 px-2 py-1.5 flex items-center gap-1.5 ${preset.active ? "border-[#8b6914]" : "border-transparent bg-[#faf8f5]"}`}>
                     <div className="flex gap-0.5">

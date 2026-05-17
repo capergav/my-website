@@ -322,7 +322,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                       key={category}
                       type="button"
                       onClick={handleClick}
-                      className={`flex-shrink-0 snap-start px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 touch-manipulation whitespace-nowrap ${
+                      className={`flex-shrink-0 snap-start px-3 py-2 rounded-full text-[10px] font-semibold transition-all duration-200 touch-manipulation whitespace-normal line-clamp-2 text-center max-w-[90px] leading-tight ${
                         isActive
                           ? "bg-[var(--accent)]/10 text-[var(--foreground)] border-2 border-[var(--accent)] shadow-sm"
                           : "bg-[var(--card)] text-[var(--foreground)] border border-[var(--card-border)] hover:border-[var(--accent)]/40"
@@ -349,7 +349,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                       key={category}
                       type="button"
                       onClick={handleClick}
-                      className={`flex-shrink-0 snap-start px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 touch-manipulation whitespace-nowrap ${
+                      className={`flex-shrink-0 snap-start px-3 py-2 rounded-full text-[10px] font-semibold transition-all duration-200 touch-manipulation whitespace-normal line-clamp-2 text-center max-w-[90px] leading-tight ${
                         isActive
                           ? "bg-[var(--accent)]/10 text-[var(--foreground)] border-2 border-[var(--accent)] shadow-sm"
                           : "bg-[var(--card)] text-[var(--foreground)] border border-[var(--card-border)] hover:border-[var(--accent)]/40"
