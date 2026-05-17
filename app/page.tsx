@@ -14,6 +14,7 @@ const CT_HERO_URL    = "https://images.unsplash.com/photo-1517248135467-4c7edcad
 const CT_STEAK_URL   = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80";
 const CT_SALMON_URL  = "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400&q=80";
 const CT_DESSERT_URL = "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&q=80";
+const CT_PASTA_URL   = "https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=400&q=80";
 const EXAMPLE_MENU_URL = "/menu/gavinrgallant-1";
 
 // ── Logo components ────────────────────────────────────────────────────────────
@@ -764,68 +765,88 @@ export default function HomePage() {
                 whileHover={(rm || isMobile) ? {} : { scale: 1.02 }}
                 className="relative"
               >
-                <div className="rounded-3xl overflow-hidden shadow-2xl border border-[#2c2a26]/10 max-w-[280px] sm:max-w-sm w-full mx-auto bg-white" style={{ border: '1px solid rgba(0,0,0,0.08)' }}>
+                <div className="rounded-3xl overflow-hidden shadow-2xl max-w-[280px] sm:max-w-sm w-full mx-auto" style={{ background: '#1f1015', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  {/* Hero image */}
                   <div className="relative h-48 overflow-hidden">
                     <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                     <p className="absolute bottom-3 w-full text-center text-white font-serif text-xl font-semibold drop-shadow">The Copper Table</p>
-                    <div className="absolute top-3 left-3 bg-black/30 backdrop-blur-sm rounded-lg p-1.5">
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                        <circle cx="12" cy="12" r="11" fill="none" stroke="#c9a030" strokeWidth="1.5"/>
-                        <text x="12" y="17" textAnchor="middle" fill="#c9a030" fontFamily="Georgia,serif" fontSize="13" fontWeight="600">C</text>
+                    {/* Language button */}
+                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-sm">
+                      <span className="text-xs font-medium text-gray-900">English</span>
+                      <svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
-                    <div className="absolute top-3 right-3 bg-[#2c2a26]/80 text-white text-xs px-2.5 py-1 rounded-lg flex items-center gap-1">🏴󠁣󠁡󠁱󠁣󠁿 FR ▾</div>
                   </div>
-                  <div className="bg-white border-b border-gray-100 flex gap-3 px-3 py-3 overflow-x-auto">
+                  {/* Category tabs — large rounded square thumbnails */}
+                  <div className="flex gap-3 px-3 py-3 overflow-x-auto" style={{ background: '#2c1820', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                     {[
                       { name: "Starters", img: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=150&q=70", active: false },
                       { name: "Mains",    img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&q=70", active: true  },
                       { name: "Desserts", img: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=150&q=70", active: false },
                     ].map(cat => (
-                      <button key={cat.name} type="button" className="flex flex-col items-center gap-1 flex-shrink-0">
-                        <div className={`w-12 h-12 rounded-xl overflow-hidden ${cat.active ? "ring-2 ring-[#8b6914] ring-offset-2" : ""}`}>
+                      <button key={cat.name} type="button" className="flex flex-col items-center gap-1.5 flex-shrink-0">
+                        <div className={`w-[72px] h-[72px] rounded-xl overflow-hidden ${cat.active ? "ring-2 ring-white ring-offset-1 ring-offset-[#2c1820]" : ""}`}>
                           <img src={cat.img} className="w-full h-full object-cover" alt={cat.name} />
                         </div>
-                        <span className={`text-[10px] font-semibold uppercase tracking-wide ${cat.active ? "text-[#8b6914]" : "text-gray-400"}`}>{cat.name}</span>
+                        <span className={`text-[9px] font-semibold uppercase tracking-wide ${cat.active ? "text-[#c9a55a]" : "text-white/40"}`}>{cat.name}</span>
                       </button>
                     ))}
                   </div>
-                  <div className="mx-3 mt-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 flex gap-3 text-xs text-gray-400 items-center">
-                    <span className="flex items-center gap-1"><Star size={11} /> Chef&apos;s pick</span>
-                    <span className="flex items-center gap-1"><WheatOff size={11} /> Gluten-free</span>
-                    <span className="flex items-center gap-1"><Leaf size={11} /> Vegan</span>
-                    <span className="flex items-center gap-1"><Flame size={11} /> Spicy</span>
+                  {/* Dietary key — plain text, no card */}
+                  <div className="px-3 pt-2 pb-1">
+                    <p className="text-[10px] text-white/35">DIETARY KEY &nbsp;🌱 Vegan &nbsp;🌾 Gluten Free &nbsp;🥬 Vegetarian</p>
                   </div>
-                  <div className="mx-3 mt-2 mb-1">
-                    <p className="text-[9px] italic text-[#2c2a26]/40">All entrées served with soup or salad and house bread.</p>
-                  </div>
+                  {/* Menu items */}
                   <div className="space-y-2 mx-3 mb-3">
-                    <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
-                      <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-20 h-20 object-cover flex-shrink-0" />
-                      <div className="p-2.5">
-                        <p className="text-sm font-serif font-semibold text-[#2c2a26]">Seared Duck Confit</p>
-                        <p className="text-[#8b6914] text-sm font-bold">$24.00</p>
-                        <div className="flex items-center gap-1.5 mt-0.5 opacity-60 text-[#2c2a26]">
-                          <Star size={11} aria-label="Chef's pick" />
-                          <WheatOff size={11} aria-label="Gluten-free" />
+                    <div className="flex gap-3 p-3 rounded-xl border border-white/10" style={{ background: '#2c1820' }}>
+                      <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-24 h-24 rounded-lg object-cover flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-semibold text-sm leading-snug text-white">Seared Duck Confit</span>
+                          <span className="font-semibold text-[#c9a55a] flex-shrink-0 text-sm">$24.00</span>
                         </div>
+                        <div className="flex gap-1 mt-1">
+                          <span className="text-[11px]">🌾</span>
+                        </div>
+                        <p className="text-[10px] text-white/45 mt-1 line-clamp-2">Slow-braised duck leg, crispy skin, root vegetable purée and pan jus.</p>
+                        <span className="text-[10px] text-[#c9a55a] mt-1 block">Tap to read more →</span>
                       </div>
                     </div>
-                    <div className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
-                      <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-20 h-20 object-cover flex-shrink-0" />
-                      <div className="p-2.5">
-                        <p className="text-sm font-serif font-semibold text-[#2c2a26]">Atlantic Salmon</p>
-                        <p className="text-[#8b6914] text-sm font-bold">$22.00</p>
-                        <div className="flex items-center gap-1.5 mt-0.5 opacity-60 text-[#2c2a26]">
-                          <WheatOff size={11} />
-                          <Leaf size={11} />
+                    <div className="flex gap-3 p-3 rounded-xl border border-white/10" style={{ background: '#2c1820' }}>
+                      <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-24 h-24 rounded-lg object-cover flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-semibold text-sm leading-snug text-white">Atlantic Salmon</span>
+                          <span className="font-semibold text-[#c9a55a] flex-shrink-0 text-sm">$22.00</span>
                         </div>
+                        <div className="flex gap-1 mt-1">
+                          <span className="text-[11px]">🌾</span>
+                          <span className="text-[11px]">🌱</span>
+                        </div>
+                        <p className="text-[10px] text-white/45 mt-1 line-clamp-2">Pan-seared fillet, lemon beurre blanc, capers and seasonal greens.</p>
+                        <span className="text-[10px] text-[#c9a55a] mt-1 block">Tap to read more →</span>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 p-3 rounded-xl border border-white/10" style={{ background: '#2c1820' }}>
+                      <img src={CT_PASTA_URL} alt="Wild Mushroom Risotto" className="w-24 h-24 rounded-lg object-cover flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-semibold text-sm leading-snug text-white">Wild Mushroom Risotto</span>
+                          <span className="font-semibold text-[#c9a55a] flex-shrink-0 text-sm">$18.00</span>
+                        </div>
+                        <div className="flex gap-1 mt-1">
+                          <span className="text-[11px]">🌱</span>
+                          <span className="text-[11px]">🥬</span>
+                        </div>
+                        <p className="text-[10px] text-white/45 mt-1 line-clamp-2">Arborio rice, truffle oil, aged parmesan, forest mushrooms and thyme.</p>
+                        <span className="text-[10px] text-[#c9a55a] mt-1 block">Tap to read more →</span>
                       </div>
                     </div>
                   </div>
                   <div className="pb-3 text-center">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] text-gray-300 hover:text-[#8b6914] transition-colors">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] text-white/20 hover:text-[#c9a55a] transition-colors">
                       <svg width="10" height="9" viewBox="0 0 44 40" fill="none">
                         <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
                         <line x1="26" y1="3" x2="26" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
