@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { WheatOff, Leaf, BarChart3, Star, Flame } from "lucide-react";
+import { WheatOff, Leaf, BarChart3, Star, Flame, Sprout } from "lucide-react";
 import { AnalyticsDemo } from "@/app/components/AnalyticsDemo";
 import { useIsMobile } from "@/lib/useIsMobile";
 import {
@@ -222,6 +222,12 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
                   </motion.p>
                 </AnimatePresence>
               </div>
+              {/* Dietary key */}
+              <div className="flex items-center gap-2 text-[10px] text-[#6b6560] py-1 px-3">
+                <span className="font-medium tracking-wide uppercase">Dietary Key</span>
+                <span className="flex items-center gap-1"><WheatOff size={11} className="text-[#6b6560]" /> Gluten Free</span>
+                <span className="flex items-center gap-1"><Leaf size={11} className="text-[#6b6560]" /> Vegan</span>
+              </div>
               <div className="space-y-2 mx-3 mb-3">
                 {names.map((name, idx) => (
                   <div key={`${activeLang}-${idx}`} className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -263,34 +269,25 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
             </div>
           </motion.div>
 
-          {/* Language selector — matches real dropdown UI */}
+          {/* Language selector — pill buttons */}
           <div className="flex-1">
             <p className="text-sm font-semibold text-[#2c2a26] mb-4 text-center lg:text-left">Tap a language to preview it live:</p>
-            <div className="flex flex-col items-center lg:items-start gap-2">
-              {/* Trigger pill */}
-              <div className="flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-full bg-white border border-gray-200 shadow-sm text-[#2c2a26] font-medium text-sm w-52 select-none">
-                <span className="flex-1">{activeLang}</span>
-                <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-              {/* Dropdown list */}
-              <div className="w-52 rounded-xl bg-white border border-gray-200 shadow-xl overflow-hidden">
-                {Object.keys(DEMO_TRANSLATIONS).map((lang) => (
-                  <button
-                    key={lang}
-                    type="button"
-                    onClick={() => setActiveLang(lang)}
-                    className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors touch-manipulation ${
-                      activeLang === lang
-                        ? "bg-[#8b6914]/15 text-[#8b6914]"
-                        : "text-[#2c2a26] hover:bg-gray-50"
-                    }`}
-                  >
-                    {lang}
-                  </button>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+              {LANGUAGES.map((lang) => (
+                <button
+                  key={lang.name}
+                  type="button"
+                  onClick={() => setActiveLang(lang.name)}
+                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors touch-manipulation flex items-center gap-1.5 ${
+                    activeLang === lang.name
+                      ? "bg-[#8b6914] text-white"
+                      : "bg-white border border-gray-200 text-[#2c2a26] hover:border-[#8b6914]/50"
+                  }`}
+                >
+                  <span>{lang.flag}</span>
+                  <span>{lang.name}</span>
+                </button>
+              ))}
             </div>
             <motion.div
               className="mt-8 rounded-2xl border border-[#8b6914]/30 bg-[#8b6914]/5 p-5"
@@ -768,88 +765,75 @@ export default function HomePage() {
                 whileHover={(rm || isMobile) ? {} : { scale: 1.02 }}
                 className="relative"
               >
-                <div className="rounded-3xl overflow-hidden shadow-2xl max-w-[280px] sm:max-w-sm w-full mx-auto" style={{ background: '#faf8f5', border: '1px solid rgba(44,42,38,0.10)' }}>
+                <div className="relative mx-auto w-[280px] h-[560px] overflow-hidden rounded-[2.5rem] border-4 border-gray-800 bg-[#faf8f5]">
                   {/* Hero image */}
-                  <div className="relative h-48 overflow-hidden">
+                  <div className="relative h-28 overflow-hidden">
                     <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                    <p className="absolute bottom-3 w-full text-center text-white font-serif text-xl font-semibold drop-shadow">The Copper Table</p>
+                    <p className="absolute bottom-2 w-full text-center text-white font-serif text-base font-semibold drop-shadow">The Copper Table</p>
                     {/* Language button */}
-                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1.5 flex items-center gap-1.5 shadow-sm">
-                      <span className="text-xs font-medium text-gray-900">English</span>
-                      <svg className="w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1 shadow-sm">
+                      <span className="text-[11px] font-medium text-gray-900">English</span>
+                      <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </div>
                   </div>
-                  {/* Category tabs — large rounded square thumbnails */}
-                  <div className="flex gap-3 px-3 py-3 overflow-x-auto" style={{ background: '#ffffff', borderBottom: '1px solid rgba(44,42,38,0.08)' }}>
+                  {/* Category tabs */}
+                  <div className="flex gap-2 px-3 py-2 overflow-x-hidden" style={{ background: '#ffffff', borderBottom: '1px solid rgba(44,42,38,0.08)' }}>
                     {[
                       { name: "Starters", img: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=150&q=70", active: false },
                       { name: "Mains",    img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&q=70", active: true  },
                       { name: "Desserts", img: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=150&q=70", active: false },
                     ].map(cat => (
-                      <button key={cat.name} type="button" className="flex flex-col items-center gap-1.5 flex-shrink-0">
-                        <div className={`w-[72px] h-[72px] rounded-xl overflow-hidden ${cat.active ? "ring-2 ring-[#8b6914] ring-offset-1 ring-offset-white" : ""}`}>
+                      <button key={cat.name} type="button" className="flex flex-col items-center gap-1 flex-shrink-0">
+                        <div className={`w-14 h-14 rounded-xl overflow-hidden ${cat.active ? "ring-2 ring-[#8b6914] ring-offset-1 ring-offset-white" : ""}`}>
                           <img src={cat.img} className="w-full h-full object-cover" alt={cat.name} />
                         </div>
                         <span className={`text-[9px] font-semibold uppercase tracking-wide ${cat.active ? "text-[#8b6914]" : "text-[#6b6560]"}`}>{cat.name}</span>
                       </button>
                     ))}
                   </div>
-                  {/* Dietary key — plain text, no card */}
-                  <div className="px-3 pt-2 pb-1">
-                    <p className="text-[10px] text-[#6b6560]">DIETARY KEY &nbsp;🌱 Vegan &nbsp;🌾 Gluten Free &nbsp;🥬 Vegetarian</p>
+                  {/* Dietary key */}
+                  <div className="flex items-center gap-3 px-3 py-1.5 text-[10px] text-[#6b6560]">
+                    <span className="font-medium tracking-wide">DIETARY KEY</span>
+                    <span className="flex items-center gap-1"><WheatOff size={11} className="text-[#6b6560]" /> Gluten Free</span>
+                    <span className="flex items-center gap-1"><Leaf size={11} className="text-[#6b6560]" /> Vegan</span>
+                    <span className="flex items-center gap-1"><Sprout size={11} className="text-[#6b6560]" /> Veg</span>
                   </div>
-                  {/* Menu items */}
+                  {/* Menu items — 2 only */}
                   <div className="space-y-2 mx-3 mb-3">
-                    <div className="flex gap-3 p-3 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
-                      <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-24 h-24 rounded-lg object-cover flex-shrink-0" />
+                    <div className="flex gap-2.5 p-2.5 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
+                      <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="font-semibold text-sm leading-snug text-[#2c2a26]">Seared Duck Confit</span>
-                          <span className="font-semibold text-[#8b6914] flex-shrink-0 text-sm">$24.00</span>
+                        <div className="flex items-start justify-between gap-1">
+                          <span className="font-semibold text-[12px] leading-snug text-[#2c2a26]">Seared Duck Confit</span>
+                          <span className="font-semibold text-[#8b6914] flex-shrink-0 text-[12px]">$24.00</span>
                         </div>
-                        <div className="flex gap-1 mt-1">
-                          <span className="text-[11px]">🌾</span>
+                        <div className="flex items-center gap-1 mt-1">
+                          <WheatOff size={12} className="text-[#6b6560]" />
+                          <Star size={12} className="text-[#6b6560]" />
                         </div>
                         <p className="text-[10px] text-[#6b6560] mt-1 line-clamp-2">Slow-braised duck leg, crispy skin, root vegetable purée and pan jus.</p>
-                        <span className="text-[10px] text-[#8b6914] mt-1 block">Tap to read more →</span>
                       </div>
                     </div>
-                    <div className="flex gap-3 p-3 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
-                      <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-24 h-24 rounded-lg object-cover flex-shrink-0" />
+                    <div className="flex gap-2.5 p-2.5 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
+                      <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="font-semibold text-sm leading-snug text-[#2c2a26]">Atlantic Salmon</span>
-                          <span className="font-semibold text-[#8b6914] flex-shrink-0 text-sm">$22.00</span>
+                        <div className="flex items-start justify-between gap-1">
+                          <span className="font-semibold text-[12px] leading-snug text-[#2c2a26]">Atlantic Salmon</span>
+                          <span className="font-semibold text-[#8b6914] flex-shrink-0 text-[12px]">$22.00</span>
                         </div>
-                        <div className="flex gap-1 mt-1">
-                          <span className="text-[11px]">🌾</span>
-                          <span className="text-[11px]">🌱</span>
+                        <div className="flex items-center gap-1 mt-1">
+                          <WheatOff size={12} className="text-[#6b6560]" />
+                          <Leaf size={12} className="text-[#6b6560]" />
                         </div>
                         <p className="text-[10px] text-[#6b6560] mt-1 line-clamp-2">Pan-seared fillet, lemon beurre blanc, capers and seasonal greens.</p>
-                        <span className="text-[10px] text-[#8b6914] mt-1 block">Tap to read more →</span>
-                      </div>
-                    </div>
-                    <div className="flex gap-3 p-3 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
-                      <img src={CT_PASTA_URL} alt="Wild Mushroom Risotto" className="w-24 h-24 rounded-lg object-cover flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className="font-semibold text-sm leading-snug text-[#2c2a26]">Wild Mushroom Risotto</span>
-                          <span className="font-semibold text-[#8b6914] flex-shrink-0 text-sm">$18.00</span>
-                        </div>
-                        <div className="flex gap-1 mt-1">
-                          <span className="text-[11px]">🌱</span>
-                          <span className="text-[11px]">🥬</span>
-                        </div>
-                        <p className="text-[10px] text-[#6b6560] mt-1 line-clamp-2">Arborio rice, truffle oil, aged parmesan, forest mushrooms and thyme.</p>
-                        <span className="text-[10px] text-[#8b6914] mt-1 block">Tap to read more →</span>
                       </div>
                     </div>
                   </div>
-                  <div className="pb-3 text-center">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] text-[#2c2a26]/30 hover:text-[#8b6914] transition-colors">
+                  <div className="pb-2 text-center">
+                    <span className="inline-flex items-center gap-1.5 text-[10px] text-[#2c2a26]/30">
                       <svg width="10" height="9" viewBox="0 0 44 40" fill="none">
                         <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
                         <line x1="26" y1="3" x2="26" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
