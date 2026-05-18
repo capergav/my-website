@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { WheatOff, Leaf, BarChart3, Star, Flame, Sprout } from "lucide-react";
+import { WheatOff, Leaf, BarChart3, Star, Flame, Sprout, MilkOff, ShieldCheck } from "lucide-react";
 import { AnalyticsDemo } from "@/app/components/AnalyticsDemo";
 import { useIsMobile } from "@/lib/useIsMobile";
 import {
@@ -272,20 +272,20 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
           {/* Language selector — pill buttons */}
           <div className="flex-1">
             <p className="text-sm font-semibold text-[#2c2a26] mb-4 text-center lg:text-left">Tap a language to preview it live:</p>
-            <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 w-full">
               {LANGUAGES.map((lang) => (
                 <button
                   key={lang.name}
                   type="button"
                   onClick={() => setActiveLang(lang.name)}
-                  className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors touch-manipulation flex items-center gap-1.5 ${
+                  className={`flex items-center justify-center gap-2 px-3 py-2 rounded-full border transition-colors touch-manipulation w-full ${
                     activeLang === lang.name
-                      ? "bg-[#8b6914] text-white"
-                      : "bg-white border border-gray-200 text-[#2c2a26] hover:border-[#8b6914]/50"
+                      ? "border-[#8b6914] bg-[#8b6914]/5 text-[#8b6914]"
+                      : "border-[#e8e4dd] bg-white text-[#2c2a26] hover:border-[#8b6914] hover:text-[#8b6914]"
                   }`}
                 >
-                  <span>{lang.flag}</span>
-                  <span>{lang.name}</span>
+                  <span className="text-base">{lang.flag}</span>
+                  <span className="text-sm font-medium">{lang.name}</span>
                 </button>
               ))}
             </div>
@@ -405,7 +405,7 @@ const STEPS = [
 
 const LANGUAGES = [
   { flag: "🇨🇦", name: "English" },
-  { flag: "🏴󠁣󠁡󠁱󠁣󠁿", name: "Français" },
+  { flag: "🇫🇷", name: "Français" },
   { flag: "🇪🇸", name: "Español" },
   { flag: "🇸🇦", name: "العربية", rtl: true },
   { flag: "🇨🇳", name: "中文" },
@@ -765,82 +765,108 @@ export default function HomePage() {
                 whileHover={(rm || isMobile) ? {} : { scale: 1.02 }}
                 className="relative"
               >
-                <div className="relative mx-auto w-[280px] h-[560px] overflow-hidden rounded-[2.5rem] border-4 border-gray-800 bg-[#faf8f5]">
-                  {/* Hero image */}
-                  <div className="relative h-28 overflow-hidden">
-                    <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                    <p className="absolute bottom-2 w-full text-center text-white font-serif text-base font-semibold drop-shadow">The Copper Table</p>
-                    {/* Language button */}
-                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1 shadow-sm">
-                      <span className="text-[11px] font-medium text-gray-900">English</span>
-                      <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </div>
-                  </div>
-                  {/* Category tabs */}
-                  <div className="flex gap-2 px-3 py-2 overflow-x-hidden" style={{ background: '#ffffff', borderBottom: '1px solid rgba(44,42,38,0.08)' }}>
-                    {[
-                      { name: "Starters", img: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=150&q=70", active: false },
-                      { name: "Mains",    img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&q=70", active: true  },
-                      { name: "Desserts", img: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=150&q=70", active: false },
-                    ].map(cat => (
-                      <button key={cat.name} type="button" className="flex flex-col items-center gap-1 flex-shrink-0">
-                        <div className={`w-14 h-14 rounded-xl overflow-hidden ${cat.active ? "ring-2 ring-[#8b6914] ring-offset-1 ring-offset-white" : ""}`}>
-                          <img src={cat.img} className="w-full h-full object-cover" alt={cat.name} />
+                {/* 3D iPhone shell */}
+                <div style={{
+                  width: 260,
+                  height: 540,
+                  borderRadius: 44,
+                  background: "linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 50%, #111 100%)",
+                  padding: 10,
+                  boxShadow: "-6px 8px 18px rgba(0,0,0,0.45), -14px 16px 36px rgba(0,0,0,0.28), inset 0 0 0 1px rgba(255,255,255,0.08)",
+                  position: "relative",
+                  flexShrink: 0,
+                }}>
+                  {/* Volume up */}
+                  <div style={{ position: "absolute", left: -4, top: 100, width: 4, height: 28, background: "#2e2e2e", borderRadius: "2px 0 0 2px", boxShadow: "-2px 0 4px rgba(0,0,0,0.5)" }} />
+                  {/* Volume down */}
+                  <div style={{ position: "absolute", left: -4, top: 140, width: 4, height: 28, background: "#2e2e2e", borderRadius: "2px 0 0 2px", boxShadow: "-2px 0 4px rgba(0,0,0,0.5)" }} />
+                  {/* Power */}
+                  <div style={{ position: "absolute", right: -4, top: 118, width: 4, height: 44, background: "#2e2e2e", borderRadius: "0 2px 2px 0", boxShadow: "2px 0 4px rgba(0,0,0,0.5)" }} />
+                  {/* Screen bezel */}
+                  <div style={{ width: "100%", height: "100%", borderRadius: 36, overflow: "hidden", background: "#faf8f5", position: "relative" }}>
+                    {/* Dynamic island */}
+                    <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 76, height: 22, background: "#111", borderRadius: 12, zIndex: 10 }} />
+                    {/* Screen content */}
+                    <div style={{ height: "100%", overflow: "hidden" }}>
+                      {/* Hero image */}
+                      <div className="relative h-28 overflow-hidden">
+                        <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                        <p className="absolute bottom-2 w-full text-center text-white font-serif text-base font-semibold drop-shadow">The Copper Table</p>
+                        {/* Language button */}
+                        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1 shadow-sm">
+                          <span className="text-[11px] font-medium text-gray-900">English</span>
+                          <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
                         </div>
-                        <span className={`text-[9px] font-semibold uppercase tracking-wide ${cat.active ? "text-[#8b6914]" : "text-[#6b6560]"}`}>{cat.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                  {/* Dietary key */}
-                  <div className="flex items-center gap-3 px-3 py-1.5 text-[10px] text-[#6b6560]">
-                    <span className="font-medium tracking-wide">DIETARY KEY</span>
-                    <span className="flex items-center gap-1"><WheatOff size={11} className="text-[#6b6560]" /> Gluten Free</span>
-                    <span className="flex items-center gap-1"><Leaf size={11} className="text-[#6b6560]" /> Vegan</span>
-                    <span className="flex items-center gap-1"><Sprout size={11} className="text-[#6b6560]" /> Veg</span>
-                  </div>
-                  {/* Menu items — 2 only */}
-                  <div className="space-y-2 mx-3 mb-3">
-                    <div className="flex gap-2.5 p-2.5 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
-                      <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-1">
-                          <span className="font-semibold text-[12px] leading-snug text-[#2c2a26]">Seared Duck Confit</span>
-                          <span className="font-semibold text-[#8b6914] flex-shrink-0 text-[12px]">$24.00</span>
+                      </div>
+                      {/* Category tabs */}
+                      <div className="flex gap-2 px-3 py-2 overflow-x-hidden" style={{ background: '#ffffff', borderBottom: '1px solid rgba(44,42,38,0.08)' }}>
+                        {[
+                          { name: "Starters", img: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=150&q=70", active: false },
+                          { name: "Mains",    img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&q=70", active: true  },
+                          { name: "Desserts", img: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=150&q=70", active: false },
+                        ].map(cat => (
+                          <button key={cat.name} type="button" className="flex flex-col items-center gap-1 flex-shrink-0">
+                            <div className={`w-14 h-14 rounded-xl overflow-hidden ${cat.active ? "ring-2 ring-[#8b6914] ring-offset-1 ring-offset-white" : ""}`}>
+                              <img src={cat.img} className="w-full h-full object-cover" alt={cat.name} />
+                            </div>
+                            <span className={`text-[9px] font-semibold uppercase tracking-wide ${cat.active ? "text-[#8b6914]" : "text-[#6b6560]"}`}>{cat.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {/* Category description */}
+                      <p className="text-[10px] text-[#6b6560] italic px-3 pt-1.5 pb-0.5">All entrées served with soup or salad and house bread.</p>
+                      {/* Dietary key */}
+                      <div className="flex items-center gap-2.5 px-3 py-1 text-[10px] text-[#6b6560]">
+                        <span className="font-medium tracking-wide">DIETARY KEY</span>
+                        <span className="flex items-center gap-1"><WheatOff size={10} className="text-[#6b6560]" /> GF</span>
+                        <span className="flex items-center gap-1"><Leaf size={10} className="text-[#6b6560]" /> Vegan</span>
+                        <span className="flex items-center gap-1"><Sprout size={10} className="text-[#6b6560]" /> Veg</span>
+                      </div>
+                      {/* Menu items — 2 only */}
+                      <div className="space-y-1.5 mx-3 mb-2">
+                        <div className="flex gap-2 p-2 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
+                          <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-1">
+                              <span className="font-semibold text-[11px] leading-snug text-[#2c2a26]">Seared Duck Confit</span>
+                              <span className="font-semibold text-[#8b6914] flex-shrink-0 text-[11px]">$24.00</span>
+                            </div>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <WheatOff size={11} className="text-[#6b6560]" />
+                              <Star size={11} className="text-[#6b6560]" />
+                            </div>
+                            <p className="text-[10px] text-[#6b6560] mt-0.5 line-clamp-2">Slow-braised duck leg, crispy skin, root vegetable purée and pan jus.</p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <WheatOff size={12} className="text-[#6b6560]" />
-                          <Star size={12} className="text-[#6b6560]" />
+                        <div className="flex gap-2 p-2 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
+                          <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-1">
+                              <span className="font-semibold text-[11px] leading-snug text-[#2c2a26]">Atlantic Salmon</span>
+                              <span className="font-semibold text-[#8b6914] flex-shrink-0 text-[11px]">$22.00</span>
+                            </div>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <WheatOff size={11} className="text-[#6b6560]" />
+                              <Leaf size={11} className="text-[#6b6560]" />
+                            </div>
+                            <p className="text-[10px] text-[#6b6560] mt-0.5 line-clamp-2">Pan-seared fillet, lemon beurre blanc, capers and seasonal greens.</p>
+                          </div>
                         </div>
-                        <p className="text-[10px] text-[#6b6560] mt-1 line-clamp-2">Slow-braised duck leg, crispy skin, root vegetable purée and pan jus.</p>
+                      </div>
+                      <div className="pb-2 text-center">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] text-[#2c2a26]/30">
+                          <svg width="10" height="9" viewBox="0 0 44 40" fill="none">
+                            <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
+                            <line x1="26" y1="3" x2="26" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                            <line x1="26" y1="37" x2="42" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                          </svg>
+                          Powered by DineLinks
+                        </span>
                       </div>
                     </div>
-                    <div className="flex gap-2.5 p-2.5 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
-                      <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-20 h-20 rounded-lg object-cover flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-1">
-                          <span className="font-semibold text-[12px] leading-snug text-[#2c2a26]">Atlantic Salmon</span>
-                          <span className="font-semibold text-[#8b6914] flex-shrink-0 text-[12px]">$22.00</span>
-                        </div>
-                        <div className="flex items-center gap-1 mt-1">
-                          <WheatOff size={12} className="text-[#6b6560]" />
-                          <Leaf size={12} className="text-[#6b6560]" />
-                        </div>
-                        <p className="text-[10px] text-[#6b6560] mt-1 line-clamp-2">Pan-seared fillet, lemon beurre blanc, capers and seasonal greens.</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="pb-2 text-center">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] text-[#2c2a26]/30">
-                      <svg width="10" height="9" viewBox="0 0 44 40" fill="none">
-                        <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
-                        <line x1="26" y1="3" x2="26" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                        <line x1="26" y1="37" x2="42" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                      </svg>
-                      Powered by DineLinks
-                    </span>
                   </div>
                 </div>
               </motion.div>
@@ -1066,29 +1092,6 @@ export default function HomePage() {
                   </svg>
                   Menu
                 </span>
-              </div>
-            </div>
-
-            {/* Theme presets — 2-col grid, visible directly */}
-            <div className="bg-white border-b border-[#2c2a26]/8 px-4 py-4">
-              <p className="text-[9px] font-semibold uppercase tracking-widest text-[#6b6560] mb-3">Theme Presets</p>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { name: "Linen",   colors: ["#5c4a3a", "#c9985a", "#faf5ee"], active: true  },
-                  { name: "Bistro",  colors: ["#2d1a0e", "#b5451b", "#fef9f5"], active: false },
-                  { name: "Modern",  colors: ["#111827", "#6366f1", "#f8fafc"], active: false },
-                  { name: "Coastal", colors: ["#0c3547", "#0ea5e9", "#f0f9ff"], active: false },
-                ].map((preset) => (
-                  <div key={preset.name} className={`rounded-xl border-2 px-3 py-2 flex items-center gap-2 ${preset.active ? "border-[#8b6914] bg-[#8b6914]/5" : "border-[#2c2a26]/8 bg-[#faf8f5]"}`}>
-                    <div className="flex gap-1">
-                      {preset.colors.map((c, ci) => (
-                        <div key={ci} className="w-4 h-4 rounded-sm flex-shrink-0" style={{ background: c }} />
-                      ))}
-                    </div>
-                    <p className="text-xs text-[#2c2a26] font-medium flex-1">{preset.name}</p>
-                    {preset.active && <span className="text-[9px] bg-[#8b6914] text-white rounded-full px-1.5 py-0.5 leading-none flex-shrink-0">Active</span>}
-                  </div>
-                ))}
               </div>
             </div>
 
