@@ -4,6 +4,22 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { WheatOff, Leaf, BarChart3, Star, Flame, Sprout, MilkOff, ShieldCheck } from "lucide-react";
 import { AnalyticsDemo } from "@/app/components/AnalyticsDemo";
+import dynamic from "next/dynamic";
+const Phone3D = dynamic(() => import("@/app/components/Phone3D"), {
+  ssr: false,
+  loading: () => (
+    <div style={{
+      width: 280, height: 560,
+      background: "linear-gradient(145deg, #d1d1d6, #b8b8c0)",
+      borderRadius: 46,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    }}>
+      <div style={{ color: "#888", fontSize: 12, fontFamily: "system-ui" }}>Loading...</div>
+    </div>
+  ),
+});
 import { useIsMobile } from "@/lib/useIsMobile";
 import {
   motion, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence,
@@ -752,124 +768,87 @@ export default function HomePage() {
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ duration: rm ? 0 : (isMobile ? 0.3 : 0.7), ease: [0.22, 1, 0.36, 1], delay: rm ? 0 : 0.15 }}
           >
-            <motion.div style={{ y: isMobile ? 0 : phoneY }}>
-              <motion.div
-                style={{
-                  rotateX: (rm || isMobile) ? 0 : rotateX,
-                  rotateY: (rm || isMobile) ? 0 : rotateY,
-                  transformPerspective: isMobile ? 'none' : 1000,
-                  transformStyle: isMobile ? 'flat' : 'preserve-3d',
-                }}
-                animate={(rm || isMobile) ? {} : { y: [0, -14, 0], boxShadow: ['0 20px 60px -15px rgba(139,105,20,0.3)','0 30px 80px -10px rgba(139,105,20,0.45)','0 20px 60px -15px rgba(139,105,20,0.3)'] }}
-                transition={(rm || isMobile) ? {} : { duration: 3.8, repeat: Infinity, ease: 'easeInOut' }}
-                whileHover={(rm || isMobile) ? {} : { scale: 1.02 }}
-                className="relative"
-              >
-                {/* 3D iPhone shell */}
-                <div style={{
-                  width: 270,
-                  height: 556,
-                  borderRadius: 46,
-                  background: "linear-gradient(160deg, #e8e8ed 0%, #d1d1d6 30%, #b8b8c0 60%, #a8a8b0 100%)",
-                  padding: "12px 8px",
-                  boxShadow: `0 0 0 1px rgba(255,255,255,0.6) inset, 0 0 0 2px rgba(0,0,0,0.15) inset, -12px 20px 60px rgba(0,0,0,0.35), -6px 10px 30px rgba(0,0,0,0.2), 0 2px 8px rgba(255,255,255,0.4)`,
-                  position: "relative",
-                }}>
-                  {/* Volume up */}
-                  <div style={{ position: "absolute", left: -4, top: 100, width: 4, height: 28, background: "linear-gradient(180deg, #c8c8d0 0%, #b0b0b8 100%)", borderRadius: "2px 0 0 2px", boxShadow: "-2px 0 4px rgba(0,0,0,0.3)" }} />
-                  {/* Volume down */}
-                  <div style={{ position: "absolute", left: -4, top: 140, width: 4, height: 28, background: "linear-gradient(180deg, #c8c8d0 0%, #b0b0b8 100%)", borderRadius: "2px 0 0 2px", boxShadow: "-2px 0 4px rgba(0,0,0,0.3)" }} />
-                  {/* Power */}
-                  <div style={{ position: "absolute", right: -4, top: 118, width: 4, height: 44, background: "linear-gradient(180deg, #c8c8d0 0%, #b0b0b8 100%)", borderRadius: "0 2px 2px 0", boxShadow: "2px 0 4px rgba(0,0,0,0.3)" }} />
-                  {/* Screen bezel */}
-                  <div style={{ width: "100%", height: "100%", borderRadius: 38, overflow: "hidden", background: "#faf8f5", position: "relative" }}>
-                    {/* Dynamic island */}
-                    <div style={{ position: "absolute", top: 10, left: "50%", transform: "translateX(-50%)", width: 76, height: 22, background: "#111", borderRadius: 12, zIndex: 10 }} />
-                    {/* Screen content */}
-                    <div style={{ height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-                      {/* Hero image */}
-                      <div className="relative overflow-hidden" style={{ height: 120, flexShrink: 0 }}>
-                        <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                        <p className="absolute bottom-2 w-full text-center text-white font-serif text-base font-semibold drop-shadow">The Copper Table</p>
-                        {/* Language button */}
-                        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1 shadow-sm">
-                          <span className="text-[11px] font-medium text-gray-900">English</span>
-                          <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        </div>
+            <Phone3D>
+              <div style={{ height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                {/* Hero image */}
+                <div className="relative overflow-hidden" style={{ height: 120, flexShrink: 0 }}>
+                  <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                  <p className="absolute bottom-2 w-full text-center text-white font-serif text-base font-semibold drop-shadow">The Copper Table</p>
+                  <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm rounded-full px-2.5 py-1 flex items-center gap-1 shadow-sm">
+                    <span className="text-[11px] font-medium text-gray-900">English</span>
+                    <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+                {/* Category tabs */}
+                <div className="flex gap-2 px-3 py-2 overflow-x-hidden" style={{ background: '#ffffff', borderBottom: '1px solid rgba(44,42,38,0.08)', flexShrink: 0, height: 90 }}>
+                  {[
+                    { name: "Starters", img: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=150&q=70", active: false },
+                    { name: "Mains",    img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&q=70", active: true  },
+                    { name: "Desserts", img: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=150&q=70", active: false },
+                  ].map(cat => (
+                    <button key={cat.name} type="button" className="flex flex-col items-center gap-1 flex-shrink-0">
+                      <div className={`w-14 h-14 rounded-xl overflow-hidden ${cat.active ? "ring-2 ring-[#8b6914] ring-offset-1 ring-offset-white" : ""}`}>
+                        <img src={cat.img} className="w-full h-full object-cover" alt={cat.name} />
                       </div>
-                      {/* Category tabs */}
-                      <div className="flex gap-2 px-3 py-2 overflow-x-hidden" style={{ background: '#ffffff', borderBottom: '1px solid rgba(44,42,38,0.08)', flexShrink: 0, height: 90 }}>
-                        {[
-                          { name: "Starters", img: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=150&q=70", active: false },
-                          { name: "Mains",    img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&q=70", active: true  },
-                          { name: "Desserts", img: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=150&q=70", active: false },
-                        ].map(cat => (
-                          <button key={cat.name} type="button" className="flex flex-col items-center gap-1 flex-shrink-0">
-                            <div className={`w-14 h-14 rounded-xl overflow-hidden ${cat.active ? "ring-2 ring-[#8b6914] ring-offset-1 ring-offset-white" : ""}`}>
-                              <img src={cat.img} className="w-full h-full object-cover" alt={cat.name} />
-                            </div>
-                            <span className={`text-[9px] font-semibold uppercase tracking-wide ${cat.active ? "text-[#8b6914]" : "text-[#6b6560]"}`}>{cat.name}</span>
-                          </button>
-                        ))}
+                      <span className={`text-[9px] font-semibold uppercase tracking-wide ${cat.active ? "text-[#8b6914]" : "text-[#6b6560]"}`}>{cat.name}</span>
+                    </button>
+                  ))}
+                </div>
+                {/* Category description */}
+                <p className="text-[10px] text-[#6b6560] italic px-3 pt-1.5 pb-0.5" style={{ flexShrink: 0 }}>All entrées served with soup or salad and house bread.</p>
+                {/* Dietary key */}
+                <div className="flex items-center gap-2.5 px-3 py-1 text-[10px] text-[#6b6560]" style={{ flexShrink: 0 }}>
+                  <span className="font-medium tracking-wide">DIETARY KEY</span>
+                  <span className="flex items-center gap-1"><WheatOff size={10} className="text-[#6b6560]" /> GF</span>
+                  <span className="flex items-center gap-1"><Leaf size={10} className="text-[#6b6560]" /> Vegan</span>
+                  <span className="flex items-center gap-1"><Sprout size={10} className="text-[#6b6560]" /> Veg</span>
+                </div>
+                {/* Menu items */}
+                <div className="space-y-1.5 mx-3 mb-2" style={{ flex: 1, overflow: "hidden" }}>
+                  <div className="flex gap-2 p-2 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
+                    <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-1">
+                        <span className="font-semibold text-[11px] leading-snug text-[#2c2a26]">Seared Duck Confit</span>
+                        <span className="font-semibold text-[#8b6914] flex-shrink-0 text-[11px]">$24.00</span>
                       </div>
-                      {/* Category description */}
-                      <p className="text-[10px] text-[#6b6560] italic px-3 pt-1.5 pb-0.5" style={{ flexShrink: 0 }}>All entrées served with soup or salad and house bread.</p>
-                      {/* Dietary key */}
-                      <div className="flex items-center gap-2.5 px-3 py-1 text-[10px] text-[#6b6560]" style={{ flexShrink: 0 }}>
-                        <span className="font-medium tracking-wide">DIETARY KEY</span>
-                        <span className="flex items-center gap-1"><WheatOff size={10} className="text-[#6b6560]" /> GF</span>
-                        <span className="flex items-center gap-1"><Leaf size={10} className="text-[#6b6560]" /> Vegan</span>
-                        <span className="flex items-center gap-1"><Sprout size={10} className="text-[#6b6560]" /> Veg</span>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <WheatOff size={11} className="text-[#6b6560]" />
+                        <Star size={11} className="text-[#6b6560]" />
                       </div>
-                      {/* Menu items — 2 only */}
-                      <div className="space-y-1.5 mx-3 mb-2" style={{ flex: 1, overflow: "hidden" }}>
-                        <div className="flex gap-2 p-2 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
-                          <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-1">
-                              <span className="font-semibold text-[11px] leading-snug text-[#2c2a26]">Seared Duck Confit</span>
-                              <span className="font-semibold text-[#8b6914] flex-shrink-0 text-[11px]">$24.00</span>
-                            </div>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <WheatOff size={11} className="text-[#6b6560]" />
-                              <Star size={11} className="text-[#6b6560]" />
-                            </div>
-                            <p className="text-[10px] text-[#6b6560] mt-0.5 line-clamp-2">Slow-braised duck leg, crispy skin, root vegetable purée and pan jus.</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2 p-2 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
-                          <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-1">
-                              <span className="font-semibold text-[11px] leading-snug text-[#2c2a26]">Atlantic Salmon</span>
-                              <span className="font-semibold text-[#8b6914] flex-shrink-0 text-[11px]">$22.00</span>
-                            </div>
-                            <div className="flex items-center gap-1 mt-0.5">
-                              <WheatOff size={11} className="text-[#6b6560]" />
-                              <Leaf size={11} className="text-[#6b6560]" />
-                            </div>
-                            <p className="text-[10px] text-[#6b6560] mt-0.5 line-clamp-2">Pan-seared fillet, lemon beurre blanc, capers and seasonal greens.</p>
-                          </div>
-                        </div>
+                      <p className="text-[10px] text-[#6b6560] mt-0.5 line-clamp-2">Slow-braised duck leg, crispy skin, root vegetable purée and pan jus.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 p-2 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
+                    <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-1">
+                        <span className="font-semibold text-[11px] leading-snug text-[#2c2a26]">Atlantic Salmon</span>
+                        <span className="font-semibold text-[#8b6914] flex-shrink-0 text-[11px]">$22.00</span>
                       </div>
-                      <div className="pb-2 text-center" style={{ flexShrink: 0 }}>
-                        <span className="inline-flex items-center gap-1.5 text-[10px] text-[#2c2a26]/30">
-                          <svg width="10" height="9" viewBox="0 0 44 40" fill="none">
-                            <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
-                            <line x1="26" y1="3" x2="26" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                            <line x1="26" y1="37" x2="42" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                          </svg>
-                          Powered by DineLinks
-                        </span>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <WheatOff size={11} className="text-[#6b6560]" />
+                        <Leaf size={11} className="text-[#6b6560]" />
                       </div>
+                      <p className="text-[10px] text-[#6b6560] mt-0.5 line-clamp-2">Pan-seared fillet, lemon beurre blanc, capers and seasonal greens.</p>
                     </div>
                   </div>
                 </div>
-              </motion.div>
-            </motion.div>
+                <div className="pb-2 text-center" style={{ flexShrink: 0 }}>
+                  <span className="inline-flex items-center gap-1.5 text-[10px] text-[#2c2a26]/30">
+                    <svg width="10" height="9" viewBox="0 0 44 40" fill="none">
+                      <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
+                      <line x1="26" y1="3" x2="26" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                      <line x1="26" y1="37" x2="42" y2="37" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+                    </svg>
+                    Powered by DineLinks
+                  </span>
+                </div>
+              </div>
+            </Phone3D>
             <p className="hidden lg:block mt-4 text-center text-xs text-[#8b6914]/70">↑ Example menu built with DineLinks</p>
           </motion.div>
         </div>
@@ -1213,88 +1192,79 @@ export default function HomePage() {
           </motion.div>
 
           <div className="flex flex-col items-center sm:flex-row sm:justify-center sm:items-start gap-6 mt-14" style={{ perspective: 1200 }}>
-            {/* The Manor — Old World preset */}
+            {/* The Edison — Night Bar */}
             <motion.div {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5 } })}>
               <motion.div
-                className="rounded-2xl overflow-hidden shadow-lg border border-[#c89a4e]/20 flex-shrink-0 w-full sm:w-48"
-                style={{ background: "#1f1d1a", transformStyle: 'preserve-3d' }}
+                className="rounded-2xl overflow-hidden shadow-xl flex-shrink-0 w-full sm:w-72"
+                style={{ background: "#0d0f14", transformStyle: 'preserve-3d', border: "1px solid rgba(0,180,216,0.2)" }}
                 animate={rm ? {} : { y: [0, -6, 0] }}
                 transition={rm ? {} : { duration: 5, repeat: Infinity, ease: 'easeInOut' }}
                 whileHover={rm ? {} : { y: -8, rotateY: 4, scale: 1.03, z: 20 }}
               >
-                <div className="h-20 relative overflow-hidden">
-                  <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=300&q=75" alt="" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/50" />
-                  <p className="absolute bottom-2 left-0 right-0 text-center text-white text-xs font-semibold drop-shadow">The Manor</p>
+                <div className="h-36 relative overflow-hidden">
+                  <img src="https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=400&q=75" alt="" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(13,15,20,0.9) 0%, rgba(13,15,20,0.3) 60%, transparent 100%)" }} />
+                  <p className="absolute bottom-3 left-4 text-white text-sm font-semibold drop-shadow">The Edison</p>
                 </div>
-                <div className="px-3 py-2 space-y-1.5">
-                  <div className="flex gap-1"><span className="text-[10px] font-semibold rounded-lg px-2 py-0.5" style={{ background: "#c89a4e33", color: "#c89a4e" }}>Starters</span></div>
-                  <div className="flex items-center gap-2 rounded-lg p-2 border border-[#c89a4e]/15" style={{ background: "#2a2723" }}>
-                    <div className="w-9 h-9 rounded bg-[#c89a4e]/20 flex-shrink-0 overflow-hidden">
-                      <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=100&q=60" alt="" className="w-full h-full object-cover opacity-50" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-medium" style={{ color: "#f4ede0" }}>Beef Tartare</p>
-                      <p className="text-[10px] font-bold" style={{ color: "#c89a4e" }}>$19</p>
-                    </div>
+                <div className="px-4 py-3 space-y-2">
+                  <div className="flex gap-1">
+                    <span className="text-[11px] font-semibold rounded-lg px-2.5 py-0.5" style={{ background: "#00b4d8", color: "#ffffff" }}>Cocktails</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg px-3 py-2.5" style={{ background: "#161923", border: "1px solid rgba(0,180,216,0.12)" }}>
+                    <p className="text-[12px] font-medium" style={{ color: "#e8f4f8" }}>Negroni Sbagliato</p>
+                    <p className="text-[12px] font-bold" style={{ color: "#00b4d8" }}>$16</p>
                   </div>
                 </div>
               </motion.div>
             </motion.div>
 
-            {/* Harbour Kitchen — Coastal preset */}
+            {/* Maison Lavande — Provençal Garden */}
             <motion.div {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.1 } })}>
               <motion.div
-                className="rounded-2xl overflow-hidden shadow-lg border border-[#1d4470]/20 flex-shrink-0 w-full sm:w-48"
-                style={{ background: "#f4f7fa", transformStyle: 'preserve-3d' }}
+                className="rounded-2xl overflow-hidden shadow-xl flex-shrink-0 w-full sm:w-72"
+                style={{ background: "#f5f0eb", transformStyle: 'preserve-3d', border: "1px solid rgba(124,79,138,0.2)" }}
                 animate={rm ? {} : { y: [0, -6, 0] }}
                 transition={rm ? {} : { duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
                 whileHover={rm ? {} : { y: -8, scale: 1.03, z: 20 }}
               >
-                <div className="h-20 relative overflow-hidden">
-                  <img src="https://images.unsplash.com/photo-1559329007-40df8a9345d8?w=300&q=75" alt="" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/35" />
-                  <p className="absolute bottom-2 left-0 right-0 text-center text-white text-xs font-semibold drop-shadow">Harbour Kitchen</p>
+                <div className="h-36 relative overflow-hidden">
+                  <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=75" alt="" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(45,32,53,0.75) 0%, rgba(45,32,53,0.2) 60%, transparent 100%)" }} />
+                  <p className="absolute bottom-3 left-4 text-white text-sm font-semibold drop-shadow">Maison Lavande</p>
                 </div>
-                <div className="px-3 py-2 space-y-1.5">
-                  <div className="flex gap-1"><span className="text-[10px] font-semibold rounded-lg px-2 py-0.5" style={{ background: "#1d447022", color: "#1d4470" }}>Mains</span></div>
-                  <div className="flex items-center gap-2 rounded-lg p-2 border border-[#1d4470]/15" style={{ background: "#ffffff" }}>
-                    <div className="w-9 h-9 rounded bg-[#1d4470]/10 flex-shrink-0 overflow-hidden">
-                      <img src="https://images.unsplash.com/photo-1559329007-40df8a9345d8?w=100&q=60" alt="" className="w-full h-full object-cover opacity-70" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-medium" style={{ color: "#1a2535" }}>Seared Halibut</p>
-                      <p className="text-[10px] font-bold" style={{ color: "#1d4470" }}>$28</p>
-                    </div>
+                <div className="px-4 py-3 space-y-2">
+                  <div className="flex gap-1">
+                    <span className="text-[11px] font-semibold rounded-lg px-2.5 py-0.5" style={{ background: "#7c4f8a", color: "#ffffff" }}>Entrées</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg px-3 py-2.5" style={{ background: "#fdfaf6", border: "1px solid rgba(124,79,138,0.12)" }}>
+                    <p className="text-[12px] font-medium" style={{ color: "#2d2035" }}>Bouillabaisse</p>
+                    <p className="text-[12px] font-bold" style={{ color: "#7c4f8a" }}>$32</p>
                   </div>
                 </div>
               </motion.div>
             </motion.div>
 
-            {/* Sunday Social — Brunch preset */}
+            {/* Kura — Izakaya */}
             <motion.div {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.2 } })}>
               <motion.div
-                className="rounded-2xl overflow-hidden shadow-lg border border-[#b85a3e]/20 flex-shrink-0 w-full sm:w-48"
-                style={{ background: "#fbf6ed", transformStyle: 'preserve-3d' }}
+                className="rounded-2xl overflow-hidden shadow-xl flex-shrink-0 w-full sm:w-72"
+                style={{ background: "#fafafa", transformStyle: 'preserve-3d', border: "1px solid rgba(192,57,43,0.2)" }}
                 animate={rm ? {} : { y: [0, -6, 0] }}
                 transition={rm ? {} : { duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1.6 }}
                 whileHover={rm ? {} : { y: -8, rotateY: -4, scale: 1.03, z: 20 }}
               >
-                <div className="h-20 relative overflow-hidden">
-                  <img src="https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=300&q=75" alt="" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-black/30" />
-                  <p className="absolute bottom-2 left-0 right-0 text-center text-white text-xs font-semibold drop-shadow">Sunday Social</p>
+                <div className="h-36 relative overflow-hidden">
+                  <img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400&q=75" alt="" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(26,26,26,0.8) 0%, rgba(26,26,26,0.25) 60%, transparent 100%)" }} />
+                  <p className="absolute bottom-3 left-4 text-white text-sm font-semibold drop-shadow">Kura</p>
                 </div>
-                <div className="px-3 py-2 space-y-1.5">
-                  <div className="flex gap-1"><span className="text-[10px] font-semibold rounded-lg px-2 py-0.5" style={{ background: "#b85a3e22", color: "#b85a3e" }}>Smoothies</span></div>
-                  <div className="flex items-center gap-2 rounded-lg p-2 border border-[#b85a3e]/15" style={{ background: "#fffaf0" }}>
-                    <div className="w-9 h-9 rounded bg-[#b85a3e]/10 flex-shrink-0 overflow-hidden">
-                      <img src="https://images.unsplash.com/photo-1476224203421-9ac39bcb3327?w=100&q=60" alt="" className="w-full h-full object-cover opacity-80" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-medium" style={{ color: "#2e2520" }}>Mango Sunrise</p>
-                      <p className="text-[10px] font-bold" style={{ color: "#b85a3e" }}>$13</p>
-                    </div>
+                <div className="px-4 py-3 space-y-2">
+                  <div className="flex gap-1">
+                    <span className="text-[11px] font-semibold rounded-lg px-2.5 py-0.5" style={{ background: "#c0392b", color: "#ffffff" }}>Yakitori</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg px-3 py-2.5" style={{ background: "#ffffff", border: "1px solid rgba(192,57,43,0.12)" }}>
+                    <p className="text-[12px] font-medium" style={{ color: "#1a1a1a" }}>Chicken Thigh ×3</p>
+                    <p className="text-[12px] font-bold" style={{ color: "#c0392b" }}>$14</p>
                   </div>
                 </div>
               </motion.div>
@@ -1302,7 +1272,7 @@ export default function HomePage() {
           </div>
 
           <p className="text-[#faf8f5]/60 text-sm text-center mt-8">
-            Old World dark · Coastal clean · Warm brunch — your menu, your personality
+            Moody bar · French garden · Japanese minimal — your menu, your personality
           </p>
         </div>
       </section>

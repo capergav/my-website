@@ -177,9 +177,9 @@ export function AnalyticsDemo() {
           </div>
 
           {/* Language pie */}
-          <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-4">
+          <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-4 overflow-hidden">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50 mb-3">Language preferences</p>
-            <div style={{ height: 120 }}>
+            <div style={{ height: 160 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -188,9 +188,10 @@ export function AnalyticsDemo() {
                     nameKey="lang"
                     cx="50%"
                     cy="50%"
-                    innerRadius={34}
-                    outerRadius={52}
+                    innerRadius={38}
+                    outerRadius={58}
                     paddingAngle={2}
+                    label={false}
                   >
                     {LANG_DATA.map((_, idx) => (
                       <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
@@ -203,12 +204,17 @@ export function AnalyticsDemo() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 justify-center">
-              {LANG_DATA.map((lang, idx) => (
-                <div key={lang.lang} className="flex items-center gap-1 text-[10px] text-[#2c2a26]/70">
-                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: CHART_COLORS[idx % CHART_COLORS.length] }} />
-                  <span>{lang.shortName}</span>
-                  <span>{Math.round(lang.count / LANG_TOTAL * 100)}%</span>
+            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-3 px-2">
+              {[
+                { code: "EN",   pct: 68, color: "#8b6914" },
+                { code: "FR",   pct: 12, color: "#b8a050" },
+                { code: "中文", pct: 9,  color: "#4a7c59" },
+                { code: "ES",   pct: 6,  color: "#2c2a26" },
+                { code: "AR",   pct: 5,  color: "#a0896b" },
+              ].map(l => (
+                <div key={l.code} className="flex items-center gap-1 text-[11px] text-[#2c2a26]/70">
+                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: l.color }} />
+                  {l.code} {l.pct}%
                 </div>
               ))}
             </div>
