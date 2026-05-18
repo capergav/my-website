@@ -36,12 +36,13 @@ const TOP_ITEMS = [
 ];
 
 const LANG_DATA = [
-  { lang: "en", count: 68 },
-  { lang: "fr", count: 12 },
-  { lang: "zh", count: 9  },
-  { lang: "es", count: 6  },
-  { lang: "ar", count: 5  },
+  { lang: "en", count: 68, shortName: "EN" },
+  { lang: "fr", count: 12, shortName: "FR" },
+  { lang: "zh", count: 9,  shortName: "中文" },
+  { lang: "es", count: 6,  shortName: "ES" },
+  { lang: "ar", count: 5,  shortName: "AR" },
 ];
+const LANG_TOTAL = LANG_DATA.reduce((s, d) => s + d.count, 0);
 
 const HOUR_DATA = [
   { hour: "8am",  count: 18 },
@@ -178,7 +179,7 @@ export function AnalyticsDemo() {
           {/* Language pie */}
           <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50 mb-3">Language preferences</p>
-            <div style={{ height: 170 }}>
+            <div style={{ height: 120 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -187,11 +188,9 @@ export function AnalyticsDemo() {
                     nameKey="lang"
                     cx="50%"
                     cy="50%"
-                    innerRadius={40}
-                    outerRadius={65}
+                    innerRadius={34}
+                    outerRadius={52}
                     paddingAngle={2}
-                    label={({ lang, percent }) => `${LANGUAGE_NAMES[lang as string] ?? lang} ${((percent as number) * 100).toFixed(0)}%`}
-                    labelLine={false}
                   >
                     {LANG_DATA.map((_, idx) => (
                       <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
@@ -203,6 +202,15 @@ export function AnalyticsDemo() {
                   />
                 </PieChart>
               </ResponsiveContainer>
+            </div>
+            <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2 justify-center">
+              {LANG_DATA.map((lang, idx) => (
+                <div key={lang.lang} className="flex items-center gap-1 text-[10px] text-[#2c2a26]/70">
+                  <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: CHART_COLORS[idx % CHART_COLORS.length] }} />
+                  <span>{lang.shortName}</span>
+                  <span>{Math.round(lang.count / LANG_TOTAL * 100)}%</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
