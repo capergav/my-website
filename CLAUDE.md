@@ -48,8 +48,13 @@ and bistros.
 - Mobile admin/menu sheets animate down from the header, not up from bottom
 - The customer-facing menu page must NEVER pull theme styles from the
   landing page CSS — they must be scoped to /menu/[slug] only
-- Admin UI ALWAYS uses hardcoded DineLinks brand colors — restaurant theme
-  colors must NEVER be injected into :root on the admin page
+- Admin UI uses the restaurant's chosen theme colors (CSS variables injected
+  from restaurant settings). The ONLY exceptions are:
+  - Trial pill in the header: always DineLinks gold (#8b6914)
+  - Analytics page: always hardcoded DineLinks colors
+  - Landing page: always hardcoded DineLinks colors
+  - Modals (Theme & Branding, Settings, Item form etc.): always white
+    background (#ffffff) + dark text (#2c2a26) for readability
 
 ## Design system
 The canonical design system lives at design-system/MASTER.md.
