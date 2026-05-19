@@ -34,7 +34,7 @@ export function LanguageDropdown({ trackRestaurantId }: { trackRestaurantId?: st
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
     const W = window.innerWidth;
-    const isRtl = document.documentElement.dir === "rtl";
+    const isRtl = locale === "ar";
     const minWidth = Math.max(rect.width, 160);
 
     if (isRtl) {

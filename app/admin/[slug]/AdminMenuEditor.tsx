@@ -630,7 +630,7 @@ export function AdminMenuEditor({
   const showTrialExpiredOverlay = subStatus !== 'loading' && (isTrialExpired || subStatus === 'canceled');
 
   return (
-    <main className={`min-h-screen bg-[var(--background)] text-[var(--foreground)] ${showTrialExpiredOverlay ? 'pointer-events-none grayscale opacity-60' : ''}`}>
+    <main dir="ltr" className={`min-h-screen bg-[var(--background)] text-[var(--foreground)] ${showTrialExpiredOverlay ? 'pointer-events-none grayscale opacity-60' : ''}`}>
 
       {/* ── Subscription banners ─────────────────────────────────────────────── */}
       {subStatus === 'past_due' && (

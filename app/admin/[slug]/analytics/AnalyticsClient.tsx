@@ -19,7 +19,7 @@ const CHART_COLORS = [
 
 const LANGUAGE_NAMES: Record<string, string> = {
   en: "English",
-  fr: "Français 🏴󠁣󠁡󠁱󠁣󠁿",
+  fr: "Français",
   es: "Español",
   ar: "العربية",
   zh: "中文",

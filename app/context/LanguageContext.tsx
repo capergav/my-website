@@ -45,7 +45,6 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEY, locale);
     const html = document.documentElement;
     html.setAttribute("lang", locale === "zh" ? "zh-Hans" : locale === "yue" ? "zh-yue" : locale);
-    html.setAttribute("dir", locale === "ar" ? "rtl" : "ltr");
   }, [locale, mounted]);
 
   const setLocale = useCallback((newLocale: Locale) => {

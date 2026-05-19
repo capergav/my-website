@@ -9,6 +9,7 @@ import { MenuTabs } from "@/app/components/MenuTabs";
 import { HeroWithLang } from "@/app/components/HeroWithLang";
 import { MenuTracker } from "@/app/components/MenuTracker";
 import { PoweredByFooter } from "@/app/components/PoweredByFooter";
+import { MenuDirWrapper } from "@/app/components/MenuDirWrapper";
 import { Clock } from "lucide-react";
 import type { Metadata } from "next";
 
@@ -162,8 +163,10 @@ export default async function PublicMenuPage({ params }: Props) {
   const hasItems = sortedCategories.length > 0;
 
   return (
-    // CSS vars scoped to this wrapper — never bleeds into the DineLinks navbar
-    <div
+    // CSS vars scoped to this wrapper — never bleeds into the DineLinks navbar.
+    // MenuDirWrapper is a client component that sets dir="rtl" for Arabic, ltr otherwise,
+    // scoped to this element only — never touches document.documentElement.
+    <MenuDirWrapper
       style={{
         "--foreground": fontColor,
         "--accent": accent,
@@ -200,6 +203,6 @@ export default async function PublicMenuPage({ params }: Props) {
       )}
       {/* Powered by DineLinks footer */}
       <PoweredByFooter fontColor={fontColor} />
-    </div>
+    </MenuDirWrapper>
   );
 }
