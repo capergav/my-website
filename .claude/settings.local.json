@@ -52,7 +52,9 @@
       "Bash(split:*)",
       "Bash(grep -c \"analytics\\\\|Analytics\\\\|newsletter\\\\|Newsletter\\\\|subscribe\\\\|Subscribe\\\\|\\\\$25\\\\|CAD\\\\|10 languages\\\\|dinelinks\\\\.com\")",
       "Bash(grep -n \"analytics\\\\|Analytics\\\\|newsletter\\\\|Newsletter\\\\|\\\\$25\\\\|CAD\\\\|10 language\\\\|dinelinks\\\\.com\\\\|Admin\\\\|admin demo\")",
-      "Bash(grep -n \"analytics\\\\|AnalyticsDemo\\\\|\\\\$25 CAD\\\\|\\\\$25\\\\|10 languages\\\\|dinelinks\\\\.com\\\\|newsletter\" app/page.tsx)"
+      "Bash(grep -n \"analytics\\\\|AnalyticsDemo\\\\|\\\\$25 CAD\\\\|\\\\$25\\\\|10 languages\\\\|dinelinks\\\\.com\\\\|newsletter\" app/page.tsx)",
+      "Bash(npm uninstall:*)",
+      "Bash(awk NR>=550 && NR<=560:*)"
     ]
   }
 }

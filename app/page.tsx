@@ -15,7 +15,10 @@ const CT_STEAK_URL   = "https://images.unsplash.com/photo-1558618666-fcd25c85cd6
 const CT_SALMON_URL  = "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=400&q=80";
 const CT_DESSERT_URL = "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&q=80";
 const CT_PASTA_URL   = "https://images.unsplash.com/photo-1476124369491-e7addf5db371?w=400&q=80";
+const FRIES_IMAGE_URL  = "https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=200&q=80";
+const BURGER_IMAGE_URL = "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&q=80";
 const EXAMPLE_MENU_URL = "/menu/gavinrgallant-1";
+const LIVE_DEMO_URL    = "https://dinelinks.com/menu/glenngallant-1";
 
 // ── Logo components ────────────────────────────────────────────────────────────
 function DLLogoDark({ width = 44, height = 40 }: { width?: number; height?: number }) {
@@ -448,6 +451,8 @@ export default function HomePage() {
   const [newsletterDone, setNewsletterDone] = useState(false);
   const [newsletterLoading, setNewsletterLoading] = useState(false);
   const [newsletterError, setNewsletterError] = useState('');
+  const [demoMouse, setDemoMouse] = useState({ x: 0, y: 0 });
+  const demoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     import("@/app/lib/supabase").then(({ createSupabaseClient }) => {
@@ -471,6 +476,15 @@ export default function HomePage() {
   }, []);
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+
+  const handleDemoMouseMove = (e: React.MouseEvent) => {
+    if (!demoRef.current) return;
+    const rect = demoRef.current.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
+    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
+    setDemoMouse({ x, y });
+  };
+  const handleDemoMouseLeave = () => setDemoMouse({ x: 0, y: 0 });
 
   const enter = (delay = 0) => rm ? {} : {
     initial: { opacity: 0, y: 30 },
@@ -735,7 +749,16 @@ export default function HomePage() {
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ duration: rm ? 0 : (isMobile ? 0.3 : 0.7), ease: [0.22, 1, 0.36, 1], delay: rm ? 0 : 0.15 }}
           >
-            <div className="mx-auto max-w-sm rounded-3xl overflow-hidden shadow-2xl border border-[#e8e4dd]">
+            <div
+              ref={demoRef}
+              onMouseMove={handleDemoMouseMove}
+              onMouseLeave={handleDemoMouseLeave}
+              style={{
+                transform: `perspective(900px) rotateY(${demoMouse.x * 6}deg) rotateX(${-demoMouse.y * 4}deg)`,
+                transition: "transform 0.15s ease-out",
+              }}
+              className="mx-auto w-[300px] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#e8e4dd]"
+            >
                 {/* Hero image */}
                 <div className="relative overflow-hidden" style={{ height: 120 }}>
                   <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
@@ -748,12 +771,14 @@ export default function HomePage() {
                     </svg>
                   </div>
                 </div>
-                {/* Category tabs */}
-                <div className="flex gap-2 px-3 py-2 overflow-x-hidden" style={{ background: '#ffffff', borderBottom: '1px solid rgba(44,42,38,0.08)', height: 90 }}>
+                {/* Category tabs — 5 tabs, overflow hints scroll */}
+                <div className="flex gap-2 px-3 py-2 overflow-x-auto" style={{ background: '#ffffff', borderBottom: '1px solid rgba(44,42,38,0.08)', height: 90, scrollbarWidth: 'none' }}>
                   {[
-                    { name: "Starters", img: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=150&q=70", active: false },
-                    { name: "Mains",    img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&q=70", active: true  },
-                    { name: "Desserts", img: "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=150&q=70", active: false },
+                    { name: "Starters", img: FRIES_IMAGE_URL,  active: true  },
+                    { name: "Mains",    img: BURGER_IMAGE_URL, active: false },
+                    { name: "Desserts", img: "https://images.unsplash.com/photo-1551024601-bec78aea704b?w=200&q=80", active: false },
+                    { name: "Drinks",   img: "https://images.unsplash.com/photo-1551538827-9c037cb4f32a?w=200&q=80", active: false },
+                    { name: "Specials", img: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=200&q=80", active: false },
                   ].map(cat => (
                     <button key={cat.name} type="button" className="flex flex-col items-center gap-1 flex-shrink-0">
                       <div className={`w-14 h-14 rounded-xl overflow-hidden ${cat.active ? "ring-2 ring-[#8b6914] ring-offset-1 ring-offset-white" : ""}`}>
@@ -764,7 +789,7 @@ export default function HomePage() {
                   ))}
                 </div>
                 {/* Category description */}
-                <p className="text-[10px] text-[#6b6560] italic px-3 pt-1.5 pb-0.5">All entrées served with soup or salad and house bread.</p>
+                <p className="text-[10px] text-[#6b6560] italic px-3 pt-1.5 pb-0.5">All starters served with house bread.</p>
                 {/* Dietary key */}
                 <div className="flex items-center gap-2.5 px-3 py-1 text-[10px] text-[#6b6560]">
                   <span className="font-medium tracking-wide">DIETARY KEY</span>
@@ -773,33 +798,51 @@ export default function HomePage() {
                   <span className="flex items-center gap-1"><Sprout size={10} className="text-[#6b6560]" /> Veg</span>
                 </div>
                 {/* Menu items */}
-                <div className="space-y-1.5 mx-3 mb-2">
-                  <div className="flex gap-2 p-2 rounded-xl border border-[#2c2a26]/8 bg-white">
-                    <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-1">
-                        <span className="font-semibold text-[11px] leading-snug text-[#2c2a26]">Seared Duck Confit</span>
-                        <span className="font-semibold text-[#8b6914] flex-shrink-0 text-[11px]">$24.00</span>
+                <div style={{ margin: "0 12px 8px" }}>
+                  {/* Item 1 */}
+                  <div style={{ display: "flex", gap: 10, padding: "10px 12px", background: "#ffffff", borderRadius: 12, border: "1px solid #e8e4dd", marginBottom: 6 }}>
+                    <img style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} src={FRIES_IMAGE_URL} alt="Twice-Cooked Chips" />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#2c2a26", lineHeight: 1.3 }}>Twice-Cooked Chips</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#8b6914", flexShrink: 0 }}>$3.95</span>
                       </div>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <WheatOff size={11} className="text-[#6b6560]" />
-                        <Star size={11} className="text-[#6b6560]" />
+                      <div style={{ display: "flex", gap: 4, margin: "3px 0" }}>
+                        <WheatOff size={12} color="#6b6560" />
+                        <Leaf size={12} color="#6b6560" />
                       </div>
-                      <p className="text-[10px] text-[#6b6560] mt-0.5 line-clamp-2">Slow-braised duck leg, crispy skin, root vegetable purée and pan jus.</p>
+                      <p style={{ fontSize: 11, color: "#6b6560", margin: 0, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>Chunky skin-on chips double-fried for extra crunch.</p>
+                      <span style={{ fontSize: 11, color: "#8b6914", display: "block", marginTop: 3 }}>Tap to read more →</span>
                     </div>
                   </div>
-                  <div className="flex gap-2 p-2 rounded-xl border border-[#2c2a26]/8 bg-white">
-                    <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-1">
-                        <span className="font-semibold text-[11px] leading-snug text-[#2c2a26]">Atlantic Salmon</span>
-                        <span className="font-semibold text-[#8b6914] flex-shrink-0 text-[11px]">$22.00</span>
+                  {/* Item 2 */}
+                  <div style={{ display: "flex", gap: 10, padding: "10px 12px", background: "#ffffff", borderRadius: 12, border: "1px solid #e8e4dd", marginBottom: 6 }}>
+                    <img style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} src="https://images.unsplash.com/photo-1639024471283-03518883512d?w=300&q=80" alt="Beer-Battered Onion Rings" />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#2c2a26", lineHeight: 1.3 }}>Beer-Battered Onion Rings</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#8b6914", flexShrink: 0 }}>$4.50</span>
                       </div>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <WheatOff size={11} className="text-[#6b6560]" />
-                        <Leaf size={11} className="text-[#6b6560]" />
+                      <div style={{ display: "flex", gap: 4, margin: "3px 0" }}>
+                        <WheatOff size={12} color="#6b6560" />
                       </div>
-                      <p className="text-[10px] text-[#6b6560] mt-0.5 line-clamp-2">Pan-seared fillet, lemon beurre blanc, capers and seasonal greens.</p>
+                      <p style={{ fontSize: 11, color: "#6b6560", margin: 0, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>Six rings served with garlic mayo and house hot sauce.</p>
+                      <span style={{ fontSize: 11, color: "#8b6914", display: "block", marginTop: 3 }}>Tap to read more →</span>
+                    </div>
+                  </div>
+                  {/* Item 3 */}
+                  <div style={{ display: "flex", gap: 10, padding: "10px 12px", background: "#ffffff", borderRadius: 12, border: "1px solid #e8e4dd", marginBottom: 0 }}>
+                    <img style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} src="https://images.unsplash.com/photo-1543339520-0980a410e4c5?w=300&q=80" alt="Truffle Mac & Cheese" />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#2c2a26", lineHeight: 1.3 }}>Truffle Mac &amp; Cheese</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#8b6914", flexShrink: 0 }}>$5.95</span>
+                      </div>
+                      <div style={{ display: "flex", gap: 4, margin: "3px 0" }}>
+                        <Sprout size={12} color="#6b6560" />
+                      </div>
+                      <p style={{ fontSize: 11, color: "#6b6560", margin: 0, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>Creamy three-cheese sauce with black truffle oil and breadcrumbs.</p>
+                      <span style={{ fontSize: 11, color: "#8b6914", display: "block", marginTop: 3 }}>Tap to read more →</span>
                     </div>
                   </div>
                 </div>
