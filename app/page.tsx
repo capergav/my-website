@@ -4,22 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { WheatOff, Leaf, BarChart3, Star, Flame, Sprout, MilkOff, ShieldCheck } from "lucide-react";
 import { AnalyticsDemo } from "@/app/components/AnalyticsDemo";
-import dynamic from "next/dynamic";
-const Phone3D = dynamic(() => import("@/app/components/Phone3D"), {
-  ssr: false,
-  loading: () => (
-    <div style={{
-      width: 280, height: 560,
-      background: "linear-gradient(145deg, #d1d1d6, #b8b8c0)",
-      borderRadius: 46,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-    }}>
-      <div style={{ color: "#888", fontSize: 12, fontFamily: "system-ui" }}>Loading...</div>
-    </div>
-  ),
-});
 import { useIsMobile } from "@/lib/useIsMobile";
 import {
   motion, useScroll, useTransform, useSpring, useMotionValue, AnimatePresence,
@@ -473,26 +457,12 @@ export default function HomePage() {
     });
   }, []);
 
-  // 3D tilt for hero phone
-  const heroRef = useRef<HTMLDivElement>(null);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [4, -4]), { stiffness: 100, damping: 20 });
-  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-8, 8]), { stiffness: 100, damping: 20 });
-
   // Scroll
   const { scrollY, scrollYProgress } = useScroll();
   const phoneY = useTransform(scrollY, [0, 600], [0, rm ? 0 : -60]);
   // Parallax for blobs
   const blob1Y = useTransform(scrollY, [0, 2000], [0, rm ? 0 : -300]);
   const blob2Y = useTransform(scrollY, [0, 2000], [0, rm ? 0 : -180]);
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
-    if (rm || !heroRef.current) return;
-    const rect = heroRef.current.getBoundingClientRect();
-    mouseX.set((e.clientX - rect.left) / rect.width - 0.5);
-    mouseY.set((e.clientY - rect.top) / rect.height - 0.5);
-  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 30);
@@ -638,10 +608,7 @@ export default function HomePage() {
 
       {/* ── HERO ──────────────────────────────────────────────────────────────── */}
       <section
-        ref={heroRef}
         className="relative bg-[#faf8f5] pt-10 pb-16 md:pt-16 md:pb-24 lg:min-h-screen lg:flex lg:items-center overflow-hidden"
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => { mouseX.set(0); mouseY.set(0); }}
       >
         {/* Floating blobs with parallax */}
         {!rm && !isMobile && (
@@ -768,10 +735,9 @@ export default function HomePage() {
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ duration: rm ? 0 : (isMobile ? 0.3 : 0.7), ease: [0.22, 1, 0.36, 1], delay: rm ? 0 : 0.15 }}
           >
-            <Phone3D>
-              <div style={{ height: "100%", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+            <div className="mx-auto max-w-sm rounded-3xl overflow-hidden shadow-2xl border border-[#e8e4dd]">
                 {/* Hero image */}
-                <div className="relative overflow-hidden" style={{ height: 120, flexShrink: 0 }}>
+                <div className="relative overflow-hidden" style={{ height: 120 }}>
                   <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                   <p className="absolute bottom-2 w-full text-center text-white font-serif text-base font-semibold drop-shadow">The Copper Table</p>
@@ -783,7 +749,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 {/* Category tabs */}
-                <div className="flex gap-2 px-3 py-2 overflow-x-hidden" style={{ background: '#ffffff', borderBottom: '1px solid rgba(44,42,38,0.08)', flexShrink: 0, height: 90 }}>
+                <div className="flex gap-2 px-3 py-2 overflow-x-hidden" style={{ background: '#ffffff', borderBottom: '1px solid rgba(44,42,38,0.08)', height: 90 }}>
                   {[
                     { name: "Starters", img: "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=150&q=70", active: false },
                     { name: "Mains",    img: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=150&q=70", active: true  },
@@ -798,17 +764,17 @@ export default function HomePage() {
                   ))}
                 </div>
                 {/* Category description */}
-                <p className="text-[10px] text-[#6b6560] italic px-3 pt-1.5 pb-0.5" style={{ flexShrink: 0 }}>All entrées served with soup or salad and house bread.</p>
+                <p className="text-[10px] text-[#6b6560] italic px-3 pt-1.5 pb-0.5">All entrées served with soup or salad and house bread.</p>
                 {/* Dietary key */}
-                <div className="flex items-center gap-2.5 px-3 py-1 text-[10px] text-[#6b6560]" style={{ flexShrink: 0 }}>
+                <div className="flex items-center gap-2.5 px-3 py-1 text-[10px] text-[#6b6560]">
                   <span className="font-medium tracking-wide">DIETARY KEY</span>
                   <span className="flex items-center gap-1"><WheatOff size={10} className="text-[#6b6560]" /> GF</span>
                   <span className="flex items-center gap-1"><Leaf size={10} className="text-[#6b6560]" /> Vegan</span>
                   <span className="flex items-center gap-1"><Sprout size={10} className="text-[#6b6560]" /> Veg</span>
                 </div>
                 {/* Menu items */}
-                <div className="space-y-1.5 mx-3 mb-2" style={{ flex: 1, overflow: "hidden" }}>
-                  <div className="flex gap-2 p-2 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
+                <div className="space-y-1.5 mx-3 mb-2">
+                  <div className="flex gap-2 p-2 rounded-xl border border-[#2c2a26]/8 bg-white">
                     <img src={CT_STEAK_URL} alt="Seared Duck Confit" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-1">
@@ -822,7 +788,7 @@ export default function HomePage() {
                       <p className="text-[10px] text-[#6b6560] mt-0.5 line-clamp-2">Slow-braised duck leg, crispy skin, root vegetable purée and pan jus.</p>
                     </div>
                   </div>
-                  <div className="flex gap-2 p-2 rounded-xl border border-[#2c2a26]/8" style={{ background: '#ffffff' }}>
+                  <div className="flex gap-2 p-2 rounded-xl border border-[#2c2a26]/8 bg-white">
                     <img src={CT_SALMON_URL} alt="Atlantic Salmon" className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-1">
@@ -837,7 +803,7 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
-                <div className="pb-2 text-center" style={{ flexShrink: 0 }}>
+                <div className="pb-2 text-center">
                   <span className="inline-flex items-center gap-1.5 text-[10px] text-[#2c2a26]/30">
                     <svg width="10" height="9" viewBox="0 0 44 40" fill="none">
                       <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="currentColor" strokeWidth="3" strokeLinejoin="round" />
@@ -847,8 +813,7 @@ export default function HomePage() {
                     Powered by DineLinks
                   </span>
                 </div>
-              </div>
-            </Phone3D>
+            </div>
             <p className="hidden lg:block mt-4 text-center text-xs text-[#8b6914]/70">↑ Example menu built with DineLinks</p>
           </motion.div>
         </div>
