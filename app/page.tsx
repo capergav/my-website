@@ -452,7 +452,6 @@ export default function HomePage() {
   const [newsletterLoading, setNewsletterLoading] = useState(false);
   const [newsletterError, setNewsletterError] = useState('');
   const [demoMouse, setDemoMouse] = useState({ x: 0, y: 0 });
-  const demoRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     import("@/app/lib/supabase").then(({ createSupabaseClient }) => {
@@ -477,14 +476,15 @@ export default function HomePage() {
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
-  const handleDemoMouseMove = (e: React.MouseEvent) => {
-    if (!demoRef.current) return;
-    const rect = demoRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width - 0.5) * 2;
-    const y = ((e.clientY - rect.top) / rect.height - 0.5) * 2;
-    setDemoMouse({ x, y });
-  };
-  const handleDemoMouseLeave = () => setDemoMouse({ x: 0, y: 0 });
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const x = (e.clientX / window.innerWidth - 0.5) * 2;
+      const y = (e.clientY / window.innerHeight - 0.5) * 2;
+      setDemoMouse({ x, y });
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
 
   const enter = (delay = 0) => rm ? {} : {
     initial: { opacity: 0, y: 30 },
@@ -750,17 +750,15 @@ export default function HomePage() {
             transition={{ duration: rm ? 0 : (isMobile ? 0.3 : 0.7), ease: [0.22, 1, 0.36, 1], delay: rm ? 0 : 0.15 }}
           >
             <div
-              ref={demoRef}
-              onMouseMove={handleDemoMouseMove}
-              onMouseLeave={handleDemoMouseLeave}
               style={{
-                transform: `perspective(900px) rotateY(${demoMouse.x * 6}deg) rotateX(${-demoMouse.y * 4}deg)`,
+                transform: `perspective(1000px) rotateY(${demoMouse.x * 6}deg) rotateX(${-demoMouse.y * 4}deg)`,
                 transition: "transform 0.15s ease-out",
+                maxHeight: 480,
               }}
               className="mx-auto w-[300px] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#e8e4dd]"
             >
                 {/* Hero image */}
-                <div className="relative overflow-hidden" style={{ height: 120 }}>
+                <div className="relative overflow-hidden" style={{ height: 96 }}>
                   <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                   <p className="absolute bottom-2 w-full text-center text-white font-serif text-base font-semibold drop-shadow">The Copper Table</p>
@@ -789,60 +787,43 @@ export default function HomePage() {
                   ))}
                 </div>
                 {/* Category description */}
-                <p className="text-[10px] text-[#6b6560] italic px-3 pt-1.5 pb-0.5">All starters served with house bread.</p>
+                <p className="text-[10px] text-[#6b6560] italic px-3 pt-1 pb-0">All starters served with house bread.</p>
                 {/* Dietary key */}
-                <div className="flex items-center gap-2.5 px-3 py-1 text-[10px] text-[#6b6560]">
+                <div className="flex items-center gap-2 px-3 py-0.5 text-[10px] text-[#6b6560]">
                   <span className="font-medium tracking-wide">DIETARY KEY</span>
                   <span className="flex items-center gap-1"><WheatOff size={10} className="text-[#6b6560]" /> GF</span>
                   <span className="flex items-center gap-1"><Leaf size={10} className="text-[#6b6560]" /> Vegan</span>
                   <span className="flex items-center gap-1"><Sprout size={10} className="text-[#6b6560]" /> Veg</span>
                 </div>
                 {/* Menu items */}
-                <div style={{ margin: "0 12px 8px" }}>
+                <div style={{ margin: "0 9px 6px" }}>
                   {/* Item 1 */}
-                  <div style={{ display: "flex", gap: 10, padding: "10px 12px", background: "#ffffff", borderRadius: 12, border: "1px solid #e8e4dd", marginBottom: 6 }}>
-                    <img style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} src={FRIES_IMAGE_URL} alt="Twice-Cooked Chips" />
+                  <div style={{ display: "flex", gap: 8, padding: "8px 10px", background: "#ffffff", borderRadius: 12, border: "1px solid #e8e4dd", marginBottom: 5 }}>
+                    <img style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} src={FRIES_IMAGE_URL} alt="Twice-Cooked Chips" />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
                         <span style={{ fontSize: 13, fontWeight: 600, color: "#2c2a26", lineHeight: 1.3 }}>Twice-Cooked Chips</span>
                         <span style={{ fontSize: 13, fontWeight: 600, color: "#8b6914", flexShrink: 0 }}>$3.95</span>
                       </div>
-                      <div style={{ display: "flex", gap: 4, margin: "3px 0" }}>
+                      <div style={{ display: "flex", gap: 4, margin: "2px 0" }}>
                         <WheatOff size={12} color="#6b6560" />
                         <Leaf size={12} color="#6b6560" />
                       </div>
                       <p style={{ fontSize: 11, color: "#6b6560", margin: 0, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>Chunky skin-on chips double-fried for extra crunch.</p>
-                      <span style={{ fontSize: 11, color: "#8b6914", display: "block", marginTop: 3 }}>Tap to read more →</span>
                     </div>
                   </div>
                   {/* Item 2 */}
-                  <div style={{ display: "flex", gap: 10, padding: "10px 12px", background: "#ffffff", borderRadius: 12, border: "1px solid #e8e4dd", marginBottom: 6 }}>
-                    <img style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} src="https://images.unsplash.com/photo-1639024471283-03518883512d?w=300&q=80" alt="Beer-Battered Onion Rings" />
+                  <div style={{ display: "flex", gap: 8, padding: "8px 10px", background: "#ffffff", borderRadius: 12, border: "1px solid #e8e4dd", marginBottom: 0 }}>
+                    <img style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} src={CT_SALMON_URL} alt="Atlantic Salmon" />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "#2c2a26", lineHeight: 1.3 }}>Beer-Battered Onion Rings</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "#8b6914", flexShrink: 0 }}>$4.50</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#2c2a26", lineHeight: 1.3 }}>Atlantic Salmon</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "#8b6914", flexShrink: 0 }}>$24.00</span>
                       </div>
-                      <div style={{ display: "flex", gap: 4, margin: "3px 0" }}>
+                      <div style={{ display: "flex", gap: 4, margin: "2px 0" }}>
                         <WheatOff size={12} color="#6b6560" />
                       </div>
-                      <p style={{ fontSize: 11, color: "#6b6560", margin: 0, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>Six rings served with garlic mayo and house hot sauce.</p>
-                      <span style={{ fontSize: 11, color: "#8b6914", display: "block", marginTop: 3 }}>Tap to read more →</span>
-                    </div>
-                  </div>
-                  {/* Item 3 */}
-                  <div style={{ display: "flex", gap: 10, padding: "10px 12px", background: "#ffffff", borderRadius: 12, border: "1px solid #e8e4dd", marginBottom: 0 }}>
-                    <img style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} src="https://images.unsplash.com/photo-1543339520-0980a410e4c5?w=300&q=80" alt="Truffle Mac & Cheese" />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "#2c2a26", lineHeight: 1.3 }}>Truffle Mac &amp; Cheese</span>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: "#8b6914", flexShrink: 0 }}>$5.95</span>
-                      </div>
-                      <div style={{ display: "flex", gap: 4, margin: "3px 0" }}>
-                        <Sprout size={12} color="#6b6560" />
-                      </div>
-                      <p style={{ fontSize: 11, color: "#6b6560", margin: 0, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>Creamy three-cheese sauce with black truffle oil and breadcrumbs.</p>
-                      <span style={{ fontSize: 11, color: "#8b6914", display: "block", marginTop: 3 }}>Tap to read more →</span>
+                      <p style={{ fontSize: 11, color: "#6b6560", margin: 0, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>Pan-seared with lemon butter, capers, and seasonal greens.</p>
                     </div>
                   </div>
                 </div>

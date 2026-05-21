@@ -2,19 +2,14 @@
 
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell,
+  ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
 
 const GOLD       = "#8b6914";
 const GOLD_LIGHT = "#c9a030";
 const DARK       = "#2c2a26";
 
-const CHART_COLORS = [GOLD, "#c9a030", "#d4af37", DARK, "#6b8e23", "#4682b4"];
-
-const LANGUAGE_NAMES: Record<string, string> = {
-  en: "English", fr: "Français", zh: "中文", es: "Español", ar: "العربية",
-  ko: "한국어", pa: "ਪੰਜਾਬੀ", yue: "廣東話", tl: "Filipino", hi: "हिन्दी",
-};
+const CHART_COLORS = ["#8b6914", "#c9a030", "#d4af37", "#2c2a26", "#6b8e23"];
 
 // ── Demo data ───────────────────────────────────────────────────────────────
 const DAILY_SCANS = [
@@ -36,13 +31,12 @@ const TOP_ITEMS = [
 ];
 
 const LANG_DATA = [
-  { lang: "en", count: 68, shortName: "EN" },
-  { lang: "fr", count: 12, shortName: "FR" },
-  { lang: "zh", count: 9,  shortName: "中文" },
-  { lang: "es", count: 6,  shortName: "ES" },
-  { lang: "ar", count: 5,  shortName: "AR" },
+  { name: "English",  count: 68 },
+  { name: "Français", count: 12 },
+  { name: "中文",      count: 9  },
+  { name: "Español",  count: 6  },
+  { name: "العربية",  count: 5  },
 ];
-const LANG_TOTAL = LANG_DATA.reduce((s, d) => s + d.count, 0);
 
 const HOUR_DATA = [
   { hour: "8am",  count: 18 },
@@ -179,44 +173,33 @@ export function AnalyticsDemo() {
           {/* Language pie */}
           <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-4 overflow-hidden">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50 mb-3">Language preferences</p>
-            <div style={{ height: 160 }}>
+            <div style={{ height: 200 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={LANG_DATA}
                     dataKey="count"
-                    nameKey="lang"
                     cx="50%"
-                    cy="50%"
-                    innerRadius={38}
-                    outerRadius={58}
+                    cy="45%"
+                    innerRadius={55}
+                    outerRadius={90}
                     paddingAngle={2}
-                    label={false}
+                    label={({ name, percent }) =>
+                      `${name} ${((percent as number) * 100).toFixed(0)}%`
+                    }
+                    labelLine={false}
                   >
-                    {LANG_DATA.map((_, idx) => (
-                      <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
+                    {LANG_DATA.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{ borderRadius: 10, border: `1px solid ${DARK}15`, fontSize: 11 }}
-                    formatter={(value, name) => [value, LANGUAGE_NAMES[name as string] ?? (name as string)]}
+                  <Legend
+                    iconType="circle"
+                    iconSize={8}
+                    wrapperStyle={{ fontSize: 11, color: "#2c2a26" }}
                   />
                 </PieChart>
               </ResponsiveContainer>
-            </div>
-            <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mt-3 px-2">
-              {[
-                { code: "EN",   pct: 68, color: "#8b6914" },
-                { code: "FR",   pct: 12, color: "#b8a050" },
-                { code: "中文", pct: 9,  color: "#4a7c59" },
-                { code: "ES",   pct: 6,  color: "#2c2a26" },
-                { code: "AR",   pct: 5,  color: "#a0896b" },
-              ].map(l => (
-                <div key={l.code} className="flex items-center gap-1 text-[11px] text-[#2c2a26]/70">
-                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: l.color }} />
-                  {l.code} {l.pct}%
-                </div>
-              ))}
             </div>
           </div>
         </div>
