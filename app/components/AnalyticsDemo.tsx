@@ -38,6 +38,8 @@ const LANG_DATA = [
   { name: "العربية",  count: 5  },
 ];
 
+const totalLang = LANG_DATA.reduce((a, b) => a + b.count, 0);
+
 const HOUR_DATA = [
   { hour: "8am",  count: 18 },
   { hour: "9am",  count: 22 },
@@ -171,7 +173,7 @@ export function AnalyticsDemo() {
           </div>
 
           {/* Language pie */}
-          <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-4 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50 mb-3">Language preferences</p>
             <div style={{ height: 200 }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -180,23 +182,31 @@ export function AnalyticsDemo() {
                     data={LANG_DATA}
                     dataKey="count"
                     cx="50%"
-                    cy="45%"
-                    innerRadius={55}
-                    outerRadius={90}
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={85}
                     paddingAngle={2}
-                    label={({ name, percent }) =>
-                      `${name} ${((percent as number) * 100).toFixed(0)}%`
-                    }
+                    label={false}
                     labelLine={false}
                   >
                     {LANG_DATA.map((_, i) => (
                       <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
                     ))}
                   </Pie>
+                  <Tooltip
+                    contentStyle={{ borderRadius: 8, border: "1px solid #e8e4dd", fontSize: 12 }}
+                    formatter={(value, name) => [
+                      `${((Number(value) / totalLang) * 100).toFixed(0)}%`,
+                      name
+                    ]}
+                  />
                   <Legend
+                    layout="horizontal"
+                    align="center"
+                    verticalAlign="bottom"
                     iconType="circle"
                     iconSize={8}
-                    wrapperStyle={{ fontSize: 11, color: "#2c2a26" }}
+                    wrapperStyle={{ fontSize: 11, color: "#2c2a26", paddingTop: 10 }}
                   />
                 </PieChart>
               </ResponsiveContainer>

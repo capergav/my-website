@@ -451,7 +451,12 @@ export default function HomePage() {
   const [newsletterDone, setNewsletterDone] = useState(false);
   const [newsletterLoading, setNewsletterLoading] = useState(false);
   const [newsletterError, setNewsletterError] = useState('');
-  const [demoMouse, setDemoMouse] = useState({ x: 0, y: 0 });
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { stiffness: 25, damping: 18 });
+  const springY = useSpring(mouseY, { stiffness: 25, damping: 18 });
+  const rotateY = useTransform(springX, [-1, 1], [-5, 5]);
+  const rotateX = useTransform(springY, [1, -1], [-3, 3]);
 
   useEffect(() => {
     import("@/app/lib/supabase").then(({ createSupabaseClient }) => {
@@ -477,14 +482,13 @@ export default function HomePage() {
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const x = (e.clientX / window.innerWidth - 0.5) * 2;
-      const y = (e.clientY / window.innerHeight - 0.5) * 2;
-      setDemoMouse({ x, y });
+    const handler = (e: MouseEvent) => {
+      mouseX.set((e.clientX / window.innerWidth - 0.5) * 2);
+      mouseY.set((e.clientY / window.innerHeight - 0.5) * 2);
     };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
+    window.addEventListener('mousemove', handler);
+    return () => window.removeEventListener('mousemove', handler);
+  }, [mouseX, mouseY]);
 
   const enter = (delay = 0) => rm ? {} : {
     initial: { opacity: 0, y: 30 },
@@ -744,19 +748,34 @@ export default function HomePage() {
 
           {/* Right column — phone mockup */}
           <motion.div
-            className="flex-1 flex flex-col items-center w-full mt-6 lg:mt-0"
+            className="flex-1 flex flex-col items-center w-full mt-6 lg:mt-0 py-8"
             initial={rm ? {} : { opacity: 0, y: isMobile ? 16 : 0, x: isMobile ? 0 : 28 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
             transition={{ duration: rm ? 0 : (isMobile ? 0.3 : 0.7), ease: [0.22, 1, 0.36, 1], delay: rm ? 0 : 0.15 }}
           >
-            <div
-              style={{
-                transform: `perspective(1000px) rotateY(${demoMouse.x * 6}deg) rotateX(${-demoMouse.y * 4}deg)`,
-                transition: "transform 0.15s ease-out",
-                maxHeight: 480,
+            <motion.div
+              animate={{ y: [-10, 10] }}
+              transition={{
+                repeat: Infinity,
+                repeatType: "mirror",
+                duration: 4,
+                ease: "easeInOut",
               }}
-              className="mx-auto w-[300px] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#e8e4dd]"
+              style={{
+                transformStyle: "preserve-3d",
+                paddingTop: 16,
+                paddingBottom: 16,
+              }}
             >
+              <motion.div
+                style={{
+                  rotateY,
+                  rotateX,
+                  transformStyle: "preserve-3d",
+                  perspective: 1000,
+                }}
+              >
+                <div className="mx-auto w-[300px] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#e8e4dd]">
                 {/* Hero image */}
                 <div className="relative overflow-hidden" style={{ height: 96 }}>
                   <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
@@ -837,7 +856,9 @@ export default function HomePage() {
                     Powered by DineLinks
                   </span>
                 </div>
-            </div>
+                </div>
+              </motion.div>
+            </motion.div>
             <p className="hidden lg:block mt-4 text-center text-xs text-[#8b6914]/70">↑ Example menu built with DineLinks</p>
           </motion.div>
         </div>
@@ -1193,14 +1214,21 @@ export default function HomePage() {
                 <div className="h-36 relative overflow-hidden">
                   <img src="https://images.unsplash.com/photo-1470337458703-46ad1756a187?w=400&q=75" alt="" className="w-full h-full object-cover" />
                   <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(13,15,20,0.9) 0%, rgba(13,15,20,0.3) 60%, transparent 100%)" }} />
-                  <p className="absolute bottom-3 left-4 text-white text-sm font-semibold drop-shadow">The Edison</p>
+                  <p className="absolute bottom-3 left-4 text-white text-sm font-semibold drop-shadow" style={{ fontFamily: "'Orbitron', sans-serif" }}>The Edison</p>
                 </div>
                 <div className="px-4 py-3 space-y-2">
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 8,
+                    background: "#00b4d8",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: "'Orbitron', sans-serif",
+                    color: "#0d0f14", fontSize: 14, fontWeight: 700,
+                  }}>TE</div>
                   <div className="flex gap-1">
-                    <span className="text-[11px] font-semibold rounded-lg px-2.5 py-0.5" style={{ background: "#00b4d8", color: "#ffffff" }}>Cocktails</span>
+                    <span className="text-[11px] font-semibold rounded-lg px-2.5 py-0.5" style={{ background: "#00b4d8", color: "#ffffff", fontFamily: "'Orbitron', sans-serif" }}>Cocktails</span>
                   </div>
                   <div className="flex items-center justify-between rounded-lg px-3 py-2.5" style={{ background: "#161923", border: "1px solid rgba(0,180,216,0.12)" }}>
-                    <p className="text-[12px] font-medium" style={{ color: "#e8f4f8" }}>Negroni Sbagliato</p>
+                    <p className="text-[12px] font-medium" style={{ color: "#e8f4f8", fontFamily: "'Orbitron', sans-serif" }}>Negroni Sbagliato</p>
                     <p className="text-[12px] font-bold" style={{ color: "#00b4d8" }}>$16</p>
                   </div>
                 </div>
@@ -1219,14 +1247,22 @@ export default function HomePage() {
                 <div className="h-36 relative overflow-hidden">
                   <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=75" alt="" className="w-full h-full object-cover" />
                   <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(45,32,53,0.75) 0%, rgba(45,32,53,0.2) 60%, transparent 100%)" }} />
-                  <p className="absolute bottom-3 left-4 text-white text-sm font-semibold drop-shadow">Maison Lavande</p>
+                  <p className="absolute bottom-3 left-4 text-white text-sm font-semibold drop-shadow" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Maison Lavande</p>
                 </div>
                 <div className="px-4 py-3 space-y-2">
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 18,
+                    background: "#7c4f8a",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: "Georgia, serif",
+                    color: "#fdfaf6", fontSize: 14, fontWeight: 600,
+                    letterSpacing: "0.05em",
+                  }}>M</div>
                   <div className="flex gap-1">
-                    <span className="text-[11px] font-semibold rounded-lg px-2.5 py-0.5" style={{ background: "#7c4f8a", color: "#ffffff" }}>Entrées</span>
+                    <span className="text-[11px] font-semibold rounded-lg px-2.5 py-0.5" style={{ background: "#7c4f8a", color: "#ffffff", fontFamily: "'Playfair Display', Georgia, serif" }}>Entrées</span>
                   </div>
                   <div className="flex items-center justify-between rounded-lg px-3 py-2.5" style={{ background: "#fdfaf6", border: "1px solid rgba(124,79,138,0.12)" }}>
-                    <p className="text-[12px] font-medium" style={{ color: "#2d2035" }}>Bouillabaisse</p>
+                    <p className="text-[12px] font-medium" style={{ color: "#2d2035", fontFamily: "'Playfair Display', Georgia, serif" }}>Bouillabaisse</p>
                     <p className="text-[12px] font-bold" style={{ color: "#7c4f8a" }}>$32</p>
                   </div>
                 </div>
@@ -1245,14 +1281,21 @@ export default function HomePage() {
                 <div className="h-36 relative overflow-hidden">
                   <img src="https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=400&q=75" alt="" className="w-full h-full object-cover" />
                   <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(26,26,26,0.8) 0%, rgba(26,26,26,0.25) 60%, transparent 100%)" }} />
-                  <p className="absolute bottom-3 left-4 text-white text-sm font-semibold drop-shadow">Kura</p>
+                  <p className="absolute bottom-3 left-4 text-white text-sm font-semibold drop-shadow" style={{ fontFamily: "'Cinzel', serif" }}>Kura</p>
                 </div>
                 <div className="px-4 py-3 space-y-2">
+                  <div style={{
+                    width: 36, height: 36, borderRadius: 6,
+                    background: "#c0392b",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: "'Cinzel', serif",
+                    color: "white", fontSize: 16, fontWeight: 700,
+                  }}>K</div>
                   <div className="flex gap-1">
-                    <span className="text-[11px] font-semibold rounded-lg px-2.5 py-0.5" style={{ background: "#c0392b", color: "#ffffff" }}>Yakitori</span>
+                    <span className="text-[11px] font-semibold rounded-lg px-2.5 py-0.5" style={{ background: "#c0392b", color: "#ffffff", fontFamily: "'Cinzel', serif" }}>Yakitori</span>
                   </div>
                   <div className="flex items-center justify-between rounded-lg px-3 py-2.5" style={{ background: "#ffffff", border: "1px solid rgba(192,57,43,0.12)" }}>
-                    <p className="text-[12px] font-medium" style={{ color: "#1a1a1a" }}>Chicken Thigh ×3</p>
+                    <p className="text-[12px] font-medium" style={{ color: "#1a1a1a", fontFamily: "'Cinzel', serif" }}>Chicken Thigh ×3</p>
                     <p className="text-[12px] font-bold" style={{ color: "#c0392b" }}>$14</p>
                   </div>
                 </div>
