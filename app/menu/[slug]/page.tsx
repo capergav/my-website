@@ -10,6 +10,7 @@ import { HeroWithLang } from "@/app/components/HeroWithLang";
 import { MenuTracker } from "@/app/components/MenuTracker";
 import { PoweredByFooter } from "@/app/components/PoweredByFooter";
 import { MenuDirWrapper } from "@/app/components/MenuDirWrapper";
+import { LanguageProvider } from "@/app/context/LanguageContext";
 import { Clock } from "lucide-react";
 import type { Metadata } from "next";
 
@@ -37,7 +38,7 @@ export default async function PublicMenuPage({ params }: Props) {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id, muted_color, allow_auto_translate, show_currency_symbol")
+    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id, muted_color, allow_auto_translate, show_currency_symbol, default_language")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -162,10 +163,13 @@ export default async function PublicMenuPage({ params }: Props) {
 
   const hasItems = sortedCategories.length > 0;
 
+  const defaultLanguage = (restaurant as { default_language?: string | null }).default_language ?? "en";
+
   return (
-    // CSS vars scoped to this wrapper — never bleeds into the DineLinks navbar.
-    // MenuDirWrapper is a client component that sets dir="rtl" for Arabic, ltr otherwise,
-    // scoped to this element only — never touches document.documentElement.
+    <LanguageProvider initialLanguage={defaultLanguage}>
+    {/* CSS vars scoped to this wrapper — never bleeds into the DineLinks navbar.
+        MenuDirWrapper is a client component that sets dir="rtl" for Arabic, ltr otherwise,
+        scoped to this element only — never touches document.documentElement. */}
     <MenuDirWrapper
       style={{
         "--foreground": fontColor,
@@ -204,5 +208,6 @@ export default async function PublicMenuPage({ params }: Props) {
       {/* Powered by DineLinks footer */}
       <PoweredByFooter fontColor={fontColor} />
     </MenuDirWrapper>
+    </LanguageProvider>
   );
 }

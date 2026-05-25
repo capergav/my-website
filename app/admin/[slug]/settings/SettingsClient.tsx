@@ -20,13 +20,15 @@ const LANGUAGES = [
 
 type Props = {
   slug: string;
+  restaurantId: string;
   userEmail: string;
-  displayName: string;
   notifyTrialEnding: boolean;
   notifyProductUpdates: boolean;
   defaultLanguage: string;
   subStatus: string | null;
   trialDaysLeft: number | null;
+  cancelAtPeriodEnd: boolean;
+  periodEnd: Date | null;
 };
 
 function SectionCard({ children }: { children: React.ReactNode }) {
@@ -59,16 +61,13 @@ function MiniToggle({ checked, onChange }: { checked: boolean; onChange: (v: boo
 }
 
 export function SettingsClient({
-  slug, userEmail, displayName: initialDisplayName,
+  slug, restaurantId, userEmail,
   notifyTrialEnding: initTrial,
   notifyProductUpdates: initProduct, defaultLanguage: initLang,
-  subStatus, trialDaysLeft,
+  subStatus, trialDaysLeft, cancelAtPeriodEnd, periodEnd,
 }: Props) {
   const router = useRouter();
   const supabase = createSupabaseClient();
-
-  const [displayName, setDisplayName] = useState(initialDisplayName);
-  const [savingProfile, setSavingProfile] = useState(false);
 
   const [notifyTrial, setNotifyTrial]   = useState(initTrial);
   const [notifyProduct, setNotifyProduct] = useState(initProduct);
@@ -86,14 +85,6 @@ export function SettingsClient({
     setTimeout(() => setMsg(null), 3500);
   };
 
-  const saveProfile = async () => {
-    setSavingProfile(true);
-    const { error } = await supabase.auth.updateUser({ data: { display_name: displayName.trim() || null } });
-    setSavingProfile(false);
-    if (error) showMsg("err", error.message);
-    else showMsg("ok", "Profile saved.");
-  };
-
   const saveNotifs = async () => {
     setSavingNotifs(true);
     const { error } = await supabase.auth.updateUser({
@@ -109,7 +100,10 @@ export function SettingsClient({
 
   const savePrefs = async () => {
     setSavingPrefs(true);
-    const { error } = await supabase.auth.updateUser({ data: { default_language: defaultLang } });
+    const { error } = await supabase
+      .from("restaurants")
+      .update({ default_language: defaultLang })
+      .eq("id", restaurantId);
     setSavingPrefs(false);
     if (error) showMsg("err", error.message);
     else showMsg("ok", "Preferences saved.");
@@ -137,23 +131,27 @@ export function SettingsClient({
       body: JSON.stringify({ restaurantSlug: slug }),
     });
     const data = await res.json();
+    if (data.url) window.open(data.url, "_blank");
+    else alert("Unable to open billing portal. Email hello@dinelinks.com");
+  };
+
+  const openCheckout = async () => {
+    const res = await fetch("/api/stripe/checkout", { method: "POST" });
+    const data = await res.json();
     if (data.url) window.location.href = data.url;
-    else {
-      const co = await fetch("/api/stripe/checkout", { method: "POST" });
-      const cod = await co.json();
-      if (cod.url) window.location.href = cod.url;
-    }
   };
 
   const planLabel = (() => {
-    if (!subStatus || subStatus === "none") return "No active subscription";
+    if (!subStatus || subStatus === "none") return "No active plan";
     if (subStatus === "trialing")
       return trialDaysLeft !== null && trialDaysLeft > 0
         ? `Free trial — ${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`
         : "Free trial — expired";
-    if (subStatus === "active") return "Pro Plan — Active";
+    if (subStatus === "active" && cancelAtPeriodEnd && periodEnd)
+      return `Pro plan — Cancels on ${periodEnd.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}`;
+    if (subStatus === "active") return "Pro plan — Active";
     if (subStatus === "past_due") return "Pro Plan — Payment past due";
-    if (subStatus === "canceled") return "Subscription canceled";
+    if (subStatus === "canceled") return "No active plan";
     return subStatus;
   })();
 
@@ -190,22 +188,6 @@ export function SettingsClient({
           <SettingRow label="Email" sublabel="Your login email address">
             <span className="text-sm text-[#6b6560] font-mono">{userEmail}</span>
           </SettingRow>
-          <div className="px-4 py-3.5">
-            <label className="block text-sm font-medium text-[#2c2a26] mb-1.5">Display name</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="e.g. Jane"
-                className="flex-1 px-3 py-2 rounded-lg border border-[#e8e4dd] bg-white text-sm text-[#2c2a26] focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
-              />
-              <button type="button" onClick={saveProfile} disabled={savingProfile}
-                className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
-                {savingProfile ? "Saving…" : "Save"}
-              </button>
-            </div>
-          </div>
         </SectionCard>
       </section>
 
@@ -250,11 +232,31 @@ export function SettingsClient({
         {sectionHeader("Billing")}
         <SectionCard>
           <SettingRow label="Current plan" sublabel={planLabel}>
-            <button type="button" onClick={openPortal}
-              className="px-4 py-2 text-sm font-medium border border-[#e8e4dd] rounded-lg hover:bg-[#f5f1ea] transition-colors">
-              Manage subscription
-            </button>
+            {subStatus === "trialing" ? (
+              <button type="button" onClick={openCheckout}
+                className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
+                Start subscription
+              </button>
+            ) : subStatus === "active" && cancelAtPeriodEnd ? (
+              <button type="button" onClick={openPortal}
+                className="px-4 py-2 text-sm font-medium border border-[#e8e4dd] rounded-lg hover:bg-[#f5f1ea] transition-colors">
+                Resubscribe
+              </button>
+            ) : subStatus === "active" ? (
+              <button type="button" onClick={openPortal}
+                className="px-4 py-2 text-sm font-medium border border-[#e8e4dd] rounded-lg hover:bg-[#f5f1ea] transition-colors">
+                Manage subscription
+              </button>
+            ) : (
+              <button type="button" onClick={openCheckout}
+                className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
+                Subscribe — $25 CAD/mo
+              </button>
+            )}
           </SettingRow>
+          {subStatus === "active" && cancelAtPeriodEnd && (
+            <div className="px-4 py-2 text-xs text-[#6b6560]">Your plan will cancel at end of billing period.</div>
+          )}
           <SettingRow label="Invoices" sublabel="View and download past invoices">
             <button type="button" onClick={openPortal}
               className="px-4 py-2 text-sm font-medium border border-[#e8e4dd] rounded-lg hover:bg-[#f5f1ea] transition-colors">

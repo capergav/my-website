@@ -24,20 +24,23 @@ type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
-function getStoredLocale(): Locale {
-  if (typeof window === "undefined") return "en";
+const VALID_LOCALES: Locale[] = ["en", "fr", "zh", "ar", "es", "ko", "pa", "yue", "tl", "hi"];
+
+function getStoredLocale(defaultLocale = "en"): Locale {
+  if (typeof window === "undefined") return defaultLocale as Locale;
   const stored = localStorage.getItem(STORAGE_KEY);
-  const valid: Locale[] = ["en", "fr", "zh", "ar", "es", "ko", "pa", "yue", "tl", "hi"];
-  return valid.includes(stored as Locale) ? (stored as Locale) : "en";
+  if (stored && VALID_LOCALES.includes(stored as Locale)) return stored as Locale;
+  return VALID_LOCALES.includes(defaultLocale as Locale) ? (defaultLocale as Locale) : "en";
 }
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
+export function LanguageProvider({ children, initialLanguage }: { children: React.ReactNode; initialLanguage?: string }) {
   const [locale, setLocaleState] = useState<Locale>("en");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setLocaleState(getStoredLocale());
+    setLocaleState(getStoredLocale(initialLanguage));
     setMounted(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

@@ -1086,6 +1086,9 @@ export function AdminMenuEditor({
         userEmail={user?.email ?? ""}
         subStatus={subStatus}
         trialDaysLeft={daysLeftInTrial}
+        cancelAtPeriodEnd={cancelAtPeriodEnd}
+        periodEnd={periodEnd}
+        restaurantId={restaurantId}
       />
 
       {/* QR Code Modal */}
@@ -3023,7 +3026,7 @@ function SettingRow({ label, sublabel, children }: { label: string; sublabel?: s
 }
 
 function SettingsModal({
-  open, onClose, slug, userEmail, subStatus, trialDaysLeft,
+  open, onClose, slug, userEmail, subStatus, trialDaysLeft, cancelAtPeriodEnd, periodEnd, restaurantId,
 }: {
   open: boolean;
   onClose: () => void;
@@ -3031,12 +3034,14 @@ function SettingsModal({
   userEmail: string;
   subStatus: string | null;
   trialDaysLeft: number | null;
+  cancelAtPeriodEnd: boolean;
+  periodEnd: Date | null;
+  restaurantId: string;
 }) {
   const supabase = createSupabaseClient();
   const router = useRouter();
   const [loaded, setLoaded] = useState(false);
 
-  const [displayName, setDisplayName] = useState("");
   const [notifyTrial, setNotifyTrial] = useState(true);
   const [notifyProduct, setNotifyProduct] = useState(false);
   const [defaultLang, setDefaultLang] = useState("en");
@@ -3053,17 +3058,19 @@ function SettingsModal({
 
   useEffect(() => {
     if (!open || loaded) return;
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) return;
-      const meta = data.user.user_metadata ?? {};
-      setDisplayName(meta.display_name ?? "");
+    Promise.all([
+      supabase.auth.getUser(),
+      supabase.from("restaurants").select("default_language").eq("id", restaurantId).maybeSingle(),
+    ]).then(([{ data: userData }, { data: restData }]) => {
+      if (!userData.user) return;
+      const meta = userData.user.user_metadata ?? {};
       setNotifyTrial(meta.notify_trial_ending ?? true);
       setNotifyProduct(meta.notify_product_updates ?? false);
-      setDefaultLang(meta.default_language ?? "en");
+      setDefaultLang((restData as { default_language?: string | null } | null)?.default_language ?? "en");
       setIsDirty(false);
       setLoaded(true);
     });
-  }, [open, loaded, supabase]);
+  }, [open, loaded, supabase, restaurantId]);
 
   useEffect(() => { if (!open) setLoaded(false); }, [open]);
 
@@ -3074,15 +3081,17 @@ function SettingsModal({
 
   const handleSave = async () => {
     setSaving(true);
-    const { error } = await supabase.auth.updateUser({
-      data: {
-        display_name: displayName.trim() || null,
-        notify_trial_ending: notifyTrial,
-        notify_product_updates: notifyProduct,
-        default_language: defaultLang,
-      },
-    });
+    const [{ error: authError }, { error: restError }] = await Promise.all([
+      supabase.auth.updateUser({
+        data: {
+          notify_trial_ending: notifyTrial,
+          notify_product_updates: notifyProduct,
+        },
+      }),
+      supabase.from("restaurants").update({ default_language: defaultLang }).eq("id", restaurantId),
+    ]);
     setSaving(false);
+    const error = authError ?? restError;
     if (error) showMsg("err", error.message);
     else { showMsg("ok", "Settings saved."); setIsDirty(false); }
   };
@@ -3126,23 +3135,27 @@ function SettingsModal({
       body: JSON.stringify({ restaurantSlug: slug }),
     });
     const data = await res.json();
+    if (data.url) window.open(data.url, "_blank");
+    else alert("Unable to open billing portal. Email hello@dinelinks.com");
+  };
+
+  const openCheckout = async () => {
+    const res = await fetch("/api/stripe/checkout", { method: "POST" });
+    const data = await res.json();
     if (data.url) window.location.href = data.url;
-    else {
-      const co = await fetch("/api/stripe/checkout", { method: "POST" });
-      const cod = await co.json();
-      if (cod.url) window.location.href = cod.url;
-    }
   };
 
   const planLabel = (() => {
-    if (!subStatus || subStatus === "none") return "No active subscription";
+    if (!subStatus || subStatus === "none") return "No active plan";
     if (subStatus === "trialing")
       return trialDaysLeft !== null && trialDaysLeft > 0
         ? `Free trial — ${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`
         : "Free trial — expired";
-    if (subStatus === "active") return "Pro Plan — Active";
+    if (subStatus === "active" && cancelAtPeriodEnd && periodEnd)
+      return `Pro plan — Cancels on ${periodEnd.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}`;
+    if (subStatus === "active") return "Pro plan — Active";
     if (subStatus === "past_due") return "Pro Plan — Payment past due";
-    if (subStatus === "canceled") return "Subscription canceled";
+    if (subStatus === "canceled") return "No active plan";
     return subStatus;
   })();
 
@@ -3190,18 +3203,6 @@ function SettingsModal({
               <SettingRow label="Email" sublabel="Your login email address">
                 <span className="text-sm text-[var(--muted)] font-mono">{userEmail}</span>
               </SettingRow>
-              <div className="px-4 py-3.5">
-                <label className="block text-sm font-medium text-[var(--foreground)] mb-1.5">Display name</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => { setDisplayName(e.target.value); setIsDirty(true); }}
-                    placeholder="e.g. Jane"
-                    className="flex-1 px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-sm text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                  />
-                </div>
-              </div>
             </SectionCard>
           </section>
 
@@ -3242,11 +3243,31 @@ function SettingsModal({
             {sectionHeader("Billing")}
             <SectionCard>
               <SettingRow label="Current plan" sublabel={planLabel}>
-                <button type="button" onClick={openPortal}
-                  className="px-4 py-2 text-sm font-medium border border-[var(--card-border)] text-[var(--foreground)] rounded-lg hover:bg-[var(--background)] transition-colors">
-                  Manage subscription
-                </button>
+                {subStatus === "trialing" ? (
+                  <button type="button" onClick={openCheckout}
+                    className="px-4 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity">
+                    Start subscription
+                  </button>
+                ) : subStatus === "active" && cancelAtPeriodEnd ? (
+                  <button type="button" onClick={openPortal}
+                    className="px-4 py-2 text-sm font-medium border border-[var(--card-border)] text-[var(--foreground)] rounded-lg hover:bg-[var(--background)] transition-colors">
+                    Resubscribe
+                  </button>
+                ) : subStatus === "active" ? (
+                  <button type="button" onClick={openPortal}
+                    className="px-4 py-2 text-sm font-medium border border-[var(--card-border)] text-[var(--foreground)] rounded-lg hover:bg-[var(--background)] transition-colors">
+                    Manage subscription
+                  </button>
+                ) : (
+                  <button type="button" onClick={openCheckout}
+                    className="px-4 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity">
+                    Subscribe — $25 CAD/mo
+                  </button>
+                )}
               </SettingRow>
+              {subStatus === "active" && cancelAtPeriodEnd && (
+                <div className="px-4 py-2 text-xs text-[var(--muted)]">Your plan will cancel at end of billing period.</div>
+              )}
               <SettingRow label="Invoices" sublabel="View and download past invoices">
                 <button type="button" onClick={openPortal}
                   className="px-4 py-2 text-sm font-medium border border-[var(--card-border)] text-[var(--foreground)] rounded-lg hover:bg-[var(--background)] transition-colors">

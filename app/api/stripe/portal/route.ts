@@ -5,10 +5,21 @@ import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function POST(req: NextRequest) {
   const { userId, restaurantSlug } = await req.json();
+
+  let actualUserId = userId;
+  if (!actualUserId && restaurantSlug) {
+    const { data: rest } = await supabaseAdmin
+      .from('restaurants')
+      .select('owner_id')
+      .eq('slug', restaurantSlug)
+      .maybeSingle();
+    actualUserId = rest?.owner_id;
+  }
+
   const { data } = await supabaseAdmin
     .from('subscriptions')
     .select('stripe_customer_id')
-    .eq('user_id', userId)
+    .eq('user_id', actualUserId)
     .maybeSingle();
 
   if (!data?.stripe_customer_id) {
