@@ -5,6 +5,7 @@ const ALLOWED_EVENTS = new Set([
   "page_view",
   "item_click",
   "language_change",
+  "language_use",
   "category_view",
   "session_start",
 ]);

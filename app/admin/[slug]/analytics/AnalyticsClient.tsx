@@ -112,7 +112,7 @@ export function AnalyticsClient({
 
   const rangeLabel = days === 7 ? "Last 7 days" : days === 30 ? "Last 30 days" : "Last 90 days";
 
-  const topLangName = LANGUAGE_NAMES[stats.topLang] ?? stats.topLang.toUpperCase();
+  const topLangName = stats.topLang ? (LANGUAGE_NAMES[stats.topLang] ?? stats.topLang.toUpperCase()) : "—";
 
   // Empty state
   if (!hasData) {

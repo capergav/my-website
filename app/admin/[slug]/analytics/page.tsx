@@ -71,12 +71,14 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
     return Math.round(((curr - prev) / prev) * 100);
   };
 
-  // Top language (from stored language on all events)
+  // Top language — only deliberate language_use events (fired after 8s of staying on a language)
+  const langUseEvents = allEvents.filter((e) => e.event_type === "language_use");
   const langCounts: Record<string, number> = {};
-  for (const e of allEvents) {
+  for (const e of langUseEvents) {
     if (e.language) langCounts[e.language] = (langCounts[e.language] ?? 0) + 1;
   }
-  const topLang = Object.entries(langCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "en";
+  // Empty string = no deliberate language selections yet; AnalyticsClient renders "—"
+  const topLang = Object.entries(langCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
 
   // Unique visitors: prefer distinct visitor_id, fall back to distinct session_id for old data
   const uniqueVisitorIds = new Set(
