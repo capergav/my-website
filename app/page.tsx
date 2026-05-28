@@ -1310,18 +1310,14 @@ export default function HomePage() {
                       <p style={{ fontSize: 10, color: "#666666", margin: "2px 0 0", lineHeight: 1.4 }}>Binchotan-grilled with tare glaze</p>
                     </div>
                   </div>
-                  {/* Unavailable */}
-                  <div style={{ opacity: 0.45 }}>
-                    <div style={{ display: "flex", gap: 8, padding: "7px 8px", background: "#fafafa", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
-                      <img src={PASTA_IMG} alt="Pork Belly Skewer" style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "#1a1a1a", lineHeight: 1.3 }}>Pork Belly Skewer</span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "#c0392b", flexShrink: 0 }}>$12.00</span>
-                        </div>
-                        <p style={{ fontSize: 10, color: "#666666", margin: "2px 0 3px", lineHeight: 1.4 }}>Slow-braised with miso glaze</p>
-                        <span style={{ background: "#e5e7eb", color: "#6b7280", borderRadius: 999, padding: "2px 8px", fontSize: 10 }}>Unavailable</span>
+                  <div style={{ display: "flex", gap: 8, padding: "7px 8px", background: "#fafafa", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                    <img src={SUSHI_IMG} alt="Tuna Nigiri" style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "#1a1a1a", lineHeight: 1.3 }}>Tuna Nigiri ×3</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#c0392b", flexShrink: 0 }}>$15.00</span>
                       </div>
+                      <p style={{ fontSize: 10, color: "#666666", margin: "2px 0 0", lineHeight: 1.4 }}>Premium bluefin, seasoned sushi rice, wasabi</p>
                     </div>
                   </div>
                 </div>

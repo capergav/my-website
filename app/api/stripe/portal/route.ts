@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     .maybeSingle();
 
   if (!data?.stripe_customer_id) {
-    return NextResponse.json({ error: 'No subscription found' }, { status: 404 });
+    return NextResponse.json({ redirect_to_checkout: true }, { status: 200 });
   }
 
   const returnUrl = restaurantSlug

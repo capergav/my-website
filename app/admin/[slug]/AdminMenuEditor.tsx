@@ -3135,12 +3135,31 @@ function SettingsModal({
       body: JSON.stringify({ restaurantSlug: slug }),
     });
     const data = await res.json();
-    if (data.url) window.open(data.url, "_blank");
-    else alert("Unable to open billing portal. Email hello@dinelinks.com");
+    if (data.url) {
+      window.open(data.url, "_blank");
+    } else if (data.redirect_to_checkout) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const res2 = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, userEmail: user.email, restaurantSlug: slug }),
+      });
+      const data2 = await res2.json();
+      if (data2.url) window.location.href = data2.url;
+    } else {
+      alert(data.error ?? "Unable to open billing. Email hello@dinelinks.com");
+    }
   };
 
   const openCheckout = async () => {
-    const res = await fetch("/api/stripe/checkout", { method: "POST" });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const res = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user.id, userEmail: user.email, restaurantSlug: slug }),
+    });
     const data = await res.json();
     if (data.url) window.location.href = data.url;
   };
@@ -3243,36 +3262,46 @@ function SettingsModal({
             {sectionHeader("Billing")}
             <SectionCard>
               <SettingRow label="Current plan" sublabel={planLabel}>
-                {subStatus === "trialing" ? (
+                {(!subStatus || subStatus === "none" || subStatus === "trialing") ? (
                   <button type="button" onClick={openCheckout}
-                    className="px-4 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity">
-                    Start subscription
+                    className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
+                    Start subscription — $25 CAD/mo
                   </button>
                 ) : subStatus === "active" && cancelAtPeriodEnd ? (
                   <button type="button" onClick={openPortal}
-                    className="px-4 py-2 text-sm font-medium border border-[var(--card-border)] text-[var(--foreground)] rounded-lg hover:bg-[var(--background)] transition-colors">
+                    className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
                     Resubscribe
                   </button>
                 ) : subStatus === "active" ? (
-                  <button type="button" onClick={openPortal}
-                    className="px-4 py-2 text-sm font-medium border border-[var(--card-border)] text-[var(--foreground)] rounded-lg hover:bg-[var(--background)] transition-colors">
-                    Manage subscription
-                  </button>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="text-sm font-semibold text-green-600">Pro Plan — Active ✓</span>
+                    <button type="button" onClick={openPortal}
+                      className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                      Cancel subscription
+                    </button>
+                  </div>
                 ) : (
                   <button type="button" onClick={openCheckout}
-                    className="px-4 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity">
+                    className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
                     Subscribe — $25 CAD/mo
                   </button>
                 )}
               </SettingRow>
-              {subStatus === "active" && cancelAtPeriodEnd && (
-                <div className="px-4 py-2 text-xs text-[var(--muted)]">Your plan will cancel at end of billing period.</div>
+              {subStatus === "active" && !cancelAtPeriodEnd && (
+                <div className="px-4 py-2 text-xs text-[var(--muted)]">Your plan will remain active until the end of your current billing period. You can resubscribe anytime.</div>
+              )}
+              {subStatus === "active" && cancelAtPeriodEnd && periodEnd && (
+                <div className="px-4 py-2 text-xs text-[var(--muted)]">Cancels on {periodEnd.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}.</div>
               )}
               <SettingRow label="Invoices" sublabel="View and download past invoices">
-                <button type="button" onClick={openPortal}
-                  className="px-4 py-2 text-sm font-medium border border-[var(--card-border)] text-[var(--foreground)] rounded-lg hover:bg-[var(--background)] transition-colors">
-                  View invoices
-                </button>
+                {(!subStatus || subStatus === "none" || subStatus === "trialing") ? (
+                  <span className="text-xs text-[var(--muted)] italic">No invoices yet — invoices appear after your first payment.</span>
+                ) : (
+                  <button type="button" onClick={openPortal}
+                    className="px-4 py-2 text-sm font-medium border border-[var(--card-border)] text-[var(--foreground)] rounded-lg hover:bg-[var(--background)] transition-colors">
+                    View invoices
+                  </button>
+                )}
               </SettingRow>
             </SectionCard>
           </section>
