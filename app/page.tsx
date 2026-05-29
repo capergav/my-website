@@ -462,10 +462,10 @@ export default function HomePage() {
   const [newsletterError, setNewsletterError] = useState('');
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  const springX = useSpring(mouseX, { stiffness: 25, damping: 18 });
-  const springY = useSpring(mouseY, { stiffness: 25, damping: 18 });
-  const rotateY = useTransform(springX, [-1, 1], [-5, 5]);
-  const rotateX = useTransform(springY, [1, -1], [-3, 3]);
+  const springX = useSpring(mouseX, { stiffness: 20, damping: 15, mass: 1.2 });
+  const springY = useSpring(mouseY, { stiffness: 20, damping: 15, mass: 1.2 });
+  const rotateY = useTransform(springX, [-1, 1], [-6, 6]);
+  const rotateX = useTransform(springY, [1, -1], [-4, 4]);
 
   useEffect(() => {
     import("@/app/lib/supabase").then(({ createSupabaseClient }) => {
@@ -763,11 +763,11 @@ export default function HomePage() {
             transition={{ duration: rm ? 0 : (isMobile ? 0.3 : 0.7), ease: [0.22, 1, 0.36, 1], delay: rm ? 0 : 0.15 }}
           >
             <motion.div
-              animate={{ y: [-10, 10] }}
+              animate={{ y: [-8, 8] }}
               transition={{
                 repeat: Infinity,
                 repeatType: "mirror",
-                duration: 4,
+                duration: 4.5,
                 ease: "easeInOut",
               }}
               style={{

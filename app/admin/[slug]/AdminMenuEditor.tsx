@@ -202,11 +202,10 @@ function SortableMenuItem({ item, children }: { item: MenuItemRow; children: Rea
     <div ref={setNodeRef} style={style} {...attributes} className="flex items-stretch">
       <div
         {...listeners}
-        className="flex-shrink-0 w-9 flex flex-col items-center justify-center gap-0.5 cursor-grab active:cursor-grabbing touch-none z-10 rounded-l-xl bg-[var(--card-border)]/30 hover:bg-[var(--main-color)]/10 group transition-colors admin-drag-handle"
+        className="flex items-center justify-center px-3 self-stretch bg-[var(--card-border)]/40 rounded-l-xl cursor-grab flex-shrink-0 touch-manipulation admin-drag-handle"
         title="Drag to reorder"
       >
-        <GripVertical size={18} className="text-[var(--muted)] group-hover:text-[var(--main-color)] transition-colors" />
-        <span className="text-[8px] text-[var(--muted)] group-hover:text-[var(--main-color)] opacity-0 group-hover:opacity-100 transition-opacity font-medium leading-none">Drag</span>
+        <GripVertical size={18} className="text-[var(--muted)] transition-colors" />
       </div>
       <div className="flex-1 min-w-0">{children}</div>
     </div>
@@ -994,7 +993,7 @@ export function AdminMenuEditor({
                         <div className="flex items-stretch">
                           {/* Item image */}
                           {item.image_url && (
-                            <div className="w-24 sm:w-32 aspect-square overflow-hidden bg-[var(--card-border)] flex-shrink-0">
+                            <div className="w-24 sm:w-32 aspect-square overflow-hidden bg-[var(--card-border)] flex-shrink-0 rounded-r-lg">
                               <img src={item.image_url} alt="" className="w-full h-full object-cover" />
                             </div>
                           )}

@@ -139,6 +139,8 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
   const [canScrollRight, setCanScrollRight] = useState(false);
   // Drag-to-scroll state for category tab strip
   const tabDragRef = useRef({ active: false, startX: 0, scrollLeft: 0, didDrag: false });
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
 
   const getSession = useCallback(() => {
     if (typeof window === "undefined") return "";
@@ -177,6 +179,16 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
     ro.observe(el);
     return () => { el.removeEventListener('scroll', updateScrollState); ro.disconnect(); };
   }, [updateScrollState]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setFilterOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!allowAutoTranslate) return;
@@ -438,17 +450,46 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
               </p>
             )}
           </div>
-          <div className="flex-shrink-0">
-            <select
-              value={dietFilter}
-              onChange={(e) => setDietFilter(e.target.value)}
-              className="max-w-[120px] sm:max-w-none sm:min-w-[150px] px-2 py-1 sm:px-3 sm:py-2 rounded-lg sm:rounded-xl border border-[var(--card-border)] bg-[var(--card)] text-[var(--foreground)] text-sm font-medium focus:outline-none focus:ring-2 focus:ring-[var(--accent)] cursor-pointer"
-              aria-label={t("filter.all")}
+          <div className="relative flex-shrink-0" ref={filterRef}>
+            <button
+              type="button"
+              onClick={() => setFilterOpen(o => !o)}
+              className="flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-xl bg-[var(--card)] text-[var(--foreground)] font-medium text-sm border border-[var(--card-border)] shadow-sm hover:shadow-md transition-shadow touch-manipulation"
+              aria-expanded={filterOpen}
             >
-              {DIET_FILTER_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>{t(opt.labelKey)}</option>
-              ))}
-            </select>
+              <span>
+                {t(DIET_FILTER_OPTIONS.find(o => o.value === dietFilter)?.labelKey ?? "filter.all")}
+              </span>
+              <svg
+                className={`w-4 h-4 transition-transform duration-200 ${filterOpen ? "rotate-180" : ""}`}
+                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {filterOpen && (
+              <ul
+                role="listbox"
+                className="absolute top-full end-0 mt-2 min-w-[160px] py-1 rounded-xl bg-[var(--card)] border border-[var(--card-border)] shadow-lg z-50"
+              >
+                {DIET_FILTER_OPTIONS.map((opt) => (
+                  <li key={opt.value} role="option" aria-selected={dietFilter === opt.value}>
+                    <button
+                      type="button"
+                      onClick={() => { setDietFilter(opt.value); setFilterOpen(false); }}
+                      className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors touch-manipulation ${
+                        dietFilter === opt.value
+                          ? "bg-[var(--accent)]/15 text-[var(--accent)]"
+                          : "text-[var(--foreground)] hover:bg-[var(--card-border)]/50"
+                      }`}
+                    >
+                      {t(opt.labelKey)}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
