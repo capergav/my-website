@@ -1218,10 +1218,9 @@ export default function HomePage() {
             {/* Card 1 — Maison Laurent (French bistro, WITH category images) */}
             <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5 } })}>
               <motion.div
-                style={{ background: "#f4ede0", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(26,58,46,0.15)", transformOrigin: "center bottom" }}
-                animate={rm ? {} : { y: [0, -14, 0] }}
+                style={{ background: "#f4ede0", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(26,58,46,0.15)" }}
+                animate={rm ? {} : { y: [0, -12, 0] }}
                 transition={rm ? {} : { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0 }}
-                whileHover={rm ? {} : { scale: 1.03, y: -18 }}
               >
                 {/* Hero */}
                 <div style={{ height: 100, position: "relative", overflow: "hidden" }}>
@@ -1272,10 +1271,9 @@ export default function HomePage() {
             {/* Card 2 — Izakaya Kura (Japanese, NO category images, unavailable item) */}
             <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.1 } })}>
               <motion.div
-                style={{ background: "#ffffff", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(200,85,61,0.15)", transformOrigin: "center bottom" }}
-                animate={rm ? {} : { y: [0, -14, 0] }}
+                style={{ background: "#ffffff", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(200,85,61,0.15)" }}
+                animate={rm ? {} : { y: [0, -12, 0] }}
                 transition={rm ? {} : { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
-                whileHover={rm ? {} : { scale: 1.03, y: -18 }}
               >
                 {/* Hero */}
                 <div style={{ height: 100, position: "relative", overflow: "hidden" }}>
@@ -1335,10 +1333,9 @@ export default function HomePage() {
             {/* Card 3 — The Parlour (dark cocktail bar, WITH category images) */}
             <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.2 } })}>
               <motion.div
-                style={{ background: "#1f1015", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(201,165,90,0.2)", transformOrigin: "center bottom" }}
-                animate={rm ? {} : { y: [0, -14, 0] }}
+                style={{ background: "#1f1015", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(201,165,90,0.2)" }}
+                animate={rm ? {} : { y: [0, -12, 0] }}
                 transition={rm ? {} : { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1.6 }}
-                whileHover={rm ? {} : { scale: 1.03, y: -18 }}
               >
                 {/* Hero */}
                 <div style={{ height: 100, position: "relative", overflow: "hidden" }}>
