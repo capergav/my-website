@@ -552,6 +552,9 @@ export default function HomePage() {
         .cta-shine::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 40%,rgba(255,255,255,0.2) 50%,transparent 60%);transform:translateX(-100%);pointer-events:none}
         .cta-shine:hover::after{animation:periodic-shimmer 700ms ease-out}
         @media(prefers-reduced-motion:reduce){.hero-primary-cta::after,.cta-shine::after,.pricing-banner-shine,.live-dot{animation:none}}
+        @keyframes float{0%,100%{transform:translateY(0px)}50%{transform:translateY(-12px)}}
+        .anim-float{animation:float 4s ease-in-out infinite;transition:transform 0.5s ease;will-change:transform}
+        .anim-float:hover{animation-play-state:paused;transform:translateY(-6px) scale(1.02)}
       `}</style>
 
       {/* ── Scroll progress bar ────────────────────────────────────────────────── */}
@@ -1214,178 +1217,92 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          <div className="flex flex-col items-center sm:flex-row sm:justify-center sm:items-start gap-6 mt-14" style={{ perspective: 1200 }}>
+          <div className="flex flex-col items-center sm:flex-row sm:justify-center sm:items-start gap-6 mt-14">
 
-            {/* Card 1 — Maison Laurent (French bistro, WITH category images) */}
-            <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5 } })}>
-              <motion.div
-                style={{ background: "#f4ede0", borderRadius: 20, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.10)", width: "100%", maxWidth: 340, transformStyle: "preserve-3d" }}
-                animate={rm ? {} : { y: [0, -6, 0] }}
-                transition={rm ? {} : { duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                whileHover={rm ? {} : { y: -8, scale: 1.02, z: 20 }}
-              >
-                {/* Hero */}
-                <div style={{ height: 128, position: "relative", overflow: "hidden" }}>
-                  <img src={HERO_1} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(26,58,46,0.88) 0%, rgba(26,58,46,0.2) 60%, transparent 100%)" }} />
-                  <p style={{ position: "absolute", bottom: 10, left: 14, color: "#fffbf3", fontSize: 15, fontWeight: 600, fontFamily: "Georgia, serif", margin: 0 }}>Maison Laurent</p>
+            {/* Card 1 — La Piazza (warm gold) */}
+            <div className="w-full sm:w-64 flex-shrink-0">
+              <div className="anim-float rounded-2xl overflow-hidden shadow-lg"
+                style={{ animationDelay: "0s", background: "#faf8f5",
+                  border: "1px solid rgba(139,105,20,0.2)" }}>
+                <div style={{ height: 64, background: "#2c2a26",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#faf8f5", fontFamily: "Georgia, serif", fontSize: 14 }}>
+                  La Piazza
                 </div>
-                {/* Category tabs — WITH images */}
-                <div style={{ display: "flex", gap: 8, padding: "10px 12px 6px", background: "#fffbf3", borderBottom: "1px solid rgba(26,58,46,0.08)", overflowX: "auto", scrollbarWidth: "none" }}>
-                  {[
-                    { name: "Entrées", img: FOOD_1, active: true },
-                    { name: "Viandes", img: FOOD_2, active: false },
-                    { name: "Desserts", img: FOOD_3, active: false },
-                  ].map(cat => (
-                    <div key={cat.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, flexShrink: 0, opacity: cat.active ? 1 : 0.7 }}>
-                      <div style={{ width: 52, height: 52, borderRadius: 12, overflow: "hidden", ...(cat.active ? { outline: "2px solid #1a3a2e", outlineOffset: 2 } : {}) }}>
-                        <img src={cat.img} alt={cat.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      </div>
-                      <span style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", color: cat.active ? "#1a3a2e" : "#6b6258", fontFamily: "Georgia, serif" }}>{cat.name}</span>
-                    </div>
-                  ))}
+                <div style={{ background: "#faf8f5", borderBottom: "1px solid rgba(139,105,20,0.2)",
+                  padding: "8px 12px", color: "#8b6914", fontSize: 12, fontWeight: 600 }}>
+                  Mains
                 </div>
-                {/* Category note */}
-                <p style={{ fontSize: 10, color: "#6b6258", fontStyle: "italic", padding: "5px 12px 2px", margin: 0, background: "#fffbf3" }}>All dishes prepared with seasonal ingredients.</p>
-                {/* Items */}
-                <div style={{ padding: "8px 10px 6px", background: "#f4ede0" }}>
-                  {[
-                    { name: "Bouillabaisse", price: "$28.00", desc: "Classic Provençal seafood stew with rouille.", img: FOOD_1 },
-                    { name: "Steak Tartare", price: "$24.00", desc: "Hand-cut beef, capers, cornichons, egg yolk.", img: FOOD_2 },
-                  ].map((item) => (
-                    <div key={item.name} style={{ background: "#fffbf3", borderRadius: 16, border: "1px solid rgba(26,58,46,0.13)", overflow: "hidden", display: "flex", gap: 12, padding: 12, marginBottom: 10 }}>
-                      <img src={item.img} alt={item.name} style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "#1f1d18", lineHeight: 1.3, fontFamily: "Georgia, serif" }}>{item.name}</span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "#1a3a2e", flexShrink: 0, fontFamily: "Georgia, serif" }}>{item.price}</span>
-                        </div>
-                        <p style={{ fontSize: 10, color: "#6b6258", margin: "2px 0 0", lineHeight: 1.4 }}>{item.desc}</p>
-                        <p style={{ fontSize: 10, color: "#1a3a2e", margin: "4px 0 0", fontWeight: 500 }}>Tap to read more →</p>
-                      </div>
-                    </div>
-                  ))}
+                <div style={{ display: "flex", gap: 8, padding: 12,
+                  background: "#fff", margin: 8, borderRadius: 12,
+                  border: "1px solid rgba(139,105,20,0.1)" }}>
+                  <div style={{ width: 40, height: 40, background: "rgba(139,105,20,0.2)",
+                    borderRadius: 8, flexShrink: 0 }} />
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "#2c2a26" }}>Tagliatelle</p>
+                    <p style={{ color: "#8b6914", fontSize: 12 }}>$18.00</p>
+                  </div>
                 </div>
-                {/* Footer */}
-                <div style={{ textAlign: "center", padding: "10px 0 4px", fontSize: 10, color: "#6b6258", opacity: 0.6 }}>
-                  ⊡ Powered by DineLinks
-                </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
 
-            {/* Card 2 — Izakaya Kura (Japanese, NO category images, unavailable item) */}
-            <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.1 } })}>
-              <motion.div
-                style={{ background: "#ffffff", borderRadius: 20, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.10)", width: "100%", maxWidth: 340, transformStyle: "preserve-3d" }}
-                animate={rm ? {} : { y: [0, -6, 0] }}
-                transition={rm ? {} : { duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
-                whileHover={rm ? {} : { y: -8, scale: 1.02, z: 20 }}
-              >
-                {/* Hero */}
-                <div style={{ height: 128, position: "relative", overflow: "hidden" }}>
-                  <img src={HERO_2} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(26,26,26,0.88) 0%, rgba(26,26,26,0.2) 60%, transparent 100%)" }} />
-                  <p style={{ position: "absolute", bottom: 10, left: 14, color: "#ffffff", fontSize: 15, fontWeight: 600, margin: 0 }}>Izakaya Kura</p>
+            {/* Card 2 — Ocean Blue (dark navy) */}
+            <div className="w-full sm:w-64 flex-shrink-0">
+              <div className="anim-float rounded-2xl overflow-hidden shadow-lg"
+                style={{ animationDelay: "0.6s", background: "#0f172a",
+                  border: "1px solid rgba(59,130,246,0.2)" }}>
+                <div style={{ height: 64, background: "#1e293b",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fff", fontFamily: "Georgia, serif", fontSize: 14 }}>
+                  Ocean Blue
                 </div>
-                {/* Category tabs — text-only pills (no images) */}
-                <div style={{ display: "flex", gap: 6, padding: "8px 12px 6px", background: "#fafafa", borderBottom: "1px solid rgba(26,26,26,0.07)", overflowX: "auto", scrollbarWidth: "none" }}>
-                  {[{ name: "Yakitori", active: true }, { name: "Ramen", active: false }, { name: "Drinks", active: false }].map(tab => (
-                    <span key={tab.name} style={{ fontSize: 11, fontWeight: tab.active ? 700 : 500, padding: "4px 11px", borderRadius: 999, flexShrink: 0, background: tab.active ? "#c0392b" : "transparent", color: tab.active ? "#ffffff" : "#666666", border: tab.active ? "none" : "1px solid rgba(26,26,26,0.12)" }}>{tab.name}</span>
-                  ))}
+                <div style={{ background: "#0f172a", borderBottom: "1px solid rgba(59,130,246,0.2)",
+                  padding: "8px 12px", color: "#60a5fa", fontSize: 12, fontWeight: 600 }}>
+                  Seafood
                 </div>
-                {/* Category note */}
-                <p style={{ fontSize: 10, color: "#666666", fontStyle: "italic", padding: "5px 12px 2px", margin: 0 }}>All yakitori served with pickled daikon.</p>
-                {/* Dietary key — plain row, no background */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 12px 5px", fontSize: 10, color: "#666666" }}>
-                  <span style={{ fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" as const }}>Dietary Key</span>
-                  <span>⭐ Chef&apos;s</span>
-                  <span>🌿 Vegan</span>
+                <div style={{ display: "flex", gap: 8, padding: 12,
+                  background: "#1e293b", margin: 8, borderRadius: 12 }}>
+                  <div style={{ width: 40, height: 40, background: "rgba(59,130,246,0.2)",
+                    borderRadius: 8, flexShrink: 0 }} />
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>Salmon</p>
+                    <p style={{ color: "#60a5fa", fontSize: 12 }}>$24.00</p>
+                  </div>
                 </div>
-                {/* Items */}
-                <div style={{ padding: "4px 10px 6px" }}>
-                  {[
-                    { name: "Chicken Thigh ×3", price: "$14.00", desc: "Binchotan-grilled with house tare glaze.", img: FOOD_4 },
-                    { name: "Tuna Nigiri ×3", price: "$15.00", desc: "Premium bluefin, seasoned rice, fresh wasabi.", img: FOOD_5 },
-                  ].map((item) => (
-                    <div key={item.name} style={{ background: "#fafafa", borderRadius: 16, border: "1px solid rgba(192,57,43,0.13)", overflow: "hidden", display: "flex", gap: 12, padding: 12, marginBottom: 10 }}>
-                      <img src={item.img} alt={item.name} style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "#1a1a1a", lineHeight: 1.3 }}>{item.name}</span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "#c0392b", flexShrink: 0 }}>{item.price}</span>
-                        </div>
-                        <p style={{ fontSize: 10, color: "#666666", margin: "2px 0 0", lineHeight: 1.4 }}>{item.desc}</p>
-                        <p style={{ fontSize: 10, color: "#c0392b", margin: "4px 0 0", fontWeight: 500 }}>Tap to read more →</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                {/* Footer */}
-                <div style={{ textAlign: "center", padding: "10px 0 4px", fontSize: 10, color: "#666666", opacity: 0.6 }}>
-                  ⊡ Powered by DineLinks
-                </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
 
-            {/* Card 3 — The Parlour (dark cocktail bar, WITH category images) */}
-            <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.2 } })}>
-              <motion.div
-                style={{ background: "#1f1015", borderRadius: 20, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.10)", width: "100%", maxWidth: 340, transformStyle: "preserve-3d" }}
-                animate={rm ? {} : { y: [0, -6, 0] }}
-                transition={rm ? {} : { duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1.6 }}
-                whileHover={rm ? {} : { y: -8, scale: 1.02, z: 20 }}
-              >
-                {/* Hero */}
-                <div style={{ height: 128, position: "relative", overflow: "hidden" }}>
-                  <img src={HERO_3} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(31,16,21,0.92) 0%, rgba(31,16,21,0.3) 60%, transparent 100%)" }} />
-                  <p style={{ position: "absolute", bottom: 10, left: 14, color: "#f4e8d8", fontSize: 15, fontWeight: 600, fontFamily: "Georgia, serif", margin: 0 }}>The Parlour</p>
+            {/* Card 3 — Garden Café (fresh green) */}
+            <div className="w-full sm:w-64 flex-shrink-0">
+              <div className="anim-float rounded-2xl overflow-hidden shadow-lg"
+                style={{ animationDelay: "1.2s", background: "#f0fdf4",
+                  border: "1px solid rgba(34,197,94,0.2)" }}>
+                <div style={{ height: 64, background: "#166534",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fff", fontFamily: "Georgia, serif", fontSize: 14 }}>
+                  Garden Café
                 </div>
-                {/* Category tabs — WITH images */}
-                <div style={{ display: "flex", gap: 8, padding: "10px 12px 6px", background: "#2c1820", borderBottom: "1px solid rgba(244,232,216,0.08)", overflowX: "auto", scrollbarWidth: "none" }}>
-                  {[
-                    { name: "Cocktails", img: FOOD_6, active: true },
-                    { name: "Small Plates", img: FOOD_3, active: false },
-                    { name: "Sharing", img: FOOD_4, active: false },
-                  ].map(cat => (
-                    <div key={cat.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, flexShrink: 0, opacity: cat.active ? 1 : 0.6 }}>
-                      <div style={{ width: 52, height: 52, borderRadius: 12, overflow: "hidden", ...(cat.active ? { outline: "2px solid #c9a55a", outlineOffset: 2 } : {}) }}>
-                        <img src={cat.img} alt={cat.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      </div>
-                      <span style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", color: cat.active ? "#c9a55a" : "#b8a89c", fontFamily: "Georgia, serif" }}>{cat.name}</span>
-                    </div>
-                  ))}
+                <div style={{ background: "#f0fdf4", borderBottom: "1px solid rgba(34,197,94,0.2)",
+                  padding: "8px 12px", color: "#16a34a", fontSize: 12, fontWeight: 600 }}>
+                  Salads
                 </div>
-                {/* Items */}
-                <div style={{ padding: "8px 10px 6px", background: "#1f1015" }}>
-                  {[
-                    { name: "Negroni Sbagliato", price: "$16.00", desc: "Campari, sweet vermouth, prosecco.", img: FOOD_6 },
-                    { name: "Espresso Martini", price: "$17.00", desc: "Vodka, Kahlúa, fresh espresso, sugar syrup.", img: FOOD_5 },
-                  ].map((item) => (
-                    <div key={item.name} style={{ background: "#2c1820", borderRadius: 16, border: "1px solid rgba(201,165,90,0.13)", overflow: "hidden", display: "flex", gap: 12, padding: 12, marginBottom: 10 }}>
-                      <img src={item.img} alt={item.name} style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "#f4e8d8", lineHeight: 1.3, fontFamily: "Georgia, serif" }}>{item.name}</span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "#c9a55a", flexShrink: 0, fontFamily: "Georgia, serif" }}>{item.price}</span>
-                        </div>
-                        <p style={{ fontSize: 10, color: "#b8a89c", margin: "2px 0 0", lineHeight: 1.4 }}>{item.desc}</p>
-                        <p style={{ fontSize: 10, color: "#c9a55a", margin: "4px 0 0", fontWeight: 500 }}>Tap to read more →</p>
-                      </div>
-                    </div>
-                  ))}
+                <div style={{ display: "flex", gap: 8, padding: 12,
+                  background: "#fff", margin: 8, borderRadius: 12,
+                  border: "1px solid rgba(34,197,94,0.1)" }}>
+                  <div style={{ width: 40, height: 40, background: "rgba(34,197,94,0.2)",
+                    borderRadius: 8, flexShrink: 0 }} />
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "#166534" }}>Caesar</p>
+                    <p style={{ color: "#16a34a", fontSize: 12 }}>$14.00</p>
+                  </div>
                 </div>
-                {/* Footer */}
-                <div style={{ textAlign: "center", padding: "10px 0 4px", fontSize: 10, color: "#b8a89c", opacity: 0.6 }}>
-                  ⊡ Powered by DineLinks
-                </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
 
           </div>
 
           <p className="text-[#faf8f5]/60 text-sm text-center mt-8">
-            French bistro · Japanese izakaya · Cocktail bar — your menu, your personality
+            Warm Italian · Coastal seafood · Garden café — your menu, your personality
           </p>
         </div>
       </section>
