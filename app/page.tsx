@@ -551,9 +551,6 @@ export default function HomePage() {
         .cta-shine::after{content:'';position:absolute;inset:0;background:linear-gradient(110deg,transparent 40%,rgba(255,255,255,0.2) 50%,transparent 60%);transform:translateX(-100%);pointer-events:none}
         .cta-shine:hover::after{animation:periodic-shimmer 700ms ease-out}
         @media(prefers-reduced-motion:reduce){.hero-primary-cta::after,.cta-shine::after,.pricing-banner-shine,.live-dot{animation:none}}
-        @keyframes float{0%,100%{transform:translateY(0px)}50%{transform:translateY(-12px)}}
-        .anim-float{animation:float 4s ease-in-out infinite;transition:transform 0.5s ease;will-change:transform}
-        .anim-float:hover{animation-play-state:paused;transform:translateY(-6px) scale(1.02)}
       `}</style>
 
       {/* ── Scroll progress bar ────────────────────────────────────────────────── */}
@@ -1216,15 +1213,15 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          <div className="flex flex-col items-center sm:flex-row sm:justify-center sm:items-start gap-6 mt-14" style={{ perspective: 1200 }}>
+          <div className="flex flex-col items-center sm:flex-row sm:justify-center sm:items-start gap-6 mt-14 py-8" style={{ perspective: 1200 }}>
 
             {/* Card 1 — Maison Laurent (French bistro, WITH category images) */}
             <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5 } })}>
               <motion.div
-                style={{ background: "#f4ede0", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(26,58,46,0.15)", transformStyle: "preserve-3d" }}
-                animate={rm ? {} : { y: [0, -6, 0] }}
-                transition={rm ? {} : { duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                whileHover={rm ? {} : { y: -8, scale: 1.02, z: 20 }}
+                style={{ background: "#f4ede0", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(26,58,46,0.15)", transformOrigin: "center bottom" }}
+                animate={rm ? {} : { y: [0, -14, 0] }}
+                transition={rm ? {} : { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0 }}
+                whileHover={rm ? {} : { scale: 1.03, y: -18 }}
               >
                 {/* Hero */}
                 <div style={{ height: 100, position: "relative", overflow: "hidden" }}>
@@ -1275,10 +1272,10 @@ export default function HomePage() {
             {/* Card 2 — Izakaya Kura (Japanese, NO category images, unavailable item) */}
             <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.1 } })}>
               <motion.div
-                style={{ background: "#ffffff", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(200,85,61,0.15)", transformStyle: "preserve-3d" }}
-                animate={rm ? {} : { y: [0, -6, 0] }}
-                transition={rm ? {} : { duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
-                whileHover={rm ? {} : { y: -8, scale: 1.02, z: 20 }}
+                style={{ background: "#ffffff", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(200,85,61,0.15)", transformOrigin: "center bottom" }}
+                animate={rm ? {} : { y: [0, -14, 0] }}
+                transition={rm ? {} : { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
+                whileHover={rm ? {} : { scale: 1.03, y: -18 }}
               >
                 {/* Hero */}
                 <div style={{ height: 100, position: "relative", overflow: "hidden" }}>
@@ -1338,10 +1335,10 @@ export default function HomePage() {
             {/* Card 3 — The Parlour (dark cocktail bar, WITH category images) */}
             <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.2 } })}>
               <motion.div
-                style={{ background: "#1f1015", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(201,165,90,0.2)", transformStyle: "preserve-3d" }}
-                animate={rm ? {} : { y: [0, -6, 0] }}
-                transition={rm ? {} : { duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1.6 }}
-                whileHover={rm ? {} : { y: -8, scale: 1.02, z: 20 }}
+                style={{ background: "#1f1015", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(201,165,90,0.2)", transformOrigin: "center bottom" }}
+                animate={rm ? {} : { y: [0, -14, 0] }}
+                transition={rm ? {} : { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1.6 }}
+                whileHover={rm ? {} : { scale: 1.03, y: -18 }}
               >
                 {/* Hero */}
                 <div style={{ height: 100, position: "relative", overflow: "hidden" }}>
