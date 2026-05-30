@@ -20,15 +20,14 @@ const BURGER_IMAGE_URL = "https://images.unsplash.com/photo-1568901346375-23c945
 const EXAMPLE_MENU_URL = "/menu/gavinrgallant-1";
 const LIVE_DEMO_URL    = "https://dinelinks.com/menu/gavinrgallant-1";
 // Make it yours card images
-const HERO_1 = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=80";
-const HERO_2 = "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80";
-const HERO_3 = "https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?w=600&q=80";
-const FOOD_1 = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&q=80";
-const FOOD_2 = "https://images.unsplash.com/photo-1546964124-0cce460f38ef?w=200&q=80";
-const FOOD_3 = "https://images.unsplash.com/photo-1551504734-5ee1c4a1479b?w=200&q=80";
-const FOOD_4 = "https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=200&q=80";
-const FOOD_5 = "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=200&q=80";
-const FOOD_6 = "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=200&q=80";
+const PASTA_IMG    = "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=200&q=80";
+const STEAK_IMG    = "https://images.unsplash.com/photo-1546964124-0cce460f38ef?w=200&q=80";
+const SALAD_IMG    = "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=200&q=80";
+const SUSHI_IMG    = "https://images.unsplash.com/photo-1553621042-f6e147245754?w=200&q=80";
+const COCKTAIL_IMG = "https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=200&q=80";
+const CAKE_IMG     = "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=200&q=80";
+const CAT_HERO_1   = "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=80";
+const CAT_HERO_2   = "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=400&q=80";
 
 // ── Logo components ────────────────────────────────────────────────────────────
 function DLLogoDark({ width = 44, height = 40 }: { width?: number; height?: number }) {
@@ -1217,92 +1216,183 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          <div className="flex flex-col items-center sm:flex-row sm:justify-center sm:items-start gap-6 mt-14">
+          <div className="flex flex-col items-center sm:flex-row sm:justify-center sm:items-start gap-6 mt-14" style={{ perspective: 1200 }}>
 
-            {/* Card 1 — La Piazza (warm gold) */}
-            <div className="w-full sm:w-64 flex-shrink-0">
-              <div className="anim-float rounded-2xl overflow-hidden shadow-lg"
-                style={{ animationDelay: "0s", background: "#faf8f5",
-                  border: "1px solid rgba(139,105,20,0.2)" }}>
-                <div style={{ height: 64, background: "#2c2a26",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#faf8f5", fontFamily: "Georgia, serif", fontSize: 14 }}>
-                  La Piazza
+            {/* Card 1 — Maison Laurent (French bistro, WITH category images) */}
+            <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5 } })}>
+              <motion.div
+                style={{ background: "#f4ede0", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(26,58,46,0.15)", transformStyle: "preserve-3d" }}
+                animate={rm ? {} : { y: [0, -6, 0] }}
+                transition={rm ? {} : { duration: 5, repeat: Infinity, ease: "easeInOut" }}
+                whileHover={rm ? {} : { y: -8, scale: 1.02, z: 20 }}
+              >
+                {/* Hero */}
+                <div style={{ height: 100, position: "relative", overflow: "hidden" }}>
+                  <img src={CAT_HERO_1} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(26,58,46,0.88) 0%, rgba(26,58,46,0.2) 60%, transparent 100%)" }} />
+                  <p style={{ position: "absolute", bottom: 10, left: 14, color: "#fffbf3", fontSize: 15, fontWeight: 600, fontFamily: "Georgia, serif", margin: 0 }}>Maison Laurent</p>
                 </div>
-                <div style={{ background: "#faf8f5", borderBottom: "1px solid rgba(139,105,20,0.2)",
-                  padding: "8px 12px", color: "#8b6914", fontSize: 12, fontWeight: 600 }}>
-                  Mains
+                {/* Category tabs — WITH images */}
+                <div style={{ display: "flex", gap: 8, padding: "10px 12px 6px", background: "#fffbf3", borderBottom: "1px solid rgba(26,58,46,0.08)", overflowX: "auto", scrollbarWidth: "none" }}>
+                  {[
+                    { name: "Entrées", img: PASTA_IMG, active: true },
+                    { name: "Viandes", img: STEAK_IMG, active: false },
+                    { name: "Desserts", img: CAKE_IMG, active: false },
+                  ].map(cat => (
+                    <div key={cat.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, flexShrink: 0 }}>
+                      <div style={{ width: 46, height: 46, borderRadius: 10, overflow: "hidden", ...(cat.active ? { outline: "2px solid #1a3a2e", outlineOffset: 2 } : {}) }}>
+                        <img src={cat.img} alt={cat.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      </div>
+                      <span style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", color: cat.active ? "#1a3a2e" : "#6b6258", fontFamily: "Georgia, serif" }}>{cat.name}</span>
+                    </div>
+                  ))}
                 </div>
-                <div style={{ display: "flex", gap: 8, padding: 12,
-                  background: "#fff", margin: 8, borderRadius: 12,
-                  border: "1px solid rgba(139,105,20,0.1)" }}>
-                  <div style={{ width: 40, height: 40, background: "rgba(139,105,20,0.2)",
-                    borderRadius: 8, flexShrink: 0 }} />
-                  <div>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: "#2c2a26" }}>Tagliatelle</p>
-                    <p style={{ color: "#8b6914", fontSize: 12 }}>$18.00</p>
+                {/* Items */}
+                <div style={{ padding: "8px 10px 6px" }}>
+                  {[
+                    { name: "Bouillabaisse", price: "$28.00", desc: "Classic Provençal seafood stew with rouille", img: PASTA_IMG },
+                    { name: "Steak Tartare", price: "$24.00", desc: "Hand-cut beef, capers, cornichons, egg yolk", img: STEAK_IMG },
+                  ].map((item, idx) => (
+                    <div key={item.name} style={{ display: "flex", gap: 8, padding: "7px 8px", background: "#fffbf3", borderRadius: 10, marginBottom: idx === 0 ? 5 : 0, boxShadow: "0 1px 4px rgba(26,58,46,0.08)" }}>
+                      <img src={item.img} alt={item.name} style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "#1f1d18", lineHeight: 1.3, fontFamily: "Georgia, serif" }}>{item.name}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#1a3a2e", flexShrink: 0, fontFamily: "Georgia, serif" }}>{item.price}</span>
+                        </div>
+                        <p style={{ fontSize: 10, color: "#6b6258", margin: "2px 0 0", lineHeight: 1.4 }}>{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Footer */}
+                <div style={{ textAlign: "center", padding: "4px 0 8px" }}>
+                  <span style={{ fontSize: 9, color: "#1f1d18", opacity: 0.3 }}>Powered by DineLinks</span>
+                </div>
+              </motion.div>
+            </motion.div>
+
+            {/* Card 2 — Izakaya Kura (Japanese, NO category images, unavailable item) */}
+            <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.1 } })}>
+              <motion.div
+                style={{ background: "#ffffff", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(192,57,43,0.15)", transformStyle: "preserve-3d" }}
+                animate={rm ? {} : { y: [0, -6, 0] }}
+                transition={rm ? {} : { duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
+                whileHover={rm ? {} : { y: -8, scale: 1.02, z: 20 }}
+              >
+                {/* Hero */}
+                <div style={{ height: 100, position: "relative", overflow: "hidden" }}>
+                  <img src={CAT_HERO_2} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(26,26,26,0.88) 0%, rgba(26,26,26,0.2) 60%, transparent 100%)" }} />
+                  <p style={{ position: "absolute", bottom: 10, left: 14, color: "#ffffff", fontSize: 15, fontWeight: 600, margin: 0 }}>Izakaya Kura</p>
+                </div>
+                {/* Category tabs — text-only pills (no images) */}
+                <div style={{ display: "flex", gap: 6, padding: "8px 12px 6px", background: "#fafafa", borderBottom: "1px solid rgba(26,26,26,0.07)", overflowX: "auto", scrollbarWidth: "none" }}>
+                  {[{ name: "Yakitori", active: true }, { name: "Ramen", active: false }, { name: "Drinks", active: false }].map(tab => (
+                    <span key={tab.name} style={{ fontSize: 11, fontWeight: tab.active ? 700 : 500, padding: "4px 11px", borderRadius: 999, flexShrink: 0, background: tab.active ? "#c0392b" : "transparent", color: tab.active ? "#ffffff" : "#666666", border: tab.active ? "none" : "1px solid rgba(26,26,26,0.12)" }}>{tab.name}</span>
+                  ))}
+                </div>
+                {/* Category note */}
+                <p style={{ fontSize: 10, color: "#666666", fontStyle: "italic", padding: "5px 12px 2px", margin: 0 }}>All yakitori served with pickled daikon.</p>
+                {/* Dietary key — plain row, no background */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 12px 5px", fontSize: 10, color: "#666666" }}>
+                  <span style={{ fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" as const }}>Dietary Key</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Star size={10} /> Chef&apos;s</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 3 }}><WheatOff size={10} /> GF</span>
+                </div>
+                {/* Items */}
+                <div style={{ padding: "4px 10px 6px" }}>
+                  {/* Available */}
+                  <div style={{ display: "flex", gap: 8, padding: "7px 8px", background: "#fafafa", borderRadius: 10, marginBottom: 5, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                    <img src={STEAK_IMG} alt="Chicken Thigh" style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "#1a1a1a", lineHeight: 1.3 }}>Chicken Thigh ×3</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#c0392b", flexShrink: 0 }}>$14.00</span>
+                      </div>
+                      <p style={{ fontSize: 10, color: "#666666", margin: "2px 0 0", lineHeight: 1.4 }}>Binchotan-grilled with tare glaze</p>
+                    </div>
+                  </div>
+                  {/* Unavailable */}
+                  <div style={{ opacity: 0.45 }}>
+                    <div style={{ display: "flex", gap: 8, padding: "7px 8px", background: "#fafafa", borderRadius: 10, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                      <img src={PASTA_IMG} alt="Pork Belly Skewer" style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "#1a1a1a", lineHeight: 1.3 }}>Pork Belly Skewer</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#c0392b", flexShrink: 0 }}>$12.00</span>
+                        </div>
+                        <p style={{ fontSize: 10, color: "#666666", margin: "2px 3px", lineHeight: 1.4 }}>Slow-braised with miso glaze</p>
+                        <span style={{ background: "#e5e7eb", color: "#6b7280", borderRadius: 999, padding: "2px 8px", fontSize: 10 }}>Unavailable</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </div>
+                {/* Footer */}
+                <div style={{ textAlign: "center", padding: "4px 0 8px" }}>
+                  <span style={{ fontSize: 9, color: "#1a1a1a", opacity: 0.3 }}>Powered by DineLinks</span>
+                </div>
+              </motion.div>
+            </motion.div>
 
-            {/* Card 2 — Ocean Blue (dark navy) */}
-            <div className="w-full sm:w-64 flex-shrink-0">
-              <div className="anim-float rounded-2xl overflow-hidden shadow-lg"
-                style={{ animationDelay: "0.6s", background: "#0f172a",
-                  border: "1px solid rgba(59,130,246,0.2)" }}>
-                <div style={{ height: 64, background: "#1e293b",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontFamily: "Georgia, serif", fontSize: 14 }}>
-                  Ocean Blue
+            {/* Card 3 — The Parlour (dark cocktail bar, WITH category images) */}
+            <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.2 } })}>
+              <motion.div
+                style={{ background: "#1f1015", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(201,165,90,0.2)", transformStyle: "preserve-3d" }}
+                animate={rm ? {} : { y: [0, -6, 0] }}
+                transition={rm ? {} : { duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1.6 }}
+                whileHover={rm ? {} : { y: -8, scale: 1.02, z: 20 }}
+              >
+                {/* Hero */}
+                <div style={{ height: 100, position: "relative", overflow: "hidden" }}>
+                  <img src={CT_HERO_URL} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(31,16,21,0.92) 0%, rgba(31,16,21,0.3) 60%, transparent 100%)" }} />
+                  <p style={{ position: "absolute", bottom: 10, left: 14, color: "#f4e8d8", fontSize: 15, fontWeight: 600, fontFamily: "Georgia, serif", margin: 0 }}>The Parlour</p>
                 </div>
-                <div style={{ background: "#0f172a", borderBottom: "1px solid rgba(59,130,246,0.2)",
-                  padding: "8px 12px", color: "#60a5fa", fontSize: 12, fontWeight: 600 }}>
-                  Seafood
+                {/* Category tabs — WITH images */}
+                <div style={{ display: "flex", gap: 8, padding: "10px 12px 6px", background: "#2c1820", borderBottom: "1px solid rgba(244,232,216,0.08)", overflowX: "auto", scrollbarWidth: "none" }}>
+                  {[
+                    { name: "Cocktails", img: COCKTAIL_IMG, active: true },
+                    { name: "Small Plates", img: SALAD_IMG, active: false },
+                    { name: "Sharing", img: SUSHI_IMG, active: false },
+                  ].map(cat => (
+                    <div key={cat.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, flexShrink: 0 }}>
+                      <div style={{ width: 46, height: 46, borderRadius: 10, overflow: "hidden", ...(cat.active ? { outline: "2px solid #c9a55a", outlineOffset: 2 } : {}) }}>
+                        <img src={cat.img} alt={cat.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      </div>
+                      <span style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", color: cat.active ? "#c9a55a" : "#b8a89c", fontFamily: "Georgia, serif" }}>{cat.name}</span>
+                    </div>
+                  ))}
                 </div>
-                <div style={{ display: "flex", gap: 8, padding: 12,
-                  background: "#1e293b", margin: 8, borderRadius: 12 }}>
-                  <div style={{ width: 40, height: 40, background: "rgba(59,130,246,0.2)",
-                    borderRadius: 8, flexShrink: 0 }} />
-                  <div>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: "#fff" }}>Salmon</p>
-                    <p style={{ color: "#60a5fa", fontSize: 12 }}>$24.00</p>
-                  </div>
+                {/* Items */}
+                <div style={{ padding: "8px 10px 6px" }}>
+                  {[
+                    { name: "Negroni Sbagliato", price: "$16.00", desc: "Campari, sweet vermouth, prosecco", img: COCKTAIL_IMG },
+                    { name: "Espresso Martini", price: "$17.00", desc: "Vodka, Kahlúa, fresh espresso", img: SALAD_IMG },
+                  ].map((item, idx) => (
+                    <div key={item.name} style={{ display: "flex", gap: 8, padding: "7px 8px", background: "#2c1820", borderRadius: 10, marginBottom: idx === 0 ? 5 : 0, boxShadow: "0 1px 6px rgba(0,0,0,0.25)" }}>
+                      <img src={item.img} alt={item.name} style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "#f4e8d8", lineHeight: 1.3, fontFamily: "Georgia, serif" }}>{item.name}</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#c9a55a", flexShrink: 0, fontFamily: "Georgia, serif" }}>{item.price}</span>
+                        </div>
+                        <p style={{ fontSize: 10, color: "#b8a89c", margin: "2px 0 0", lineHeight: 1.4 }}>{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            </div>
-
-            {/* Card 3 — Garden Café (fresh green) */}
-            <div className="w-full sm:w-64 flex-shrink-0">
-              <div className="anim-float rounded-2xl overflow-hidden shadow-lg"
-                style={{ animationDelay: "1.2s", background: "#f0fdf4",
-                  border: "1px solid rgba(34,197,94,0.2)" }}>
-                <div style={{ height: 64, background: "#166534",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#fff", fontFamily: "Georgia, serif", fontSize: 14 }}>
-                  Garden Café
+                {/* Footer */}
+                <div style={{ textAlign: "center", padding: "4px 0 8px" }}>
+                  <span style={{ fontSize: 9, color: "#f4e8d8", opacity: 0.3 }}>Powered by DineLinks</span>
                 </div>
-                <div style={{ background: "#f0fdf4", borderBottom: "1px solid rgba(34,197,94,0.2)",
-                  padding: "8px 12px", color: "#16a34a", fontSize: 12, fontWeight: 600 }}>
-                  Salads
-                </div>
-                <div style={{ display: "flex", gap: 8, padding: 12,
-                  background: "#fff", margin: 8, borderRadius: 12,
-                  border: "1px solid rgba(34,197,94,0.1)" }}>
-                  <div style={{ width: 40, height: 40, background: "rgba(34,197,94,0.2)",
-                    borderRadius: 8, flexShrink: 0 }} />
-                  <div>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: "#166534" }}>Caesar</p>
-                    <p style={{ color: "#16a34a", fontSize: 12 }}>$14.00</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
 
           </div>
 
           <p className="text-[#faf8f5]/60 text-sm text-center mt-8">
-            Warm Italian · Coastal seafood · Garden café — your menu, your personality
+            French bistro · Japanese izakaya · Cocktail bar — your menu, your personality
           </p>
         </div>
       </section>
