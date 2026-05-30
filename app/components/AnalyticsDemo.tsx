@@ -143,7 +143,7 @@ export function AnalyticsDemo() {
         </div>
 
         {/* Row 2: top items + language pie */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Top items */}
           <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50 mb-3">Most viewed items</p>
@@ -175,7 +175,7 @@ export function AnalyticsDemo() {
           {/* Language pie */}
           <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-4">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50 mb-3">Language preferences</p>
-            <div style={{ height: 200 }}>
+            <div style={{ height: 220 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -183,8 +183,8 @@ export function AnalyticsDemo() {
                     dataKey="count"
                     cx="50%"
                     cy="50%"
-                    innerRadius={50}
-                    outerRadius={85}
+                    innerRadius={42}
+                    outerRadius={72}
                     paddingAngle={2}
                     label={false}
                     labelLine={false}
@@ -206,7 +206,7 @@ export function AnalyticsDemo() {
                     verticalAlign="bottom"
                     iconType="circle"
                     iconSize={8}
-                    wrapperStyle={{ fontSize: 11, color: "#2c2a26", paddingTop: 10 }}
+                    wrapperStyle={{ fontSize: 10, color: "#2c2a26", paddingTop: 8, width: "100%", textAlign: "center" }}
                   />
                 </PieChart>
               </ResponsiveContainer>
