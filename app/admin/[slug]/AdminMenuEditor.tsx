@@ -473,6 +473,23 @@ export function AdminMenuEditor({
   const adminScrollLeft = () => tabScrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' });
   const adminScrollRight = () => tabScrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' });
 
+  // Global Escape key — close innermost open modal first
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      if (editingItem) { setEditingItem(null); return; }
+      if (addingNew) { setAddingNew(false); return; }
+      if (themeOpen) { setThemeOpen(false); return; }
+      if (showCategoryModal) { setShowCategoryModal(false); return; }
+      if (showManageModal) { setShowManageModal(false); return; }
+      if (settingsOpen) { setSettingsOpen(false); return; }
+      if (showQR) { setShowQR(false); return; }
+      if (mobileOpen) { setMobileOpen(false); return; }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [editingItem, addingNew, themeOpen, showCategoryModal, showManageModal, settingsOpen, showQR, mobileOpen]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/login"); router.refresh();
@@ -1529,10 +1546,34 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                   </div>
                 </div>
               )}
-              <button type="button" onClick={save} disabled={saving}
-                className="font-sans w-full py-3.5 rounded-xl bg-[var(--accent)] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity shadow-sm">
-                {saving ? "Saving…" : "Save theme"}
-              </button>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (restaurant) {
+                      setCard(restaurant.main_color ?? D_CARD);
+                      setAccent(restaurant.accent_color ?? D_ACCENT);
+                      setBg(restaurant.background_color ?? D_BG);
+                      setFontColor(restaurant.font_color ?? D_TEXT);
+                      setMutedColor(restaurant.muted_color ?? "#6b6560");
+                      setFont(restaurant.font_family ?? "sans");
+                      setName(restaurant.name ?? "");
+                      setHeroUrl(restaurant.hero_image_url ?? "");
+                      setLogoUrl(restaurant.logo_url ?? "");
+                      setShowCurrencySymbol(restaurant.show_currency_symbol !== false);
+                    }
+                    setOpen(false);
+                    onClose?.();
+                  }}
+                  className="font-sans flex-1 py-3.5 rounded-xl border border-[var(--card-border)] text-[var(--muted)] text-sm font-medium hover:bg-[var(--card-border)]/30 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button type="button" onClick={save} disabled={saving}
+                  className="font-sans flex-[2] py-3.5 rounded-xl bg-[var(--accent)] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity shadow-sm">
+                  {saving ? "Saving…" : "Save theme"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
