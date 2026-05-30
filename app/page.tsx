@@ -1275,7 +1275,7 @@ export default function HomePage() {
             {/* Card 2 — Izakaya Kura (Japanese, NO category images, unavailable item) */}
             <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.1 } })}>
               <motion.div
-                style={{ background: "#ffffff", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(192,57,43,0.15)", transformStyle: "preserve-3d" }}
+                style={{ background: "#ffffff", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(200,85,61,0.15)", transformStyle: "preserve-3d" }}
                 animate={rm ? {} : { y: [0, -6, 0] }}
                 transition={rm ? {} : { duration: 5, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
                 whileHover={rm ? {} : { y: -8, scale: 1.02, z: 20 }}
@@ -1289,13 +1289,13 @@ export default function HomePage() {
                 {/* Category tabs — text-only pills (no images) */}
                 <div style={{ display: "flex", gap: 6, padding: "8px 12px 6px", background: "#fafafa", borderBottom: "1px solid rgba(26,26,26,0.07)", overflowX: "auto", scrollbarWidth: "none" }}>
                   {[{ name: "Yakitori", active: true }, { name: "Ramen", active: false }, { name: "Drinks", active: false }].map(tab => (
-                    <span key={tab.name} style={{ fontSize: 11, fontWeight: tab.active ? 700 : 500, padding: "4px 11px", borderRadius: 999, flexShrink: 0, background: tab.active ? "#c0392b" : "transparent", color: tab.active ? "#ffffff" : "#666666", border: tab.active ? "none" : "1px solid rgba(26,26,26,0.12)" }}>{tab.name}</span>
+                    <span key={tab.name} style={{ fontSize: 11, fontWeight: tab.active ? 700 : 500, padding: "4px 11px", borderRadius: 999, flexShrink: 0, background: tab.active ? "#c8553d" : "transparent", color: tab.active ? "#ffffff" : "#6b6b6b", border: tab.active ? "none" : "1px solid rgba(31,31,31,0.12)" }}>{tab.name}</span>
                   ))}
                 </div>
                 {/* Category note */}
-                <p style={{ fontSize: 10, color: "#666666", fontStyle: "italic", padding: "5px 12px 2px", margin: 0 }}>All yakitori served with pickled daikon.</p>
+                <p style={{ fontSize: 10, color: "#6b6b6b", fontStyle: "italic", padding: "5px 12px 2px", margin: 0 }}>All yakitori served with pickled daikon.</p>
                 {/* Dietary key — plain row, no background */}
-                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 12px 5px", fontSize: 10, color: "#666666" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "3px 12px 5px", fontSize: 10, color: "#6b6b6b" }}>
                   <span style={{ fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" as const }}>Dietary Key</span>
                   <span style={{ display: "flex", alignItems: "center", gap: 3 }}><Star size={10} /> Chef&apos;s</span>
                   <span style={{ display: "flex", alignItems: "center", gap: 3 }}><WheatOff size={10} /> GF</span>
@@ -1307,10 +1307,10 @@ export default function HomePage() {
                     <img src={STEAK_IMG} alt="Chicken Thigh" style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: "#1a1a1a", lineHeight: 1.3 }}>Chicken Thigh ×3</span>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: "#c0392b", flexShrink: 0 }}>$14.00</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: "#1f1f1f", lineHeight: 1.3 }}>Chicken Thigh ×3</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: "#c8553d", flexShrink: 0 }}>$14.00</span>
                       </div>
-                      <p style={{ fontSize: 10, color: "#666666", margin: "2px 0 0", lineHeight: 1.4 }}>Binchotan-grilled with tare glaze</p>
+                      <p style={{ fontSize: 10, color: "#6b6b6b", margin: "2px 0 0", lineHeight: 1.4 }}>Binchotan-grilled with tare glaze</p>
                     </div>
                   </div>
                   {/* Unavailable */}
@@ -1319,10 +1319,10 @@ export default function HomePage() {
                       <img src={PASTA_IMG} alt="Pork Belly Skewer" style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "#1a1a1a", lineHeight: 1.3 }}>Pork Belly Skewer</span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "#c0392b", flexShrink: 0 }}>$12.00</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: "#1f1f1f", lineHeight: 1.3 }}>Pork Belly Skewer</span>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: "#c8553d", flexShrink: 0 }}>$12.00</span>
                         </div>
-                        <p style={{ fontSize: 10, color: "#666666", margin: "2px 3px", lineHeight: 1.4 }}>Slow-braised with miso glaze</p>
+                        <p style={{ fontSize: 10, color: "#6b6b6b", margin: "2px 3px", lineHeight: 1.4 }}>Slow-braised with miso glaze</p>
                         <span style={{ background: "#e5e7eb", color: "#6b7280", borderRadius: 999, padding: "2px 8px", fontSize: 10 }}>Unavailable</span>
                       </div>
                     </div>
@@ -1330,7 +1330,7 @@ export default function HomePage() {
                 </div>
                 {/* Footer */}
                 <div style={{ textAlign: "center", padding: "4px 0 8px" }}>
-                  <span style={{ fontSize: 9, color: "#1a1a1a", opacity: 0.3 }}>Powered by DineLinks</span>
+                  <span style={{ fontSize: 9, color: "#1f1f1f", opacity: 0.3 }}>Powered by DineLinks</span>
                 </div>
               </motion.div>
             </motion.div>
