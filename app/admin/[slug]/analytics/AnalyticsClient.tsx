@@ -208,7 +208,7 @@ export function AnalyticsClient({
           />
         </div>
 
-        {/* Scans over time */}
+        {/* Views over time */}
         <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-5 sm:p-6">
           <h2 className="text-sm font-semibold text-[#2c2a26] uppercase tracking-widest mb-5 opacity-60">
             Views over time — {rangeLabel}

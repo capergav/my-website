@@ -1,132 +1,62 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, type CSSProperties } from "react";
-import ReactDOM from "react-dom";
+import { useState, useRef, useEffect } from "react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import { locales, type Locale } from "@/app/lib/translations";
-import { trackEvent, detectDevice } from "@/lib/analytics";
 
-export function LanguageDropdown({ trackRestaurantId }: { trackRestaurantId?: string } = {}) {
+export function LanguageDropdown() {
   const { locale, setLocale } = useLanguage();
   const [open, setOpen] = useState(false);
-  const [popupStyle, setPopupStyle] = useState<CSSProperties>({});
-  const [portalVars, setPortalVars] = useState<CSSProperties>({});
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const popupRef = useRef<HTMLUListElement>(null);
+  const ref = useRef<HTMLDivElement>(null);
+  const isRtl = locale === "ar";
 
-  // Close on outside click
   useEffect(() => {
-    if (!open) return;
-    function handle(e: MouseEvent) {
-      if (
-        buttonRef.current && !buttonRef.current.contains(e.target as Node) &&
-        popupRef.current  && !popupRef.current.contains(e.target as Node)
-      ) {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
       }
     }
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, [open]);
-
-  // Position popup with fixed coords so sticky headers never clip it
-  const calculatePosition = useCallback(() => {
-    if (!buttonRef.current) return;
-    const rect = buttonRef.current.getBoundingClientRect();
-    const W = window.innerWidth;
-    const isRtl = locale === "ar";
-    const minWidth = Math.max(rect.width, 160);
-
-    if (isRtl) {
-      // Anchor to the left edge of the button, clamp so it doesn't overflow the right side
-      setPopupStyle({
-        position: "fixed",
-        top:      rect.bottom + 8,
-        left:     Math.min(rect.left, W - minWidth - 8),
-        minWidth,
-        zIndex:   99999,
-      });
-    } else {
-      // Anchor to the right edge of the button, clamp so it doesn't overflow the left side
-      setPopupStyle({
-        position: "fixed",
-        top:      rect.bottom + 8,
-        right:    Math.max(8, W - rect.right),
-        minWidth,
-        zIndex:   99999,
-      });
-    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const handleToggle = () => {
-    if (!open) {
-      calculatePosition();
-      // Read scoped CSS vars from the button (which is inside the restaurant theme wrapper)
-      // and copy them to the portal so var(--accent) resolves correctly outside the wrapper
-      if (buttonRef.current) {
-        const cs = getComputedStyle(buttonRef.current);
-        setPortalVars({
-          "--accent":      cs.getPropertyValue("--accent").trim()      || "#8b6914",
-          "--card":        cs.getPropertyValue("--card").trim()        || "#ffffff",
-          "--card-border": cs.getPropertyValue("--card-border").trim() || "rgba(44,42,38,0.15)",
-          "--foreground":  cs.getPropertyValue("--foreground").trim()  || "#2c2a26",
-        } as CSSProperties);
-      }
-    }
-    setOpen((o) => !o);
-  };
 
   const current = locales.find((l) => l.value === locale) ?? locales[0];
 
   return (
-    <>
+    <div className="relative" ref={ref}>
       <button
-        ref={buttonRef}
         type="button"
-        onClick={handleToggle}
-        className="flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-full bg-[var(--card)] text-[var(--foreground)] font-medium text-sm border border-[var(--card-border)] shadow-sm hover:shadow-md transition-shadow touch-manipulation"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center gap-2 min-h-[44px] px-3 py-2 rounded-xl bg-[var(--card)] text-[var(--foreground)] font-medium text-sm touch-manipulation border border-[var(--card-border)] shadow-sm hover:shadow-md transition-shadow"
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label="Change language"
       >
         <span>{current.label}</span>
         <svg
-          className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`}
-          fill="none" stroke="currentColor" viewBox="0 0 24 24"
+          className={`w-4 h-4 transition-transform ${open ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
         >
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
-      {open && ReactDOM.createPortal(
+      {open && (
         <ul
-          ref={popupRef}
           role="listbox"
-          style={{ ...popupStyle, ...portalVars, animation: 'dropIn 0.12s ease-out' }}
-          className="py-1 rounded-xl bg-[var(--card)] border border-[var(--card-border)] shadow-xl overflow-hidden"
+          className={`absolute top-full mt-2 min-w-[10rem] py-1 rounded-xl bg-[var(--card)] border border-[var(--card-border)] shadow-lg z-50 ${isRtl ? "start-0 end-auto" : "end-0 start-auto"}`}
         >
           {locales.map((opt) => (
             <li key={opt.value} role="option" aria-selected={locale === opt.value}>
               <button
                 type="button"
                 onClick={() => {
-                  const newLocale = opt.value as Locale;
-                  setLocale(newLocale);
+                  setLocale(opt.value as Locale);
                   setOpen(false);
-                  if (trackRestaurantId) {
-                    const sessionId = sessionStorage.getItem("dl_session") ?? crypto.randomUUID();
-                    trackEvent({
-                      restaurant_id: trackRestaurantId,
-                      event_type: "language_change",
-                      language: newLocale,
-                      session_id: sessionId,
-                      device_type: detectDevice(),
-                      user_agent: navigator.userAgent,
-                      referrer: document.referrer,
-                    });
-                  }
                 }}
-                className={`w-full text-left px-4 py-2.5 text-sm font-medium transition-colors touch-manipulation ${
+                className={`w-full text-left px-4 py-3 text-sm font-medium transition-colors touch-manipulation ${
                   locale === opt.value
                     ? "bg-[var(--accent)]/15 text-[var(--accent)]"
                     : "text-[var(--foreground)] hover:bg-[var(--card-border)]/50"
@@ -136,9 +66,8 @@ export function LanguageDropdown({ trackRestaurantId }: { trackRestaurantId?: st
               </button>
             </li>
           ))}
-        </ul>,
-        document.body
+        </ul>
       )}
-    </>
+    </div>
   );
 }

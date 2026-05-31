@@ -15,6 +15,7 @@ import {
 } from "@/app/lib/translations";
 
 const STORAGE_KEY = "menusnap-locale";
+const VALID_LOCALES = ["en","fr","zh","ar","es","ko","pa","yue","fil","hi"];
 
 type LanguageContextValue = {
   locale: Locale;
@@ -25,16 +26,13 @@ type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
-const VALID_LOCALES: Locale[] = ["en", "fr", "zh", "ar", "es", "ko", "pa", "yue", "tl", "hi"];
-
-function getStoredLocale(defaultLocale = "en"): Locale {
-  if (typeof window === "undefined") return defaultLocale as Locale;
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored && VALID_LOCALES.includes(stored as Locale)) return stored as Locale;
-  return VALID_LOCALES.includes(defaultLocale as Locale) ? (defaultLocale as Locale) : "en";
-}
-
-export function LanguageProvider({ children, initialLocale }: { children: React.ReactNode; initialLocale?: string }) {
+export function LanguageProvider({
+  children,
+  initialLocale,
+}: {
+  children: React.ReactNode;
+  initialLocale?: string;
+}) {
   const [locale, setLocaleState] = useState<Locale>("en");
   const [mounted, setMounted] = useState(false);
   const langTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -43,10 +41,9 @@ export function LanguageProvider({ children, initialLocale }: { children: React.
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    const valid = ["en","fr","zh","ar","es","ko","pa","yue","tl","hi"];
-    if (stored && valid.includes(stored)) {
+    if (stored && VALID_LOCALES.includes(stored)) {
       setLocaleState(stored as Locale);
-    } else if (initialLocale && valid.includes(initialLocale)) {
+    } else if (initialLocale && VALID_LOCALES.includes(initialLocale)) {
       setLocaleState(initialLocale as Locale);
     }
     setMounted(true);
@@ -56,24 +53,24 @@ export function LanguageProvider({ children, initialLocale }: { children: React.
     if (!mounted) return;
     localStorage.setItem(STORAGE_KEY, locale);
     const html = document.documentElement;
-    html.setAttribute("lang", locale === "zh" ? "zh-Hans" : locale === "yue" ? "zh-yue" : locale);
+    html.setAttribute("lang", locale === "zh" ? "zh-Hans" : locale);
   }, [locale, mounted]);
 
-  // Record initial language after 30 seconds of staying on the menu
+  // Record initial language after 30s engagement
   useEffect(() => {
     if (!mounted || hasRecordedInitial.current) return;
     initialLangTimerRef.current = setTimeout(async () => {
       if (hasRecordedInitial.current) return;
       hasRecordedInitial.current = true;
       try {
-        const slug = window.location.pathname.split('/menu/')[1]?.split('/')[0];
+        const slug = window.location.pathname.split("/menu/")[1]?.split("/")[0];
         if (!slug) return;
-        const visitorId = localStorage.getItem('dl_visitor_id') ?? undefined;
-        await fetch('/api/analytics', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const visitorId = localStorage.getItem("dl_visitor_id") ?? undefined;
+        await fetch("/api/analytics", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            event_type: 'language_use',
+            event_type: "language_use",
             restaurant_slug: slug,
             language: locale,
             visitor_id: visitorId,
@@ -82,12 +79,10 @@ export function LanguageProvider({ children, initialLocale }: { children: React.
       } catch {}
     }, 30000);
     return () => {
-      if (initialLangTimerRef.current)
-        clearTimeout(initialLangTimerRef.current);
+      if (initialLangTimerRef.current) clearTimeout(initialLangTimerRef.current);
     };
   }, [mounted, locale]);
 
-  // Clean up any pending language_use timer on unmount
   useEffect(() => {
     return () => {
       if (langTimerRef.current) clearTimeout(langTimerRef.current);
@@ -99,14 +94,14 @@ export function LanguageProvider({ children, initialLocale }: { children: React.
     if (langTimerRef.current) clearTimeout(langTimerRef.current);
     langTimerRef.current = setTimeout(async () => {
       try {
-        const slug = window.location.pathname.split('/menu/')[1]?.split('/')[0];
+        const slug = window.location.pathname.split("/menu/")[1]?.split("/")[0];
         if (!slug) return;
-        const visitorId = localStorage.getItem('dl_visitor_id') ?? undefined;
-        await fetch('/api/analytics', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const visitorId = localStorage.getItem("dl_visitor_id") ?? undefined;
+        await fetch("/api/analytics", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            event_type: 'language_use',
+            event_type: "language_use",
             restaurant_slug: slug,
             language: newLocale,
             visitor_id: visitorId,
@@ -116,25 +111,14 @@ export function LanguageProvider({ children, initialLocale }: { children: React.
     }, 8000);
   }, []);
 
-  const t = useCallback(
-    (key: string) => tFn(key, locale),
-    [locale]
-  );
-
+  const t = useCallback((key: string) => tFn(key, locale), [locale]);
   const getCategoryLabel = useCallback(
     (category: string) => getCategoryLabelFn(category, locale),
     [locale]
   );
 
-  const value: LanguageContextValue = {
-    locale,
-    setLocale,
-    t,
-    getCategoryLabel,
-  };
-
   return (
-    <LanguageContext.Provider value={value}>
+    <LanguageContext.Provider value={{ locale, setLocale, t, getCategoryLabel }}>
       {children}
     </LanguageContext.Provider>
   );
@@ -142,8 +126,6 @@ export function LanguageProvider({ children, initialLocale }: { children: React.
 
 export function useLanguage(): LanguageContextValue {
   const ctx = useContext(LanguageContext);
-  if (!ctx) {
-    throw new Error("useLanguage must be used within LanguageProvider");
-  }
+  if (!ctx) throw new Error("useLanguage must be used within LanguageProvider");
   return ctx;
 }
