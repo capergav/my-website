@@ -26,6 +26,38 @@ type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 
+async function recordLanguage(language: string) {
+  try {
+    // Get restaurant_id and session_id from the page's data attributes
+    // The menu page sets these on the body or a data element
+    const restaurantId = document.body.dataset.restaurantId;
+    const sessionId = sessionStorage.getItem("dl_session_id") ?? (() => {
+      const id = Math.random().toString(36).slice(2);
+      sessionStorage.setItem("dl_session_id", id);
+      return id;
+    })();
+    const visitorId = localStorage.getItem("dl_visitor_id") ?? (() => {
+      const id = crypto.randomUUID();
+      localStorage.setItem("dl_visitor_id", id);
+      return id;
+    })();
+
+    if (!restaurantId) return; // not on a menu page
+
+    await fetch("/api/analytics", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        restaurant_id: restaurantId,
+        event_type: "language_use",
+        language,
+        session_id: sessionId,
+        visitor_id: visitorId,
+      }),
+    });
+  } catch {}
+}
+
 export function LanguageProvider({
   children,
   initialLocale,
@@ -35,9 +67,9 @@ export function LanguageProvider({
 }) {
   const [locale, setLocaleState] = useState<Locale>("en");
   const [mounted, setMounted] = useState(false);
-  const langTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const initialLangTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hasRecordedInitial = useRef(false);
+  const switchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const recordedInitial = useRef(false);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -49,65 +81,42 @@ export function LanguageProvider({
     setMounted(true);
   }, [initialLocale]);
 
+  // Save to localStorage + set lang attribute (no dir here)
   useEffect(() => {
     if (!mounted) return;
     localStorage.setItem(STORAGE_KEY, locale);
-    const html = document.documentElement;
-    html.setAttribute("lang", locale === "zh" ? "zh-Hans" : locale);
+    document.documentElement.setAttribute(
+      "lang",
+      locale === "zh" ? "zh-Hans" : locale
+    );
   }, [locale, mounted]);
 
-  // Record initial language after 30s engagement
+  // Record initial language after 30 seconds of engagement
   useEffect(() => {
-    if (!mounted || hasRecordedInitial.current) return;
-    initialLangTimerRef.current = setTimeout(async () => {
-      if (hasRecordedInitial.current) return;
-      hasRecordedInitial.current = true;
-      try {
-        const slug = window.location.pathname.split("/menu/")[1]?.split("/")[0];
-        if (!slug) return;
-        const visitorId = localStorage.getItem("dl_visitor_id") ?? undefined;
-        await fetch("/api/analytics", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            event_type: "language_use",
-            restaurant_slug: slug,
-            language: locale,
-            visitor_id: visitorId,
-          }),
-        });
-      } catch {}
+    if (!mounted || recordedInitial.current) return;
+    initialTimerRef.current = setTimeout(() => {
+      recordedInitial.current = true;
+      recordLanguage(locale);
     }, 30000);
     return () => {
-      if (initialLangTimerRef.current) clearTimeout(initialLangTimerRef.current);
+      if (initialTimerRef.current) clearTimeout(initialTimerRef.current);
     };
   }, [mounted, locale]);
 
+  // Cleanup switch timer on unmount
   useEffect(() => {
     return () => {
-      if (langTimerRef.current) clearTimeout(langTimerRef.current);
+      if (switchTimerRef.current) clearTimeout(switchTimerRef.current);
     };
   }, []);
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
-    if (langTimerRef.current) clearTimeout(langTimerRef.current);
-    langTimerRef.current = setTimeout(async () => {
-      try {
-        const slug = window.location.pathname.split("/menu/")[1]?.split("/")[0];
-        if (!slug) return;
-        const visitorId = localStorage.getItem("dl_visitor_id") ?? undefined;
-        await fetch("/api/analytics", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            event_type: "language_use",
-            restaurant_slug: slug,
-            language: newLocale,
-            visitor_id: visitorId,
-          }),
-        });
-      } catch {}
+    // Cancel any pending timer
+    if (switchTimerRef.current) clearTimeout(switchTimerRef.current);
+    // Record after 8 seconds of staying on this language
+    switchTimerRef.current = setTimeout(() => {
+      recordLanguage(newLocale);
     }, 8000);
   }, []);
 

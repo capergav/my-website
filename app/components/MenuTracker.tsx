@@ -7,6 +7,11 @@ export function MenuTracker({ restaurantId }: { restaurantId: string }) {
   const firedRef = useRef(false);
 
   useEffect(() => {
+    // Expose restaurantId on body so LanguageContext.recordLanguage can read it
+    document.body.dataset.restaurantId = restaurantId;
+  }, [restaurantId]);
+
+  useEffect(() => {
     if (firedRef.current) return;
     firedRef.current = true;
 
