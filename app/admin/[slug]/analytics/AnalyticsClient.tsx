@@ -187,7 +187,7 @@ export function AnalyticsClient({
         {/* Stats grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            label="Total Scans"
+            label="Menu views"
             value={stats.totalScans.toLocaleString()}
             trend={stats.trendScans}
           />
@@ -211,7 +211,7 @@ export function AnalyticsClient({
         {/* Scans over time */}
         <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-5 sm:p-6">
           <h2 className="text-sm font-semibold text-[#2c2a26] uppercase tracking-widest mb-5 opacity-60">
-            Scans over time — {rangeLabel}
+            Views over time — {rangeLabel}
           </h2>
           <div style={{ height: 220 }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -226,7 +226,7 @@ export function AnalyticsClient({
                 <Line
                   type="monotone"
                   dataKey="count"
-                  name="Scans"
+                  name="Views"
                   stroke={GOLD}
                   strokeWidth={2.5}
                   dot={false}
@@ -345,7 +345,7 @@ export function AnalyticsClient({
                   contentStyle={{ borderRadius: 12, border: `1px solid ${DARK}15`, fontSize: 12 }}
                   cursor={{ fill: `${GOLD}10` }}
                 />
-                <Bar dataKey="count" name="Scans" fill={GOLD} radius={[3, 3, 0, 0]} />
+                <Bar dataKey="count" name="Views" fill={GOLD} radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

@@ -13,7 +13,6 @@ import {
   getCategoryLabel as getCategoryLabelFn,
   t as tFn,
 } from "@/app/lib/translations";
-import { trackEvent, detectDevice, getVisitorId } from "@/lib/analytics";
 
 const STORAGE_KEY = "menusnap-locale";
 
@@ -35,16 +34,23 @@ function getStoredLocale(defaultLocale = "en"): Locale {
   return VALID_LOCALES.includes(defaultLocale as Locale) ? (defaultLocale as Locale) : "en";
 }
 
-export function LanguageProvider({ children, initialLanguage, restaurantId }: { children: React.ReactNode; initialLanguage?: string; restaurantId?: string }) {
+export function LanguageProvider({ children, initialLocale }: { children: React.ReactNode; initialLocale?: string }) {
   const [locale, setLocaleState] = useState<Locale>("en");
   const [mounted, setMounted] = useState(false);
-  const languageTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const langTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialLangTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasRecordedInitial = useRef(false);
 
   useEffect(() => {
-    setLocaleState(getStoredLocale(initialLanguage));
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const valid = ["en","fr","zh","ar","es","ko","pa","yue","tl","hi"];
+    if (stored && valid.includes(stored)) {
+      setLocaleState(stored as Locale);
+    } else if (initialLocale && valid.includes(initialLocale)) {
+      setLocaleState(initialLocale as Locale);
+    }
     setMounted(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialLocale]);
 
   useEffect(() => {
     if (!mounted) return;
@@ -53,37 +59,62 @@ export function LanguageProvider({ children, initialLanguage, restaurantId }: { 
     html.setAttribute("lang", locale === "zh" ? "zh-Hans" : locale === "yue" ? "zh-yue" : locale);
   }, [locale, mounted]);
 
+  // Record initial language after 30 seconds of staying on the menu
+  useEffect(() => {
+    if (!mounted || hasRecordedInitial.current) return;
+    initialLangTimerRef.current = setTimeout(async () => {
+      if (hasRecordedInitial.current) return;
+      hasRecordedInitial.current = true;
+      try {
+        const slug = window.location.pathname.split('/menu/')[1]?.split('/')[0];
+        if (!slug) return;
+        const visitorId = localStorage.getItem('dl_visitor_id') ?? undefined;
+        await fetch('/api/analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event_type: 'language_use',
+            restaurant_slug: slug,
+            language: locale,
+            visitor_id: visitorId,
+          }),
+        });
+      } catch {}
+    }, 30000);
+    return () => {
+      if (initialLangTimerRef.current)
+        clearTimeout(initialLangTimerRef.current);
+    };
+  }, [mounted, locale]);
+
   // Clean up any pending language_use timer on unmount
   useEffect(() => {
     return () => {
-      if (languageTimerRef.current) clearTimeout(languageTimerRef.current);
+      if (langTimerRef.current) clearTimeout(langTimerRef.current);
     };
   }, []);
 
   const setLocale = useCallback((newLocale: Locale) => {
     setLocaleState(newLocale);
-
-    // Only track on the customer menu (restaurantId required)
-    if (!restaurantId) return;
-
-    // Cancel pending timer — user changed mind before 8s elapsed
-    if (languageTimerRef.current) clearTimeout(languageTimerRef.current);
-
-    // Only record after 8 seconds of staying on this language
-    languageTimerRef.current = setTimeout(() => {
-      const sessionId = sessionStorage.getItem("dl_session") ?? "";
-      trackEvent({
-        restaurant_id: restaurantId,
-        event_type: "language_use",
-        language: newLocale,
-        session_id: sessionId,
-        device_type: detectDevice(),
-        user_agent: navigator.userAgent,
-        referrer: document.referrer ?? "",
-        visitor_id: getVisitorId(),
-      });
+    if (langTimerRef.current) clearTimeout(langTimerRef.current);
+    langTimerRef.current = setTimeout(async () => {
+      try {
+        const slug = window.location.pathname.split('/menu/')[1]?.split('/')[0];
+        if (!slug) return;
+        const visitorId = localStorage.getItem('dl_visitor_id') ?? undefined;
+        await fetch('/api/analytics', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event_type: 'language_use',
+            restaurant_slug: slug,
+            language: newLocale,
+            visitor_id: visitorId,
+          }),
+        });
+      } catch {}
     }, 8000);
-  }, [restaurantId]);
+  }, []);
 
   const t = useCallback(
     (key: string) => tFn(key, locale),

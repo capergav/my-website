@@ -166,7 +166,7 @@ export default async function PublicMenuPage({ params }: Props) {
   const defaultLanguage = (restaurant as { default_language?: string | null }).default_language ?? "en";
 
   return (
-    <LanguageProvider initialLanguage={defaultLanguage} restaurantId={restaurant.id}>
+    <LanguageProvider initialLocale={restaurant?.default_language ?? "en"}>
     {/* CSS vars scoped to this wrapper — never bleeds into the DineLinks navbar.
         MenuDirWrapper is a client component that sets dir="rtl" for Arabic, ltr otherwise,
         scoped to this element only — never touches document.documentElement. */}
