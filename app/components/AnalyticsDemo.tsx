@@ -117,7 +117,7 @@ export function AnalyticsDemo() {
       <div className="p-4 space-y-4">
         {/* Stat cards — 2 cols on mobile, 4 on wider */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <StatCard label="Total Scans"      value="1,847" trend={12} />
+          <StatCard label="Total Views"       value="1,847" trend={12} />
           <StatCard label="Unique Visitors"  value="634"   trend={8}  />
           <StatCard label="Avg Items Viewed" value="4.2"   subtitle="per visit" />
           <StatCard label="Top Language"     value="English" subtitle="most used" />
@@ -125,7 +125,7 @@ export function AnalyticsDemo() {
 
         {/* Line chart — scans over time */}
         <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-4">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50 mb-3">Scans over time — Last 7 days</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50 mb-3">Views over time — Last 7 days</p>
           <div style={{ height: 140 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={DAILY_SCANS} margin={{ top: 5, right: 8, left: -20, bottom: 0 }}>
@@ -136,7 +136,7 @@ export function AnalyticsDemo() {
                   contentStyle={{ borderRadius: 10, border: `1px solid ${DARK}15`, fontSize: 11 }}
                   labelStyle={{ color: DARK, fontWeight: 600 }}
                 />
-                <Line type="monotone" dataKey="count" name="Scans" stroke={GOLD} strokeWidth={2.5} dot={false} activeDot={{ r: 4, fill: GOLD }} />
+                <Line type="monotone" dataKey="count" name="Views" stroke={GOLD} strokeWidth={2.5} dot={false} activeDot={{ r: 4, fill: GOLD }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -226,7 +226,7 @@ export function AnalyticsDemo() {
                 <XAxis dataKey="hour" tick={{ fontSize: 8, fill: `${DARK}60` }} tickLine={false} axisLine={false} interval={1} />
                 <YAxis tick={{ fontSize: 9, fill: `${DARK}60` }} tickLine={false} axisLine={false} allowDecimals={false} />
                 <Tooltip contentStyle={{ borderRadius: 10, border: `1px solid ${DARK}15`, fontSize: 11 }} cursor={{ fill: `${GOLD}10` }} />
-                <Bar dataKey="count" name="Scans" fill={GOLD} radius={[2, 2, 0, 0]} />
+                <Bar dataKey="count" name="Views" fill={GOLD} radius={[2, 2, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
