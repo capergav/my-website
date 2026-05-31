@@ -71,8 +71,8 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
     return Math.round(((curr - prev) / prev) * 100);
   };
 
-  // Top language — only deliberate language_use events (fired after 8s of staying on a language)
-  const langUseEvents = allEvents.filter((e) => e.event_type === "language_use");
+  // Top language — language_use (30s/8s threshold) + legacy language_change events
+  const langUseEvents = allEvents.filter((e) => e.event_type === "language_use" || e.event_type === "language_change");
   const langCounts: Record<string, number> = {};
   for (const e of langUseEvents) {
     if (e.language) langCounts[e.language] = (langCounts[e.language] ?? 0) + 1;
