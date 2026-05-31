@@ -54,7 +54,7 @@ function SettingRow({ label, sublabel, children }: { label: string; sublabel?: s
 function MiniToggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
     <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#8b6914] focus:ring-offset-2 ${checked ? "bg-[#8b6914]" : "bg-gray-200"}`}>
+      className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 ${checked ? "bg-[var(--accent)]" : "bg-gray-200"}`}>
       <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform mt-0.5 ml-0.5 ${checked ? "translate-x-[20px]" : "translate-x-0"}`} />
     </button>
   );
@@ -155,7 +155,7 @@ export function SettingsClient({
     return subStatus;
   })();
 
-  const sectionHeader = (label: string, color = "text-[#8b6914]") => (
+  const sectionHeader = (label: string, color = "text-[var(--accent)]") => (
     <h2 className={`text-xs font-semibold uppercase tracking-widest ${color} mb-3`}>{label}</h2>
   );
 
@@ -222,7 +222,7 @@ export function SettingsClient({
           </SettingRow>
         </SectionCard>
         <button type="button" onClick={saveNotifs} disabled={savingNotifs}
-          className="mt-3 px-5 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
+          className="mt-3 px-5 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
           {savingNotifs ? "Saving…" : "Save notification settings"}
         </button>
       </section>
@@ -234,7 +234,7 @@ export function SettingsClient({
           <SettingRow label="Current plan" sublabel={planLabel}>
             {subStatus === "trialing" ? (
               <button type="button" onClick={openCheckout}
-                className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
+                className="px-4 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity">
                 Start subscription
               </button>
             ) : subStatus === "active" && cancelAtPeriodEnd ? (
@@ -249,7 +249,7 @@ export function SettingsClient({
               </button>
             ) : (
               <button type="button" onClick={openCheckout}
-                className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
+                className="px-4 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity">
                 Subscribe — $25 CAD/mo
               </button>
             )}
@@ -274,13 +274,13 @@ export function SettingsClient({
             <label className="block text-sm font-medium text-[#2c2a26] mb-1.5">Default menu language</label>
             <p className="text-xs text-[#6b6560] mb-2">The language shown first when customers open your menu.</p>
             <select value={defaultLang} onChange={(e) => setDefaultLang(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-[#e8e4dd] bg-white text-sm text-[#2c2a26] focus:outline-none focus:ring-2 focus:ring-[#8b6914]">
+              className="w-full px-3 py-2 rounded-lg border border-[#e8e4dd] bg-white text-sm text-[#2c2a26] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]">
               {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
             </select>
           </div>
         </SectionCard>
         <button type="button" onClick={savePrefs} disabled={savingPrefs}
-          className="mt-3 px-5 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
+          className="mt-3 px-5 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">
           {savingPrefs ? "Saving…" : "Save preferences"}
         </button>
       </section>
