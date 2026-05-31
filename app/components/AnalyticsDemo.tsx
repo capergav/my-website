@@ -182,12 +182,14 @@ export function AnalyticsDemo() {
                     data={LANG_DATA}
                     dataKey="count"
                     cx="50%"
-                    cy="50%"
+                    cy="45%"
                     innerRadius={42}
                     outerRadius={72}
                     paddingAngle={2}
-                    label={false}
-                    labelLine={false}
+                    label={({ name, percent }) =>
+                      `${name} ${((percent ?? 0) * 100).toFixed(0)}%`
+                    }
+                    labelLine={{ stroke: `${DARK}40`, strokeWidth: 1 }}
                   >
                     {LANG_DATA.map((_, i) => (
                       <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
@@ -206,7 +208,7 @@ export function AnalyticsDemo() {
                     verticalAlign="bottom"
                     iconType="circle"
                     iconSize={8}
-                    wrapperStyle={{ fontSize: 10, color: "#2c2a26", paddingTop: 8, width: "100%", textAlign: "center" }}
+                    wrapperStyle={{ fontSize: 10, color: "#2c2a26", paddingTop: 4 }}
                   />
                 </PieChart>
               </ResponsiveContainer>
