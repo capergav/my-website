@@ -456,10 +456,6 @@ export default function HomePage() {
   const [isLoggedIn, setIsLoggedIn] = useState(true); // default to logged-in state
   const [ctaHovered, setCtaHovered] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [newsletterEmail, setNewsletterEmail] = useState('');
-  const [newsletterDone, setNewsletterDone] = useState(false);
-  const [newsletterLoading, setNewsletterLoading] = useState(false);
-  const [newsletterError, setNewsletterError] = useState('');
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
   const springX = useSpring(mouseX, { stiffness: 20, damping: 15, mass: 1.2 });
@@ -1548,8 +1544,8 @@ export default function HomePage() {
         )}
 
         <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-10">
-          {/* Top row: logo + newsletter */}
-          <div className="flex flex-col lg:flex-row items-start justify-between gap-10 pb-10 border-b border-[#faf8f5]/10">
+          {/* Top row: logo */}
+          <div className="pb-10 border-b border-[#faf8f5]/10">
             {/* Logo + tagline */}
             <div>
               <div className="flex items-center gap-2.5 mb-3">
@@ -1565,71 +1561,6 @@ export default function HomePage() {
                 </span>
               </div>
               <p className="text-sm text-[#faf8f5]/50 max-w-xs">Beautiful QR menus in 10 languages. Update in seconds, no reprinting.</p>
-            </div>
-
-            {/* Newsletter */}
-            <div className="w-full lg:w-auto lg:min-w-[320px]">
-              <p className="text-sm font-semibold text-[#faf8f5] mb-1">Get tips for restaurant operators</p>
-              <p className="text-xs text-[#faf8f5]/50 mb-3">Occasional advice on digital menus, hospitality ops, and growing your restaurant.</p>
-              {newsletterDone ? (
-                <motion.p
-                  className="text-sm text-green-400 font-medium"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4 }}
-                >
-                  You&apos;re in! ✓
-                </motion.p>
-              ) : (
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (!newsletterEmail.trim()) return;
-                    setNewsletterLoading(true);
-                    setNewsletterError('');
-                    try {
-                      const res = await fetch('/api/subscribe', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: newsletterEmail.trim() }),
-                      });
-                      if (res.ok) {
-                        setNewsletterDone(true);
-                      } else {
-                        setNewsletterError('Something went wrong');
-                      }
-                    } catch {
-                      setNewsletterError('Something went wrong');
-                    } finally {
-                      setNewsletterLoading(false);
-                    }
-                  }}
-                  className="flex flex-col gap-2"
-                >
-                  <div className="flex gap-2">
-                    <input
-                      type="email"
-                      value={newsletterEmail}
-                      onChange={(e) => setNewsletterEmail(e.target.value)}
-                      placeholder="your@email.com"
-                      required
-                      className="flex-1 rounded-xl bg-[#faf8f5]/10 border border-[#faf8f5]/15 text-[#faf8f5] placeholder:text-[#faf8f5]/30 text-sm px-4 py-2.5 focus:outline-none focus:border-[#8b6914] transition-colors"
-                    />
-                    <motion.button
-                      type="submit"
-                      disabled={newsletterLoading}
-                      className="bg-[#8b6914] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:opacity-90 transition-opacity flex-shrink-0 disabled:opacity-60"
-                      whileHover={rm ? {} : { scale: 1.02 }}
-                      whileTap={rm ? {} : { scale: 0.97 }}
-                    >
-                      {newsletterLoading ? 'Subscribing...' : 'Subscribe'}
-                    </motion.button>
-                  </div>
-                  {newsletterError && (
-                    <p className="text-sm text-red-400">{newsletterError}</p>
-                  )}
-                </form>
-              )}
             </div>
           </div>
 
