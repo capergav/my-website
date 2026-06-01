@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
             <div style="font-family: Georgia, serif; max-width: 520px; margin: 0 auto; padding: 40px 20px;">
               <h1 style="color: #2c2a26;">Your trial ends in ${daysLeft} ${daysLeft === 1 ? "day" : "days"}</h1>
               <p style="color: #6b6560; line-height: 1.6;">
-                Hi there, your 2-month DineLinks trial is ending soon.
+                Hi there, your 60-day DineLinks trial is ending soon.
                 To keep your menu live and accessible to your customers,
                 subscribe before your trial ends.
               </p>
