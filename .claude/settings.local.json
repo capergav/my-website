@@ -54,7 +54,12 @@
       "Bash(grep -n \"analytics\\\\|Analytics\\\\|newsletter\\\\|Newsletter\\\\|\\\\$25\\\\|CAD\\\\|10 language\\\\|dinelinks\\\\.com\\\\|Admin\\\\|admin demo\")",
       "Bash(grep -n \"analytics\\\\|AnalyticsDemo\\\\|\\\\$25 CAD\\\\|\\\\$25\\\\|10 languages\\\\|dinelinks\\\\.com\\\\|newsletter\" app/page.tsx)",
       "Bash(npm uninstall:*)",
-      "Bash(awk NR>=550 && NR<=560:*)"
+      "Bash(awk NR>=550 && NR<=560:*)",
+      "mcp__claude_ai_Supabase__get_project",
+      "Bash(vercel env:*)",
+      "Bash(vercel link:*)",
+      "Bash(vercel --prod)",
+      "Bash(git rm:*)"
     ]
   }
 }
