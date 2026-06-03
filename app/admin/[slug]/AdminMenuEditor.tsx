@@ -382,6 +382,14 @@ export function AdminMenuEditor({
     } finally { setCheckoutLoading(false); }
   };
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("subscribe") === "1") {
+      window.history.replaceState({}, "", window.location.pathname);
+      startCheckout();
+    }
+  }, []);
+
   const openPortal = async () => {
     if (!user) return;
     setPortalLoading(true);
