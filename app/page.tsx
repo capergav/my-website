@@ -822,20 +822,18 @@ export default function HomePage() {
                       display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
                     }}>
                       <div style={{
-                        width: 36, height: 36, borderRadius: "50%",
-                        background: "rgba(255,255,255,0.15)",
-                        backdropFilter: "blur(8px)",
-                        border: "1.5px solid rgba(255,255,255,0.5)",
+                        width: 38, height: 38, borderRadius: "50%",
+                        background: "linear-gradient(135deg, #c9a55a 0%, #8b6914 100%)",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+                        boxShadow: "0 3px 12px rgba(139,105,20,0.4), 0 0 0 2px rgba(255,255,255,0.2)",
                       }}>
-                        <span style={{
-                          color: "#ffffff",
-                          fontFamily: "Georgia, serif",
-                          fontSize: 13,
-                          fontWeight: 600,
-                          letterSpacing: "0.05em",
-                        }}>CT</span>
+                        <svg width="16" height="20" viewBox="0 0 16 20" fill="none">
+                          <line x1="4" y1="1" x2="4" y2="8" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                          <line x1="8" y1="1" x2="8" y2="8" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                          <line x1="12" y1="1" x2="12" y2="8" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                          <path d="M4 8 Q4 11 8 11 Q12 11 12 8" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                          <line x1="8" y1="11" x2="8" y2="19" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                        </svg>
                       </div>
                       <span style={{
                         color: "#ffffff", fontFamily: "Georgia, serif",
@@ -1425,52 +1423,106 @@ export default function HomePage() {
             {/* Card 3 — The Parlour (dark cocktail bar, WITH category images) */}
             <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.2 } })}>
               <motion.div
-                style={{ background: "#1f1015", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(201,165,90,0.2)" }}
+                style={{ background: "#1f1015", borderRadius: 20, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.25)", width: "100%", maxWidth: 340 }}
                 animate={rm ? {} : { y: [0, -12, 0] }}
                 transition={rm ? {} : { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1.6 }}
               >
-                {/* Hero */}
-                <div style={{ height: 100, position: "relative", overflow: "hidden" }}>
-                  <img src={CT_HERO_URL} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(31,16,21,0.92) 0%, rgba(31,16,21,0.3) 60%, transparent 100%)" }} />
-                  <p style={{ position: "absolute", bottom: 10, left: 14, color: "#f4e8d8", fontSize: 15, fontWeight: 600, fontFamily: "Georgia, serif", margin: 0 }}>The Parlour</p>
+                {/* Hero — real image */}
+                <div style={{ position: "relative", height: 110 }}>
+                  <img
+                    src="https://zqhyeyrbqygisephzvoo.supabase.co/storage/v1/object/public/menu-images/55076091-6fd0-454e-b897-79787b73ccc2/hero/1780496413474.webp"
+                    alt="Gallant's Bar and Grill"
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  />
+                  <div style={{
+                    position: "absolute", inset: 0,
+                    background: "linear-gradient(to bottom, rgba(31,16,21,0.2) 0%, rgba(31,16,21,0.75) 100%)"
+                  }} />
+                  {/* Real logo */}
+                  <img
+                    src="https://zqhyeyrbqygisephzvoo.supabase.co/storage/v1/object/public/menu-images/55076091-6fd0-454e-b897-79787b73ccc2/logos/1780497022698.webp"
+                    alt="Logo"
+                    style={{
+                      position: "absolute", bottom: 30, left: "50%",
+                      transform: "translateX(-50%)",
+                      width: 36, height: 36,
+                      borderRadius: 8, objectFit: "cover",
+                      border: "1.5px solid rgba(201,165,90,0.5)",
+                    }}
+                  />
+                  <div style={{
+                    position: "absolute", bottom: 10, left: 0, right: 0,
+                    textAlign: "center",
+                    color: "#f4e8d8",
+                    fontFamily: "'Cinzel', Georgia, serif",
+                    fontSize: 13, fontWeight: 600,
+                    letterSpacing: "0.08em",
+                  }}>
+                    GALLANT&apos;S BAR AND GRILL
+                  </div>
                 </div>
-                {/* Category tabs — WITH images */}
-                <div style={{ display: "flex", gap: 8, padding: "10px 12px 6px", background: "#2c1820", borderBottom: "1px solid rgba(244,232,216,0.08)", overflowX: "auto", scrollbarWidth: "none" }}>
-                  {[
-                    { name: "Cocktails", img: COCKTAIL_IMG, active: true },
-                    { name: "Small Plates", img: SALAD_IMG, active: false },
-                    { name: "Sharing", img: SUSHI_IMG, active: false },
-                  ].map(cat => (
-                    <div key={cat.name} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3, flexShrink: 0 }}>
-                      <div style={{ width: 46, height: 46, borderRadius: 10, overflow: "hidden", ...(cat.active ? { outline: "2px solid #c9a55a", outlineOffset: 2 } : {}) }}>
-                        <img src={cat.img} alt={cat.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      </div>
-                      <span style={{ fontSize: 9, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: "0.05em", color: cat.active ? "#c9a55a" : "#b8a89c", fontFamily: "Georgia, serif" }}>{cat.name}</span>
-                    </div>
+
+                {/* Category pills — text only */}
+                <div style={{ padding: "10px 12px 6px", display: "flex", gap: 8 }}>
+                  {["Pub Classics", "Sides", "Drinks"].map((cat, i) => (
+                    <div key={cat} style={{
+                      padding: "4px 10px",
+                      borderRadius: 999,
+                      background: i === 0 ? "rgba(201,165,90,0.2)" : "transparent",
+                      border: i === 0 ? "1px solid #c9a55a" : "1px solid rgba(201,165,90,0.2)",
+                      color: i === 0 ? "#c9a55a" : "#b8a89c",
+                      fontSize: 9, fontWeight: 600,
+                      fontFamily: "'Cinzel', Georgia, serif",
+                      letterSpacing: "0.04em",
+                      whiteSpace: "nowrap" as const,
+                    }}>{cat}</div>
                   ))}
                 </div>
-                {/* Items */}
-                <div style={{ padding: "8px 10px 6px" }}>
-                  {[
-                    { name: "Negroni Sbagliato", price: "$16.00", desc: "Campari, sweet vermouth, prosecco", img: COCKTAIL_IMG },
-                    { name: "Espresso Martini", price: "$17.00", desc: "Vodka, Kahlúa, fresh espresso", img: SALAD_IMG },
-                  ].map((item, idx) => (
-                    <div key={item.name} style={{ display: "flex", gap: 8, padding: "7px 8px", background: "#2c1820", borderRadius: 10, marginBottom: idx === 0 ? 5 : 0, boxShadow: "0 1px 6px rgba(0,0,0,0.25)" }}>
-                      <img src={item.img} alt={item.name} style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: "#f4e8d8", lineHeight: 1.3, fontFamily: "Georgia, serif" }}>{item.name}</span>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "#c9a55a", flexShrink: 0, fontFamily: "Georgia, serif" }}>{item.price}</span>
-                        </div>
-                        <p style={{ fontSize: 10, color: "#b8a89c", margin: "2px 0 0", lineHeight: 1.4 }}>{item.desc}</p>
-                      </div>
-                    </div>
-                  ))}
+
+                {/* Category note */}
+                <div style={{ padding: "0 12px 6px" }}>
+                  <p style={{ fontSize: 10, color: "#b8a89c", fontStyle: "italic", margin: 0 }}>
+                    All mains served with chips, mash or seasonal veg.
+                  </p>
                 </div>
+
+                {/* Items — real menu items */}
+                {[
+                  { name: "Beer-Battered Fish & Chips", price: "$15.95",
+                    img: "https://images.unsplash.com/photo-1544025162-d76694265947?w=200&q=80" },
+                  { name: "Slow-Cooked Beef Lasagne", price: "$13.95",
+                    img: "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=200&q=80" },
+                ].map(item => (
+                  <div key={item.name} style={{
+                    display: "flex", gap: 10,
+                    margin: "0 10px 8px",
+                    background: "#2c1820",
+                    borderRadius: 12,
+                    border: "1px solid rgba(201,165,90,0.15)",
+                    overflow: "hidden",
+                  }}>
+                    <img src={item.img} alt={item.name}
+                      style={{ width: 64, height: 64, objectFit: "cover", flexShrink: 0 }} />
+                    <div style={{ padding: "8px 8px 8px 0", flex: 1 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 4, alignItems: "flex-start" }}>
+                        <span style={{
+                          color: "#f4e8d8", fontSize: 11, fontWeight: 600,
+                          fontFamily: "'Cinzel', Georgia, serif", lineHeight: 1.3,
+                        }}>{item.name}</span>
+                        <span style={{ color: "#c9a55a", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>
+                          {item.price}
+                        </span>
+                      </div>
+                      <span style={{ color: "#c9a55a", fontSize: 9, marginTop: 6, display: "block" }}>
+                        Tap to read more →
+                      </span>
+                    </div>
+                  </div>
+                ))}
+
                 {/* Footer */}
-                <div style={{ textAlign: "center", padding: "4px 0 8px" }}>
-                  <span style={{ fontSize: 9, color: "#f4e8d8", opacity: 0.3 }}>Powered by DineLinks</span>
+                <div style={{ textAlign: "center", padding: "6px 0 12px", color: "#b8a89c", fontSize: 9, opacity: 0.5 }}>
+                  ⊡ Powered by DineLinks
                 </div>
               </motion.div>
             </motion.div>
