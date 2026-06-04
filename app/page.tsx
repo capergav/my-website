@@ -780,149 +780,181 @@ export default function HomePage() {
                   perspective: 1000,
                 }}
               >
-                {/* Phone frame */}
                 <div style={{
                   width: 300,
-                  background: "#1a1a1a",
-                  borderRadius: 44,
-                  padding: "14px 10px",
-                  boxShadow: "0 30px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.08)",
+                  borderRadius: 40,
+                  overflow: "hidden",
+                  background: "#faf8f5",
+                  boxShadow: "0 32px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.06)",
                   margin: "0 auto",
-                  position: "relative",
                 }}>
-                  {/* Dynamic island */}
-                  <div style={{
-                    width: 90, height: 24,
-                    background: "#000",
-                    borderRadius: 20,
-                    margin: "0 auto 8px",
-                  }} />
 
-                  {/* Screen — Wine Cellar dark theme */}
-                  <div style={{
-                    borderRadius: 34,
-                    overflow: "hidden",
-                    background: "#1f1015",
-                  }}>
+                  {/* Hero */}
+                  <div style={{ position: "relative", height: 140 }}>
+                    <img
+                      src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&q=80"
+                      alt="Restaurant"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                    <div style={{
+                      position: "absolute", inset: 0,
+                      background: "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 100%)"
+                    }} />
 
-                    {/* Hero */}
-                    <div style={{ position: "relative", height: 130 }}>
-                      <img
-                        src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80"
-                        alt="Restaurant"
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                      />
+                    {/* Language button */}
+                    <div style={{
+                      position: "absolute", top: 12, right: 12,
+                      background: "rgba(255,255,255,0.92)",
+                      backdropFilter: "blur(8px)",
+                      borderRadius: 20, padding: "5px 12px",
+                      display: "flex", alignItems: "center", gap: 6,
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+                    }}>
+                      <span style={{ color: "#2c2a26", fontSize: 12, fontWeight: 500 }}>English</span>
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#2c2a26" strokeWidth="2.5">
+                        <path d="M19 9l-7 7-7-7"/>
+                      </svg>
+                    </div>
+
+                    {/* Logo + Restaurant name */}
+                    <div style={{
+                      position: "absolute", bottom: 14, left: 0, right: 0,
+                      display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
+                    }}>
                       <div style={{
-                        position: "absolute", inset: 0,
-                        background: "linear-gradient(to bottom, transparent 40%, rgba(31,16,21,0.9) 100%)"
-                      }} />
-                      {/* Language button */}
-                      <div style={{
-                        position: "absolute", top: 10, right: 10,
-                        background: "rgba(44,28,32,0.9)",
-                        backdropFilter: "blur(8px)",
-                        border: "1px solid rgba(201,165,90,0.3)",
-                        borderRadius: 20,
-                        padding: "4px 12px",
-                        display: "flex", alignItems: "center", gap: 6,
+                        width: 32, height: 32, borderRadius: 8,
+                        background: "#8b6914",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
                       }}>
-                        <span style={{ color: "#f4e8d8", fontSize: 12, fontWeight: 500 }}>English</span>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#c9a55a" strokeWidth="2.5">
-                          <path d="M19 9l-7 7-7-7"/>
+                        <svg width="18" height="16" viewBox="0 0 44 40" fill="none">
+                          <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#ffffff" strokeWidth="2.8" strokeLinejoin="round"/>
+                          <line x1="26" y1="3" x2="26" y2="37" stroke="#ffffff" strokeWidth="2.8" strokeLinecap="round"/>
+                          <line x1="26" y1="37" x2="42" y2="37" stroke="#ffffff" strokeWidth="2.8" strokeLinecap="round"/>
                         </svg>
                       </div>
-                      {/* Restaurant name */}
-                      <div style={{
-                        position: "absolute", bottom: 12, left: 0, right: 0,
-                        textAlign: "center", color: "#f4e8d8",
-                        fontFamily: "Georgia, serif", fontSize: 16, fontWeight: 600,
+                      <span style={{
+                        color: "#ffffff", fontFamily: "Georgia, serif",
+                        fontSize: 16, fontWeight: 600,
+                        textShadow: "0 1px 4px rgba(0,0,0,0.4)",
                       }}>
                         The Copper Table
-                      </div>
+                      </span>
                     </div>
+                  </div>
 
-                    {/* Category tabs */}
-                    <div style={{
-                      display: "flex", gap: 12, padding: "12px 12px 8px",
-                      background: "#1f1015", overflowX: "hidden",
-                    }}>
-                      {[
-                        { label: "MAINS", img: "https://images.unsplash.com/photo-1546964124-0cce460f38ef?w=100&q=80", active: true },
-                        { label: "STARTERS", img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=100&q=80", active: false },
-                        { label: "DESSERTS", img: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=100&q=80", active: false },
-                      ].map(cat => (
-                        <div key={cat.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                          <div style={{
-                            width: 56, height: 56,
-                            borderRadius: 14,
-                            overflow: "hidden",
-                            border: cat.active ? "2px solid #c9a55a" : "2px solid rgba(201,165,90,0.2)",
-                          }}>
-                            <img src={cat.img} alt={cat.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                          </div>
-                          <span style={{
-                            fontSize: 9, fontWeight: 600,
-                            color: cat.active ? "#c9a55a" : "#b8a89c",
-                            letterSpacing: "0.05em",
-                          }}>{cat.label}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Dietary key */}
-                    <div style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "4px 12px 8px",
-                      fontSize: 9, color: "#b8a89c",
-                      letterSpacing: "0.04em",
-                    }}>
-                      <span style={{ fontWeight: 700 }}>DIETARY KEY</span>
-                      <span>⊘ GF</span>
-                      <span>⊗ Vegan</span>
-                      <span>⊙ Veg</span>
-                    </div>
-
-                    {/* Items */}
+                  {/* Category tabs */}
+                  <div style={{
+                    background: "#ffffff",
+                    borderBottom: "1px solid #e8e4dd",
+                    padding: "12px 12px 10px",
+                    display: "flex", gap: 14,
+                  }}>
                     {[
-                      {
-                        name: "Seared Duck Confit",
-                        price: "$24.00",
-                        desc: "24-hour confit leg, cherry jus, roasted root vegetables",
-                        img: "https://images.unsplash.com/photo-1546964124-0cce460f38ef?w=200&q=80",
-                      },
-                      {
-                        name: "Atlantic Salmon",
-                        price: "$22.00",
-                        desc: "Pan-seared fillet, lemon beurre blanc, capers",
-                        img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&q=80",
-                      },
-                    ].map(item => (
-                      <div key={item.name} style={{
-                        display: "flex", gap: 10,
-                        margin: "0 10px 8px",
-                        background: "#2c1820",
-                        borderRadius: 14,
-                        border: "1px solid rgba(201,165,90,0.15)",
-                        overflow: "hidden",
-                      }}>
-                        <img src={item.img} alt={item.name} style={{ width: 72, height: 72, objectFit: "cover", flexShrink: 0 }} />
-                        <div style={{ padding: "8px 8px 8px 0", flex: 1 }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                            <span style={{ color: "#f4e8d8", fontSize: 12, fontWeight: 600, fontFamily: "Georgia, serif" }}>{item.name}</span>
-                            <span style={{ color: "#c9a55a", fontSize: 12, fontWeight: 600, flexShrink: 0, marginLeft: 6 }}>{item.price}</span>
-                          </div>
-                          <p style={{ color: "#b8a89c", fontSize: 10, margin: "3px 0", lineHeight: 1.4 }}>{item.desc}</p>
-                          <span style={{ color: "#c9a55a", fontSize: 10 }}>Tap to read more →</span>
+                      { label: "MAINS", img: "https://images.unsplash.com/photo-1546964124-0cce460f38ef?w=100&q=80", active: true },
+                      { label: "STARTERS", img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=100&q=80", active: false },
+                      { label: "DESSERTS", img: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=100&q=80", active: false },
+                    ].map(cat => (
+                      <div key={cat.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
+                        <div style={{
+                          width: 54, height: 54, borderRadius: 14, overflow: "hidden",
+                          outline: cat.active ? "2.5px solid #8b6914" : "2px solid #e8e4dd",
+                          outlineOffset: cat.active ? 2 : 0,
+                        }}>
+                          <img src={cat.img} alt={cat.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                         </div>
+                        <span style={{
+                          fontSize: 8, fontWeight: 700, letterSpacing: "0.06em",
+                          color: cat.active ? "#8b6914" : "#6b6560",
+                        }}>{cat.label}</span>
                       </div>
                     ))}
-
-                    {/* Footer */}
-                    <div style={{ textAlign: "center", padding: "8px 0 12px", color: "#b8a89c", fontSize: 10, opacity: 0.6 }}>
-                      ⊡ Powered by DineLinks
-                    </div>
-
                   </div>
+
+                  {/* Category note */}
+                  <div style={{ background: "#faf8f5", padding: "8px 14px 4px" }}>
+                    <p style={{ fontSize: 10, color: "#6b6560", fontStyle: "italic", margin: 0 }}>
+                      All entrées served with soup or salad.
+                    </p>
+                  </div>
+
+                  {/* Dietary key */}
+                  <div style={{
+                    background: "#faf8f5",
+                    padding: "4px 14px 10px",
+                    display: "flex", alignItems: "center", gap: 10,
+                  }}>
+                    <span style={{ fontSize: 9, fontWeight: 700, color: "#6b6560", letterSpacing: "0.06em" }}>
+                      DIETARY KEY
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9, color: "#6b6560" }}>
+                      <WheatOff size={11} strokeWidth={1.8} /> GF
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9, color: "#6b6560" }}>
+                      <Leaf size={11} strokeWidth={1.8} /> Vegan
+                    </span>
+                    <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 9, color: "#6b6560" }}>
+                      <Star size={11} strokeWidth={1.8} /> Chef&apos;s
+                    </span>
+                  </div>
+
+                  {/* Items */}
+                  {[
+                    {
+                      name: "Seared Duck Confit",
+                      price: "$24.00",
+                      desc: "24-hour confit, cherry jus, root vegetables...",
+                      img: "https://images.unsplash.com/photo-1546964124-0cce460f38ef?w=200&q=80",
+                      icons: ["wf", "lf"],
+                    },
+                    {
+                      name: "Atlantic Salmon",
+                      price: "$22.00",
+                      desc: "Pan-seared fillet, lemon beurre blanc, capers...",
+                      img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&q=80",
+                      icons: ["star"],
+                    },
+                  ].map(item => (
+                    <div key={item.name} style={{
+                      display: "flex", gap: 10,
+                      margin: "0 10px 8px",
+                      background: "#ffffff",
+                      borderRadius: 14,
+                      border: "1px solid #e8e4dd",
+                      overflow: "hidden",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                    }}>
+                      <img
+                        src={item.img} alt={item.name}
+                        style={{ width: 70, height: 80, objectFit: "cover", flexShrink: 0 }}
+                      />
+                      <div style={{ padding: "10px 10px 10px 0", flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
+                          <span style={{ color: "#2c2a26", fontSize: 12, fontWeight: 700, fontFamily: "Georgia, serif", lineHeight: 1.3 }}>
+                            {item.name}
+                          </span>
+                          <span style={{ color: "#8b6914", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
+                            {item.price}
+                          </span>
+                        </div>
+                        <div style={{ display: "flex", gap: 5, margin: "4px 0 3px" }}>
+                          {item.icons.includes("wf") && <WheatOff size={12} strokeWidth={1.8} color="#6b6560" />}
+                          {item.icons.includes("lf") && <Leaf size={12} strokeWidth={1.8} color="#6b6560" />}
+                          {item.icons.includes("star") && <Star size={12} strokeWidth={1.8} color="#6b6560" />}
+                        </div>
+                        <p style={{ color: "#6b6560", fontSize: 10, margin: "0 0 4px", lineHeight: 1.4 }}>
+                          {item.desc}
+                        </p>
+                        <span style={{ color: "#8b6914", fontSize: 10, fontWeight: 500 }}>Tap to read more →</span>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Footer */}
+                  <div style={{ textAlign: "center", padding: "8px 0 16px", color: "#6b6560", fontSize: 9, opacity: 0.6 }}>
+                    ⊡ Powered by DineLinks
+                  </div>
+
                 </div>
               </motion.div>
             </motion.div>
