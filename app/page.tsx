@@ -822,16 +822,20 @@ export default function HomePage() {
                       display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
                     }}>
                       <div style={{
-                        width: 32, height: 32, borderRadius: 8,
-                        background: "#8b6914",
+                        width: 36, height: 36, borderRadius: "50%",
+                        background: "rgba(255,255,255,0.15)",
+                        backdropFilter: "blur(8px)",
+                        border: "1.5px solid rgba(255,255,255,0.5)",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                        boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
                       }}>
-                        <svg width="18" height="16" viewBox="0 0 44 40" fill="none">
-                          <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#ffffff" strokeWidth="2.8" strokeLinejoin="round"/>
-                          <line x1="26" y1="3" x2="26" y2="37" stroke="#ffffff" strokeWidth="2.8" strokeLinecap="round"/>
-                          <line x1="26" y1="37" x2="42" y2="37" stroke="#ffffff" strokeWidth="2.8" strokeLinecap="round"/>
-                        </svg>
+                        <span style={{
+                          color: "#ffffff",
+                          fontFamily: "Georgia, serif",
+                          fontSize: 13,
+                          fontWeight: 600,
+                          letterSpacing: "0.05em",
+                        }}>CT</span>
                       </div>
                       <span style={{
                         color: "#ffffff", fontFamily: "Georgia, serif",
