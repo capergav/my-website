@@ -20,7 +20,7 @@ export function LanguageDropdown() {
     if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
-    const dropdownWidth = 180;
+    const dropdownWidth = window.innerWidth < 640 ? 160 : 180;
 
     let left: number;
     if (isRtl) {
@@ -109,8 +109,8 @@ export function LanguageDropdown() {
         ref={buttonRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-xl
-          bg-[var(--card)] text-[var(--foreground)] font-medium text-sm
+        className="flex items-center gap-2 min-h-[36px] px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl
+          bg-[var(--card)] text-[var(--foreground)] font-medium text-xs sm:text-sm
           border border-[var(--card-border)] shadow-sm hover:shadow-md
           transition-shadow touch-manipulation"
         aria-expanded={open}
