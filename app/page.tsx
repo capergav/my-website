@@ -1306,7 +1306,7 @@ export default function HomePage() {
           <div className="flex flex-col items-center sm:flex-row sm:justify-center sm:items-start gap-6 mt-14 py-8" style={{ perspective: 1200 }}>
 
             {/* Card 1 — Maison Laurent (French bistro, WITH category images) */}
-            <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5 } })}>
+            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, minHeight: 380 }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5 } })}>
               <motion.div
                 style={{ background: "#f4ede0", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(26,58,46,0.15)" }}
                 animate={rm ? {} : { y: [0, -12, 0] }}
@@ -1316,7 +1316,7 @@ export default function HomePage() {
                 <div style={{ height: 100, position: "relative", overflow: "hidden" }}>
                   <img src={CAT_HERO_1} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(26,58,46,0.88) 0%, rgba(26,58,46,0.2) 60%, transparent 100%)" }} />
-                  <p style={{ position: "absolute", bottom: 10, left: 14, color: "#fffbf3", fontSize: 15, fontWeight: 600, fontFamily: "Georgia, serif", margin: 0 }}>Maison Laurent</p>
+                  <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#fffbf3", fontSize: 15, fontWeight: 600, fontFamily: "Georgia, serif", margin: 0 }}>Maison Laurent</p>
                 </div>
                 {/* Category tabs — WITH images */}
                 <div style={{ display: "flex", gap: 8, padding: "10px 12px 6px", background: "#fffbf3", borderBottom: "1px solid rgba(26,58,46,0.08)", overflowX: "auto", scrollbarWidth: "none" }}>
@@ -1359,7 +1359,7 @@ export default function HomePage() {
             </motion.div>
 
             {/* Card 2 — Izakaya Kura (Japanese, NO category images, unavailable item) */}
-            <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.1 } })}>
+            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, minHeight: 380 }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.1 } })}>
               <motion.div
                 style={{ background: "#ffffff", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(200,85,61,0.15)" }}
                 animate={rm ? {} : { y: [0, -12, 0] }}
@@ -1369,7 +1369,7 @@ export default function HomePage() {
                 <div style={{ height: 100, position: "relative", overflow: "hidden" }}>
                   <img src={CAT_HERO_2} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(26,26,26,0.88) 0%, rgba(26,26,26,0.2) 60%, transparent 100%)" }} />
-                  <p style={{ position: "absolute", bottom: 10, left: 14, color: "#ffffff", fontSize: 15, fontWeight: 600, margin: 0 }}>Izakaya Kura</p>
+                  <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#ffffff", fontSize: 15, fontWeight: 600, margin: 0 }}>Izakaya Kura</p>
                 </div>
                 {/* Category tabs — text-only pills (no images) */}
                 <div style={{ display: "flex", gap: 6, padding: "8px 12px 6px", background: "#fafafa", borderBottom: "1px solid rgba(26,26,26,0.07)", overflowX: "auto", scrollbarWidth: "none" }}>
@@ -1408,7 +1408,18 @@ export default function HomePage() {
                           <span style={{ fontSize: 12, fontWeight: 700, color: "#c8553d", flexShrink: 0 }}>$12.00</span>
                         </div>
                         <p style={{ fontSize: 10, color: "#6b6b6b", margin: "2px 3px", lineHeight: 1.4 }}>Slow-braised with miso glaze</p>
-                        <span style={{ background: "#e5e7eb", color: "#6b7280", borderRadius: 999, padding: "2px 8px", fontSize: 10 }}>Unavailable</span>
+                        <div style={{
+                          background: "#f3f4f6",
+                          color: "#6b7280",
+                          fontSize: 10,
+                          fontWeight: 500,
+                          padding: "4px 10px",
+                          borderRadius: 6,
+                          marginTop: 4,
+                          display: "inline-block",
+                        }}>
+                          Currently unavailable
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1420,10 +1431,10 @@ export default function HomePage() {
               </motion.div>
             </motion.div>
 
-            {/* Card 3 — The Parlour (dark cocktail bar, WITH category images) */}
-            <motion.div className="w-full sm:w-72 flex-shrink-0" {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.2 } })}>
+            {/* Card 3 — Gallant's Bar and Grill (dark, WITH category images) */}
+            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, minHeight: 380 }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.2 } })}>
               <motion.div
-                style={{ background: "#1f1015", borderRadius: 20, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.25)", width: "100%", maxWidth: 340 }}
+                style={{ background: "#1f1015", borderRadius: 20, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.25)", width: "100%" }}
                 animate={rm ? {} : { y: [0, -12, 0] }}
                 transition={rm ? {} : { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1.6 }}
               >
@@ -1447,7 +1458,6 @@ export default function HomePage() {
                       transform: "translateX(-50%)",
                       width: 36, height: 36,
                       borderRadius: 8, objectFit: "cover",
-                      border: "1.5px solid rgba(201,165,90,0.5)",
                     }}
                   />
                   <div style={{
