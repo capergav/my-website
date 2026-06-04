@@ -280,7 +280,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
     <>
       {/* Category tab strip — hidden when only one category */}
       {sortedCategories.length > 1 && (
-        <div className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
+        <div className="sticky top-0 z-40 bg-[var(--background)] border-b border-[var(--card-border)] shadow-sm">
           <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
             {/* Left/right fade edges */}
             <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-r from-[var(--background)] to-transparent" />
