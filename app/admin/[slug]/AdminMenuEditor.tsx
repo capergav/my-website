@@ -2366,6 +2366,7 @@ function ManageCategoriesModal({
         .upsert({ restaurant_id: restaurantId, name: reordered[i], sort_order: i }, { onConflict: 'restaurant_id,name' });
     }
     setBusy(false);
+    await onUpdated(reordered);
   };
 
   const handleDelete = async (catName: string) => {

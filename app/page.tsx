@@ -1303,20 +1303,30 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          <div className="flex flex-col items-center sm:flex-row sm:justify-center sm:items-start gap-6 mt-14 py-8" style={{ perspective: 1200 }}>
+          <div className="flex flex-col items-center sm:flex-row sm:justify-center sm:items-stretch gap-6 mt-14 py-8" style={{ perspective: 1200 }}>
 
             {/* Card 1 — Maison Laurent (French bistro, WITH category images) */}
-            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, minHeight: 380 }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5 } })}>
+            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, display: "flex", flexDirection: "column" }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5 } })}>
               <motion.div
-                style={{ background: "#f4ede0", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(26,58,46,0.15)" }}
+                style={{ background: "#f4ede0", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(26,58,46,0.15)", flex: "1 1 auto" }}
                 animate={rm ? {} : { y: [0, -12, 0] }}
                 transition={rm ? {} : { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0 }}
               >
                 {/* Hero */}
-                <div style={{ height: 100, position: "relative", overflow: "hidden" }}>
+                <div style={{ height: 110, position: "relative", overflow: "hidden" }}>
                   <img src={CAT_HERO_1} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(26,58,46,0.88) 0%, rgba(26,58,46,0.2) 60%, transparent 100%)" }} />
-                  <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#fffbf3", fontSize: 15, fontWeight: 600, fontFamily: "Georgia, serif", margin: 0 }}>Maison Laurent</p>
+                  {/* Logo */}
+                  <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)", width: 36, height: 36, borderRadius: 8 }}>
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                      <rect width="36" height="36" rx="8" fill="#1a3a2e"/>
+                      <path d="M12 8h12L21 18h-6L12 8z" fill="#c9b87a"/>
+                      <rect x="17" y="18" width="2" height="7" rx="1" fill="#c9b87a"/>
+                      <rect x="13" y="25" width="10" height="2" rx="1" fill="#c9b87a"/>
+                      <path d="M14.5 10l.8 3" stroke="#fffbf3" strokeWidth="1" strokeLinecap="round" opacity="0.6"/>
+                    </svg>
+                  </div>
+                  <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#fffbf3", fontSize: 13, fontWeight: 600, fontFamily: "Georgia, serif", margin: 0 }}>Maison Laurent</p>
                 </div>
                 {/* Category tabs — WITH images */}
                 <div style={{ display: "flex", gap: 8, padding: "10px 12px 6px", background: "#fffbf3", borderBottom: "1px solid rgba(26,58,46,0.08)", overflowX: "auto", scrollbarWidth: "none" }}>
@@ -1359,17 +1369,27 @@ export default function HomePage() {
             </motion.div>
 
             {/* Card 2 — Izakaya Kura (Japanese, NO category images, unavailable item) */}
-            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, minHeight: 380 }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.1 } })}>
+            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, display: "flex", flexDirection: "column" }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.1 } })}>
               <motion.div
-                style={{ background: "#ffffff", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(200,85,61,0.15)" }}
+                style={{ background: "#ffffff", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(200,85,61,0.15)", flex: "1 1 auto" }}
                 animate={rm ? {} : { y: [0, -12, 0] }}
                 transition={rm ? {} : { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
               >
                 {/* Hero */}
-                <div style={{ height: 100, position: "relative", overflow: "hidden" }}>
+                <div style={{ height: 110, position: "relative", overflow: "hidden" }}>
                   <img src={CAT_HERO_2} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(26,26,26,0.88) 0%, rgba(26,26,26,0.2) 60%, transparent 100%)" }} />
-                  <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#ffffff", fontSize: 15, fontWeight: 600, margin: 0 }}>Izakaya Kura</p>
+                  {/* Logo */}
+                  <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)", width: 36, height: 36, borderRadius: 8 }}>
+                    <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                      <rect width="36" height="36" rx="8" fill="#1a1a1a"/>
+                      <rect x="10" y="15" width="3" height="13" rx="1.5" fill="#c8553d"/>
+                      <rect x="23" y="15" width="3" height="13" rx="1.5" fill="#c8553d"/>
+                      <path d="M7 14Q18 7 29 14" stroke="#c8553d" strokeWidth="3" strokeLinecap="round" fill="none"/>
+                      <rect x="9" y="17.5" width="18" height="2.5" rx="1.25" fill="#c8553d"/>
+                    </svg>
+                  </div>
+                  <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#ffffff", fontSize: 13, fontWeight: 600, margin: 0 }}>Izakaya Kura</p>
                 </div>
                 {/* Category tabs — text-only pills (no images) */}
                 <div style={{ display: "flex", gap: 6, padding: "8px 12px 6px", background: "#fafafa", borderBottom: "1px solid rgba(26,26,26,0.07)", overflowX: "auto", scrollbarWidth: "none" }}>
@@ -1432,9 +1452,9 @@ export default function HomePage() {
             </motion.div>
 
             {/* Card 3 — Gallant's Bar and Grill (dark, WITH category images) */}
-            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, minHeight: 380 }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.2 } })}>
+            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, display: "flex", flexDirection: "column" }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.2 } })}>
               <motion.div
-                style={{ background: "#1f1015", borderRadius: 20, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.25)", width: "100%" }}
+                style={{ background: "#1f1015", borderRadius: 20, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.25)", width: "100%", flex: "1 1 auto" }}
                 animate={rm ? {} : { y: [0, -12, 0] }}
                 transition={rm ? {} : { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1.6 }}
               >
