@@ -1316,7 +1316,7 @@ export default function HomePage() {
                   <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)" }}>
                     <svg width="52" height="52" viewBox="0 0 72 72" fill="none"
                       style={{ margin: "0 auto 6px", display: "block", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))" }}>
-                      <circle cx="36" cy="36" r="33" fill="#5b9bd5" opacity="0.25" stroke="#5b9bd5" strokeWidth="2"/>
+                      <circle cx="36" cy="36" r="33" fill="#5b9bd5" opacity="0.55" stroke="#5b9bd5" strokeWidth="2"/>
                       <path d="M14 42 Q20 28 36 26 Q52 28 58 42" stroke="#5b9bd5" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
                       <circle cx="36" cy="38" r="8" fill="none" stroke="#5b9bd5" strokeWidth="2.5"/>
                       <line x1="36" y1="30" x2="36" y2="20" stroke="#5b9bd5" strokeWidth="2.5" strokeLinecap="round"/>
