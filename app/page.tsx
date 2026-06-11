@@ -1316,20 +1316,10 @@ export default function HomePage() {
                   </div>
                   <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#ffffff", fontSize: 13, fontWeight: 600, margin: 0 }}>The Harbour House</p>
                 </div>
-                {/* Category tabs — image style */}
-                <div style={{ display: "flex", gap: 12, padding: "10px 12px 8px", background: "#ffffff", borderBottom: "1px solid #e0e8f0", overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}>
-                  {[
-                    { label: "MAINS", img: "https://images.unsplash.com/photo-1559737558-2f5a35f4523b?w=100&q=80", active: true },
-                    { label: "STARTERS", img: "https://images.unsplash.com/photo-1547592180-85f173990554?w=100&q=80", active: false },
-                    { label: "RAW BAR", img: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=100&q=80", active: false },
-                    { label: "DESSERTS", img: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=100&q=80", active: false },
-                  ].map(cat => (
-                    <div key={cat.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
-                      <div style={{ width: 52, height: 52, borderRadius: 13, overflow: "hidden", outline: cat.active ? "2.5px solid #1d4470" : "2px solid #e0e8f0", outlineOffset: cat.active ? 2 : 0 }}>
-                        <img src={cat.img} alt={cat.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                      </div>
-                      <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.06em", color: cat.active ? "#1d4470" : "#6b7785" }}>{cat.label}</span>
-                    </div>
+                {/* Category tabs — text pills */}
+                <div style={{ padding: "10px 12px 8px", display: "flex", gap: 8, background: "#ffffff", borderBottom: "1px solid #e0e8f0", overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}>
+                  {["Mains", "Starters", "Raw Bar", "Desserts"].map((cat, i) => (
+                    <div key={cat} style={{ padding: "4px 10px", borderRadius: 999, flexShrink: 0, background: i === 0 ? "rgba(29,68,112,0.15)" : "transparent", border: i === 0 ? "1px solid #1d4470" : "1px solid rgba(29,68,112,0.2)", color: i === 0 ? "#1d4470" : "#6b7785", fontSize: 9, fontWeight: 600, letterSpacing: "0.04em" }}>{cat}</div>
                   ))}
                 </div>
                 {/* Items */}
@@ -1381,10 +1371,20 @@ export default function HomePage() {
                   </div>
                   <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#ffffff", fontSize: 13, fontWeight: 600, margin: 0 }}>Izakaya Kura</p>
                 </div>
-                {/* Category tabs — text-only pills */}
-                <div style={{ display: "flex", gap: 6, padding: "8px 12px 6px", background: "#fdf6f0", borderBottom: "1px solid rgba(28,17,9,0.07)", overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}>
-                  {[{ name: "Yakitori", active: true }, { name: "Ramen", active: false }, { name: "Sushi", active: false }, { name: "Gyoza", active: false }, { name: "Drinks", active: false }].map(tab => (
-                    <span key={tab.name} style={{ fontSize: 11, fontWeight: tab.active ? 700 : 500, padding: "4px 11px", borderRadius: 999, flexShrink: 0, background: tab.active ? "#c2410c" : "transparent", color: tab.active ? "#ffffff" : "#7c4a2a", border: tab.active ? "none" : "1px solid rgba(28,17,9,0.15)" }}>{tab.name}</span>
+                {/* Category tabs — image style */}
+                <div style={{ display: "flex", gap: 12, padding: "10px 12px 8px", background: "#ffffff", borderBottom: "1px solid #f0e8e4", overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}>
+                  {[
+                    { label: "YAKITORI", img: "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?w=100&q=80", active: true },
+                    { label: "RAMEN", img: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=100&q=80", active: false },
+                    { label: "SUSHI", img: "https://images.unsplash.com/photo-1553621042-f6e147245754?w=100&q=80", active: false },
+                    { label: "GYOZA", img: "https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=100&q=80", active: false },
+                  ].map(cat => (
+                    <div key={cat.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                      <div style={{ width: 52, height: 52, borderRadius: 13, overflow: "hidden", outline: cat.active ? "2.5px solid #c2410c" : "2px solid #f0e8e4", outlineOffset: cat.active ? 2 : 0 }}>
+                        <img src={cat.img} alt={cat.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      </div>
+                      <span style={{ fontSize: 8, fontWeight: 700, letterSpacing: "0.06em", color: cat.active ? "#c2410c" : "#7c4a2a" }}>{cat.label}</span>
+                    </div>
                   ))}
                 </div>
                 {/* Category note */}
