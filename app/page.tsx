@@ -1316,13 +1316,13 @@ export default function HomePage() {
                   <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)" }}>
                     <svg width="52" height="52" viewBox="0 0 72 72" fill="none"
                       style={{ margin: "0 auto 6px", display: "block", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))" }}>
-                      <circle cx="36" cy="36" r="33" fill="#1d4470" opacity="0.35" stroke="#1d4470" strokeWidth="2"/>
-                      <path d="M14 42 Q20 28 36 26 Q52 28 58 42" stroke="#1d4470" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-                      <circle cx="36" cy="38" r="8" fill="none" stroke="#1d4470" strokeWidth="2.5"/>
-                      <line x1="36" y1="30" x2="36" y2="20" stroke="#1d4470" strokeWidth="2.5" strokeLinecap="round"/>
-                      <path d="M30 24 Q33 20 36 20 Q39 20 42 24" fill="none" stroke="#1d4470" strokeWidth="2" strokeLinecap="round"/>
-                      <line x1="24" y1="44" x2="48" y2="44" stroke="#1d4470" strokeWidth="2.5" strokeLinecap="round"/>
-                      <path d="M20 48 Q28 54 36 54 Q44 54 52 48" fill="none" stroke="#1d4470" strokeWidth="2" strokeLinecap="round"/>
+                      <circle cx="36" cy="36" r="33" fill="#5b9bd5" opacity="0.25" stroke="#5b9bd5" strokeWidth="2"/>
+                      <path d="M14 42 Q20 28 36 26 Q52 28 58 42" stroke="#5b9bd5" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                      <circle cx="36" cy="38" r="8" fill="none" stroke="#5b9bd5" strokeWidth="2.5"/>
+                      <line x1="36" y1="30" x2="36" y2="20" stroke="#5b9bd5" strokeWidth="2.5" strokeLinecap="round"/>
+                      <path d="M30 24 Q33 20 36 20 Q39 20 42 24" fill="none" stroke="#5b9bd5" strokeWidth="2" strokeLinecap="round"/>
+                      <line x1="24" y1="44" x2="48" y2="44" stroke="#5b9bd5" strokeWidth="2.5" strokeLinecap="round"/>
+                      <path d="M20 48 Q28 54 36 54 Q44 54 52 48" fill="none" stroke="#5b9bd5" strokeWidth="2" strokeLinecap="round"/>
                     </svg>
                   </div>
                   <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#ffffff", fontSize: 13, fontWeight: 600, margin: 0 }}>The Harbour House</p>
