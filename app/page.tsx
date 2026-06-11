@@ -1293,10 +1293,10 @@ export default function HomePage() {
             </p>
           </motion.div>
 
-          <div className="flex flex-col items-center sm:flex-row sm:justify-center sm:items-stretch gap-6 mt-14 py-8" style={{ perspective: 1200 }}>
+          <div className="flex flex-col items-center sm:flex-row sm:justify-center sm:items-stretch gap-6 mt-14 py-8" style={{ perspective: 1200, overflow: "visible", paddingTop: 20, paddingBottom: 20 }}>
 
             {/* Card 1 — The Harbour House (Coastal seafood) */}
-            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, height: 420, display: "flex", flexDirection: "column", overflow: "hidden" }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5 } })}>
+            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, height: 420, display: "flex", flexDirection: "column", overflow: "visible" }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5 } })}>
               <motion.div
                 style={{ background: "#f4f7fa", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(29,68,112,0.15)", display: "flex", flexDirection: "column", height: "100%" }}
                 animate={rm ? {} : { y: [0, -12, 0] }}
@@ -1346,7 +1346,7 @@ export default function HomePage() {
             </motion.div>
 
             {/* Card 2 — Izakaya Kura (Japanese, Ember theme) */}
-            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, height: 420, display: "flex", flexDirection: "column", overflow: "hidden" }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.1 } })}>
+            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, height: 420, display: "flex", flexDirection: "column", overflow: "visible" }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.1 } })}>
               <motion.div
                 style={{ background: "#fdf6f0", borderRadius: 16, overflow: "hidden", border: "1px solid rgba(194,65,12,0.15)", display: "flex", flexDirection: "column", height: "100%" }}
                 animate={rm ? {} : { y: [0, -12, 0] }}
@@ -1405,7 +1405,7 @@ export default function HomePage() {
             </motion.div>
 
             {/* Card 3 — Gallant's Bar and Grill (dark, WITH category images) */}
-            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, height: 420, display: "flex", flexDirection: "column", overflow: "hidden" }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.2 } })}>
+            <motion.div className="w-full sm:w-72 flex-shrink-0" style={{ width: "100%", maxWidth: 320, height: 420, display: "flex", flexDirection: "column", overflow: "visible" }} {...(rm ? {} : { initial: { opacity: 0, y: 30 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.5, delay: 0.2 } })}>
               <motion.div
                 style={{ background: "#1f1015", borderRadius: 20, overflow: "hidden", boxShadow: "0 4px 24px rgba(0,0,0,0.25)", width: "100%", display: "flex", flexDirection: "column", height: "100%" }}
                 animate={rm ? {} : { y: [0, -12, 0] }}
