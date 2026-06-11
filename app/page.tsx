@@ -823,14 +823,14 @@ export default function HomePage() {
                     }}>
                       <svg width="52" height="52" viewBox="0 0 72 72" fill="none"
                         style={{ margin: "0 auto 6px", display: "block", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }}>
-                        <circle cx="36" cy="36" r="33" fill="#8b6914" opacity="0.15" stroke="#8b6914" strokeWidth="2"/>
-                        <line x1="28" y1="18" x2="28" y2="30" stroke="#8b6914" strokeWidth="3" strokeLinecap="round"/>
-                        <line x1="33" y1="18" x2="33" y2="30" stroke="#8b6914" strokeWidth="3" strokeLinecap="round"/>
-                        <line x1="38" y1="18" x2="38" y2="30" stroke="#8b6914" strokeWidth="3" strokeLinecap="round"/>
-                        <path d="M28 30 Q28 36 33 36 Q38 36 38 30" stroke="#8b6914" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-                        <line x1="33" y1="36" x2="33" y2="54" stroke="#8b6914" strokeWidth="3" strokeLinecap="round"/>
-                        <line x1="44" y1="18" x2="44" y2="26" stroke="#8b6914" strokeWidth="3" strokeLinecap="round"/>
-                        <path d="M44 26 Q44 32 48 33 L44 34 L44 54" stroke="#8b6914" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                        <circle cx="36" cy="36" r="33" fill="#ffffff" opacity="0.25" stroke="#ffffff" strokeWidth="2"/>
+                        <line x1="28" y1="18" x2="28" y2="30" stroke="#ffffff" strokeWidth="3" strokeLinecap="round"/>
+                        <line x1="33" y1="18" x2="33" y2="30" stroke="#ffffff" strokeWidth="3" strokeLinecap="round"/>
+                        <line x1="38" y1="18" x2="38" y2="30" stroke="#ffffff" strokeWidth="3" strokeLinecap="round"/>
+                        <path d="M28 30 Q28 36 33 36 Q38 36 38 30" stroke="#ffffff" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                        <line x1="33" y1="36" x2="33" y2="54" stroke="#ffffff" strokeWidth="3" strokeLinecap="round"/>
+                        <line x1="44" y1="18" x2="44" y2="26" stroke="#ffffff" strokeWidth="3" strokeLinecap="round"/>
+                        <path d="M44 26 Q44 32 48 33 L44 34 L44 54" stroke="#ffffff" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
                       </svg>
                       <span style={{
                         color: "#ffffff", fontFamily: "Georgia, serif",
