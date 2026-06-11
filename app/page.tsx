@@ -821,20 +821,10 @@ export default function HomePage() {
                       position: "absolute", bottom: 14, left: 0, right: 0,
                       display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
                     }}>
-                      <div style={{
-                        width: 38, height: 38, borderRadius: "50%",
-                        background: "linear-gradient(135deg, #c9a55a 0%, #8b6914 100%)",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        boxShadow: "0 3px 12px rgba(139,105,20,0.4), 0 0 0 2px rgba(255,255,255,0.2)",
-                      }}>
-                        <svg width="16" height="20" viewBox="0 0 16 20" fill="none">
-                          <line x1="4" y1="1" x2="4" y2="8" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                          <line x1="8" y1="1" x2="8" y2="8" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                          <line x1="12" y1="1" x2="12" y2="8" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                          <path d="M4 8 Q4 11 8 11 Q12 11 12 8" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-                          <line x1="8" y1="11" x2="8" y2="19" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                        </svg>
-                      </div>
+                      <img src="/logos/laurel.png" alt="The Copper Table"
+                        style={{ width: 48, height: 48, objectFit: "contain",
+                        filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))",
+                        margin: "0 auto 6px", display: "block" }} />
                       <span style={{
                         color: "#ffffff", fontFamily: "Georgia, serif",
                         fontSize: 16, fontWeight: 600,
@@ -1318,8 +1308,8 @@ export default function HomePage() {
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(29,68,112,0.88) 0%, rgba(29,68,112,0.2) 60%, transparent 100%)" }} />
                   <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)" }}>
                     <img src="/logos/coastal.png" alt="The Harbour House"
-                      style={{ width: 44, height: 44, objectFit: "contain",
-                      filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.3))",
+                      style={{ width: 48, height: 48, objectFit: "contain",
+                      filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))",
                       margin: "0 auto 6px", display: "block" }} />
                   </div>
                   <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#ffffff", fontSize: 13, fontWeight: 600, margin: 0 }}>The Harbour House</p>
@@ -1367,8 +1357,8 @@ export default function HomePage() {
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(28,17,9,0.88) 0%, rgba(28,17,9,0.2) 60%, transparent 100%)" }} />
                   <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)" }}>
                     <img src="/logos/koi.png" alt="Izakaya Kura"
-                      style={{ width: 44, height: 44, objectFit: "contain",
-                      filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.3))",
+                      style={{ width: 48, height: 48, objectFit: "contain",
+                      filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))",
                       margin: "0 auto 6px", display: "block" }} />
                   </div>
                   <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#ffffff", fontSize: 13, fontWeight: 600, margin: 0 }}>Izakaya Kura</p>
