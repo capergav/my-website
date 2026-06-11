@@ -823,7 +823,8 @@ export default function HomePage() {
                     }}>
                       <img src="/logos/laurel.png" alt="The Copper Table"
                         style={{ width: 64, height: 64, objectFit: "contain",
-                        filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))",
+                        filter: "contrast(1.1)",
+                        mixBlendMode: "screen",
                         margin: "0 auto 6px", display: "block" }} />
                       <span style={{
                         color: "#ffffff", fontFamily: "Georgia, serif",
@@ -1309,34 +1310,39 @@ export default function HomePage() {
                   <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)" }}>
                     <img src="/logos/coastal.png" alt="The Harbour House"
                       style={{ width: 64, height: 64, objectFit: "contain",
-                      filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))",
+                      filter: "contrast(1.1)",
+                      mixBlendMode: "multiply",
                       margin: "0 auto 6px", display: "block" }} />
                   </div>
                   <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#ffffff", fontSize: 13, fontWeight: 600, margin: 0 }}>The Harbour House</p>
                 </div>
                 {/* Category tabs */}
                 <div style={{ display: "flex", gap: 6, padding: "8px 12px 6px", background: "#ffffff", borderBottom: "1px solid rgba(29,68,112,0.08)", overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}>
-                  {[{ name: "Mains", active: true }, { name: "Starters", active: false }, { name: "Catch of Day", active: false }].map(tab => (
+                  {[{ name: "Starters", active: false }, { name: "Catch of Day", active: false }, { name: "Mains", active: true }, { name: "Raw Bar", active: false }, { name: "Desserts", active: false }].map(tab => (
                     <span key={tab.name} style={{ fontSize: 11, fontWeight: tab.active ? 700 : 500, padding: "4px 11px", borderRadius: 999, flexShrink: 0, background: tab.active ? "#1d4470" : "transparent", color: tab.active ? "#ffffff" : "#6b7785", border: tab.active ? "none" : "1px solid rgba(29,68,112,0.15)" }}>{tab.name}</span>
                   ))}
                 </div>
                 {/* Items */}
-                <div style={{ padding: "6px 10px 4px", flex: 1, overflow: "hidden" }}>
+                <div style={{ padding: "6px 10px 0", flex: 1, overflow: "hidden", maxHeight: 260, position: "relative" }}>
                   {[
-                    { name: "Lobster Bisque", price: "$18.00", desc: "Rich cream bisque with fresh Atlantic lobster" },
-                    { name: "Seared Halibut", price: "$28.00", desc: "Pan-seared fillet, capers, brown butter" },
-                    { name: "Clam Chowder", price: "$12.00", desc: "New England style, fresh clams, sourdough bowl" },
+                    { name: "Lobster Bisque", price: "$18.00", desc: "Rich cream bisque with fresh Atlantic lobster", img: undefined },
+                    { name: "Seared Halibut", price: "$28.00", desc: "Pan-seared fillet, capers, brown butter", img: undefined },
+                    { name: "Clam Chowder", price: "$12.00", desc: "New England style, fresh clams, sourdough bowl", img: undefined },
+                    { name: "Grilled Lobster Tail", price: "$38.00", desc: "Half tail, drawn butter, lemon", img: "https://images.unsplash.com/photo-1559737558-2f5a35f4523b?w=200&q=80" },
+                    { name: "Fish Tacos ×3", price: "$16.00", desc: "Beer-battered cod, slaw, chipotle aioli", img: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=200&q=80" },
                   ].map((item, idx) => (
-                    <div key={item.name} style={{ display: "flex", gap: 8, padding: "5px 8px", background: "#ffffff", borderRadius: 10, marginBottom: idx < 2 ? 4 : 0, boxShadow: "0 1px 4px rgba(29,68,112,0.08)" }}>
+                    <div key={item.name} style={{ display: "flex", gap: 8, padding: "5px 8px", background: "#ffffff", borderRadius: 10, marginBottom: idx < 4 ? 4 : 0, boxShadow: "0 1px 4px rgba(29,68,112,0.08)" }}>
+                      {item.img && <img src={item.img} alt={item.name} style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
                           <span style={{ fontSize: 12, fontWeight: 600, color: "#1a2535", lineHeight: 1.3 }}>{item.name}</span>
                           <span style={{ fontSize: 12, fontWeight: 700, color: "#1d4470", flexShrink: 0 }}>{item.price}</span>
                         </div>
-                        <p style={{ fontSize: 10, color: "#6b7785", margin: "2px 0 0", lineHeight: 1.4, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{item.desc}</p>
+                        <p style={{ fontSize: 10, color: "#6b7785", margin: "2px 0 0", lineHeight: 1.4 }}>{item.desc}</p>
                       </div>
                     </div>
                   ))}
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 48, background: "linear-gradient(to bottom, transparent, #f4f7fa)", pointerEvents: "none" }} />
                 </div>
                 {/* Footer */}
                 <div style={{ textAlign: "center", padding: "4px 0 8px", flexShrink: 0 }}>
@@ -1359,14 +1365,15 @@ export default function HomePage() {
                   <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)" }}>
                     <img src="/logos/koi.png" alt="Izakaya Kura"
                       style={{ width: 64, height: 64, objectFit: "contain",
-                      filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))",
+                      filter: "contrast(1.1)",
+                      mixBlendMode: "multiply",
                       margin: "0 auto 6px", display: "block" }} />
                   </div>
                   <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#ffffff", fontSize: 13, fontWeight: 600, margin: 0 }}>Izakaya Kura</p>
                 </div>
                 {/* Category tabs — text-only pills */}
                 <div style={{ display: "flex", gap: 6, padding: "8px 12px 6px", background: "#fdf6f0", borderBottom: "1px solid rgba(28,17,9,0.07)", overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}>
-                  {[{ name: "Yakitori", active: true }, { name: "Ramen", active: false }, { name: "Drinks", active: false }].map(tab => (
+                  {[{ name: "Yakitori", active: true }, { name: "Ramen", active: false }, { name: "Sushi", active: false }, { name: "Gyoza", active: false }, { name: "Drinks", active: false }].map(tab => (
                     <span key={tab.name} style={{ fontSize: 11, fontWeight: tab.active ? 700 : 500, padding: "4px 11px", borderRadius: 999, flexShrink: 0, background: tab.active ? "#c2410c" : "transparent", color: tab.active ? "#ffffff" : "#7c4a2a", border: tab.active ? "none" : "1px solid rgba(28,17,9,0.15)" }}>{tab.name}</span>
                   ))}
                 </div>
@@ -1379,23 +1386,25 @@ export default function HomePage() {
                   <span style={{ display: "flex", alignItems: "center", gap: 3 }}><WheatOff size={10} /> GF</span>
                 </div>
                 {/* Items */}
-                <div style={{ padding: "4px 10px 4px", flex: 1, overflow: "hidden" }}>
+                <div style={{ padding: "4px 10px 0", flex: 1, overflow: "hidden", maxHeight: 260, position: "relative" }}>
                   {[
                     { img: STEAK_IMG, alt: "Chicken Thigh", name: "Chicken Thigh ×3", price: "$14.00", desc: "Binchotan-grilled with tare glaze" },
                     { img: SUSHI_IMG, alt: "Tuna Nigiri", name: "Tuna Nigiri ×3", price: "$15.00", desc: "Premium bluefin, seasoned rice, wasabi" },
-                    { img: "https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=200&q=80", alt: "Gyoza", name: "Gyoza ×5", price: "$11.00", desc: "Pan-fried pork dumplings, ponzu dipping sauce" },
+                    { img: "https://images.unsplash.com/photo-1496116218417-1a781b1c416c?w=200&q=80", alt: "Gyoza", name: "Gyoza ×5", price: "$11.00", desc: "Pan-fried pork dumplings, ponzu sauce" },
+                    { img: "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=200&q=80", alt: "Wagyu Ramen", name: "Wagyu Ramen", price: "$22.00", desc: "Rich tonkotsu broth, wagyu slices, soft egg" },
                   ].map((item, idx) => (
-                    <div key={item.name} style={{ display: "flex", gap: 8, padding: "5px 8px", background: "#fdf6f0", borderRadius: 10, marginBottom: idx < 2 ? 4 : 0, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                    <div key={item.name} style={{ display: "flex", gap: 8, padding: "5px 8px", background: "#fdf6f0", borderRadius: 10, marginBottom: idx < 3 ? 4 : 0, boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
                       <img src={item.img} alt={item.alt} style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
                           <span style={{ fontSize: 12, fontWeight: 600, color: "#1c1109", lineHeight: 1.3 }}>{item.name}</span>
                           <span style={{ fontSize: 12, fontWeight: 700, color: "#c2410c", flexShrink: 0 }}>{item.price}</span>
                         </div>
-                        <p style={{ fontSize: 10, color: "#7c4a2a", margin: "2px 0 0", lineHeight: 1.4, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{item.desc}</p>
+                        <p style={{ fontSize: 10, color: "#7c4a2a", margin: "2px 0 0", lineHeight: 1.4 }}>{item.desc}</p>
                       </div>
                     </div>
                   ))}
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 48, background: "linear-gradient(to bottom, transparent, #fdf6f0)", pointerEvents: "none" }} />
                 </div>
                 {/* Footer */}
                 <div style={{ textAlign: "center", padding: "4px 0 8px", flexShrink: 0 }}>
@@ -1446,8 +1455,8 @@ export default function HomePage() {
                 </div>
 
                 {/* Category pills — text only */}
-                <div style={{ padding: "10px 12px 6px", display: "flex", gap: 8, flexShrink: 0 }}>
-                  {["Pub Classics", "Sides", "Drinks"].map((cat, i) => (
+                <div style={{ padding: "10px 12px 6px", display: "flex", gap: 8, flexShrink: 0, overflowX: "auto", scrollbarWidth: "none" }}>
+                  {["Pub Classics", "Sides", "Starters", "Burgers", "Drinks", "Desserts"].map((cat, i) => (
                     <div key={cat} style={{
                       padding: "4px 10px",
                       borderRadius: 999,
@@ -1470,18 +1479,20 @@ export default function HomePage() {
                 </div>
 
                 {/* Items — real menu items */}
-                <div style={{ flex: 1, overflow: "hidden" }}>
+                <div style={{ flex: 1, overflow: "hidden", maxHeight: 260, position: "relative" }}>
                   {[
                     { name: "Beer-Battered Fish & Chips", price: "$15.95", desc: "Hand-battered in-house, chunky chips, tartare",
                       img: "https://images.unsplash.com/photo-1544025162-d76694265947?w=200&q=80" },
                     { name: "Slow-Cooked Beef Lasagne", price: "$13.95", desc: "12-hour ragu, béchamel, garlic bread",
                       img: "https://images.unsplash.com/photo-1574894709920-11b28e7367e3?w=200&q=80" },
-                    { name: "Truffle Mac & Cheese", price: "$13.95", desc: "Creamy three-cheese sauce, black truffle oil",
+                    { name: "Truffle Mac & Cheese", price: "$13.95", desc: "Three-cheese sauce, black truffle oil",
                       img: "https://images.unsplash.com/photo-1543352634-a1c51d9f1fa7?w=200&q=80" },
+                    { name: "Sticky Toffee Pudding", price: "$8.95", desc: "Warm sponge, toffee sauce, clotted cream",
+                      img: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=200&q=80" },
                   ].map((item, idx) => (
                     <div key={item.name} style={{
                       display: "flex", gap: 10,
-                      margin: idx < 2 ? "0 10px 5px" : "0 10px 0",
+                      margin: idx < 3 ? "0 10px 5px" : "0 10px 0",
                       background: "#2c1820",
                       borderRadius: 12,
                       border: "1px solid rgba(201,165,90,0.15)",
@@ -1499,10 +1510,11 @@ export default function HomePage() {
                             {item.price}
                           </span>
                         </div>
-                        <p style={{ color: "#b8a89c", fontSize: 9, margin: "3px 0 0", lineHeight: 1.4, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>{item.desc}</p>
+                        <p style={{ color: "#b8a89c", fontSize: 9, margin: "3px 0 0", lineHeight: 1.4 }}>{item.desc}</p>
                       </div>
                     </div>
                   ))}
+                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 48, background: "linear-gradient(to bottom, transparent, #1f1015)", pointerEvents: "none" }} />
                 </div>
 
                 {/* Footer */}
