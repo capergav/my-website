@@ -821,11 +821,17 @@ export default function HomePage() {
                       position: "absolute", bottom: 14, left: 0, right: 0,
                       display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
                     }}>
-                      <img src="/logos/laurel.png" alt="The Copper Table"
-                        style={{ width: 64, height: 64, objectFit: "contain",
-                        filter: "contrast(1.1)",
-                        mixBlendMode: "screen",
-                        margin: "0 auto 6px", display: "block" }} />
+                      <svg width="52" height="52" viewBox="0 0 72 72" fill="none"
+                        style={{ margin: "0 auto 6px", display: "block", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))" }}>
+                        <circle cx="36" cy="36" r="33" fill="#8b6914" opacity="0.15" stroke="#8b6914" strokeWidth="2"/>
+                        <line x1="28" y1="18" x2="28" y2="30" stroke="#8b6914" strokeWidth="3" strokeLinecap="round"/>
+                        <line x1="33" y1="18" x2="33" y2="30" stroke="#8b6914" strokeWidth="3" strokeLinecap="round"/>
+                        <line x1="38" y1="18" x2="38" y2="30" stroke="#8b6914" strokeWidth="3" strokeLinecap="round"/>
+                        <path d="M28 30 Q28 36 33 36 Q38 36 38 30" stroke="#8b6914" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                        <line x1="33" y1="36" x2="33" y2="54" stroke="#8b6914" strokeWidth="3" strokeLinecap="round"/>
+                        <line x1="44" y1="18" x2="44" y2="26" stroke="#8b6914" strokeWidth="3" strokeLinecap="round"/>
+                        <path d="M44 26 Q44 32 48 33 L44 34 L44 54" stroke="#8b6914" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                      </svg>
                       <span style={{
                         color: "#ffffff", fontFamily: "Georgia, serif",
                         fontSize: 16, fontWeight: 600,
@@ -1308,11 +1314,16 @@ export default function HomePage() {
                   <img src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&q=80" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(29,68,112,0.88) 0%, rgba(29,68,112,0.2) 60%, transparent 100%)" }} />
                   <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)" }}>
-                    <img src="/logos/coastal.png" alt="The Harbour House"
-                      style={{ width: 64, height: 64, objectFit: "contain",
-                      filter: "contrast(1.1)",
-                      mixBlendMode: "multiply",
-                      margin: "0 auto 6px", display: "block" }} />
+                    <svg width="52" height="52" viewBox="0 0 72 72" fill="none"
+                      style={{ margin: "0 auto 6px", display: "block", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))" }}>
+                      <circle cx="36" cy="36" r="33" fill="#1d4470" opacity="0.12" stroke="#1d4470" strokeWidth="2"/>
+                      <path d="M14 42 Q20 28 36 26 Q52 28 58 42" stroke="#1d4470" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+                      <circle cx="36" cy="38" r="8" fill="none" stroke="#1d4470" strokeWidth="2.5"/>
+                      <line x1="36" y1="30" x2="36" y2="20" stroke="#1d4470" strokeWidth="2.5" strokeLinecap="round"/>
+                      <path d="M30 24 Q33 20 36 20 Q39 20 42 24" fill="none" stroke="#1d4470" strokeWidth="2" strokeLinecap="round"/>
+                      <line x1="24" y1="44" x2="48" y2="44" stroke="#1d4470" strokeWidth="2.5" strokeLinecap="round"/>
+                      <path d="M20 48 Q28 54 36 54 Q44 54 52 48" fill="none" stroke="#1d4470" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
                   </div>
                   <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#ffffff", fontSize: 13, fontWeight: 600, margin: 0 }}>The Harbour House</p>
                 </div>
@@ -1363,11 +1374,14 @@ export default function HomePage() {
                   <img src="https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&q=80" alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(28,17,9,0.88) 0%, rgba(28,17,9,0.2) 60%, transparent 100%)" }} />
                   <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)" }}>
-                    <img src="/logos/koi.png" alt="Izakaya Kura"
-                      style={{ width: 64, height: 64, objectFit: "contain",
-                      filter: "contrast(1.1)",
-                      mixBlendMode: "multiply",
-                      margin: "0 auto 6px", display: "block" }} />
+                    <svg width="52" height="52" viewBox="0 0 72 72" fill="none"
+                      style={{ margin: "0 auto 6px", display: "block", filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))" }}>
+                      <circle cx="36" cy="36" r="33" fill="#c2410c" opacity="0.9"/>
+                      <path d="M44 20 C50 26 50 34 44 40 C40 44 34 46 30 50 C38 48 46 44 50 38 C54 32 52 24 44 20Z" fill="white" opacity="0.9"/>
+                      <path d="M28 22 C22 28 22 36 28 42 C32 46 38 48 42 52 C34 50 26 46 22 40 C18 34 20 26 28 22Z" fill="white" opacity="0.5"/>
+                      <circle cx="42" cy="26" r="2.5" fill="#c2410c"/>
+                      <circle cx="42" cy="26" r="1.5" fill="white"/>
+                    </svg>
                   </div>
                   <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#ffffff", fontSize: 13, fontWeight: 600, margin: 0 }}>Izakaya Kura</p>
                 </div>
