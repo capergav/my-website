@@ -822,7 +822,7 @@ export default function HomePage() {
                       display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
                     }}>
                       <img src="/logos/laurel.png" alt="The Copper Table"
-                        style={{ width: 48, height: 48, objectFit: "contain",
+                        style={{ width: 64, height: 64, objectFit: "contain",
                         filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.4))",
                         margin: "0 auto 6px", display: "block" }} />
                       <span style={{
@@ -1308,7 +1308,7 @@ export default function HomePage() {
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(29,68,112,0.88) 0%, rgba(29,68,112,0.2) 60%, transparent 100%)" }} />
                   <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)" }}>
                     <img src="/logos/coastal.png" alt="The Harbour House"
-                      style={{ width: 48, height: 48, objectFit: "contain",
+                      style={{ width: 64, height: 64, objectFit: "contain",
                       filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))",
                       margin: "0 auto 6px", display: "block" }} />
                   </div>
@@ -1357,7 +1357,7 @@ export default function HomePage() {
                   <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(28,17,9,0.88) 0%, rgba(28,17,9,0.2) 60%, transparent 100%)" }} />
                   <div style={{ position: "absolute", bottom: 30, left: "50%", transform: "translateX(-50%)" }}>
                     <img src="/logos/koi.png" alt="Izakaya Kura"
-                      style={{ width: 48, height: 48, objectFit: "contain",
+                      style={{ width: 64, height: 64, objectFit: "contain",
                       filter: "drop-shadow(0 2px 8px rgba(0,0,0,0.3))",
                       margin: "0 auto 6px", display: "block" }} />
                   </div>
