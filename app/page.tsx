@@ -206,6 +206,23 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
                   </svg>
                 </div>
               </div>
+              {/* Category image tiles */}
+              <div className="flex gap-3 px-3 py-2 bg-white border-b border-gray-100">
+                {[
+                  { img: CT_STEAK_URL, active: true },
+                  { img: CT_PASTA_URL, active: false },
+                  { img: CT_DESSERT_URL, active: false },
+                ].map((cat, i) => (
+                  <div key={i} className="flex flex-col items-center gap-1">
+                    <div className={`w-11 h-11 rounded-xl overflow-hidden flex-shrink-0 ${cat.active ? "ring-2 ring-[#8b6914] ring-offset-1" : "ring-1 ring-gray-200"}`}>
+                      <img src={cat.img} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <span className={`text-[8px] font-bold tracking-wider ${cat.active ? "text-[#8b6914]" : "text-gray-400"}`}>
+                      {i === 0 ? (categoryName.split(" ")[0].toUpperCase()) : i === 1 ? "STARTERS" : "DESSERTS"}
+                    </span>
+                  </div>
+                ))}
+              </div>
               <div className="mx-3 mt-3 mb-1">
                 <AnimatePresence mode="wait">
                   <motion.p
@@ -243,7 +260,7 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
               <div className="space-y-2 mx-3 mb-3">
                 {names.map((name, idx) => (
                   <div key={`${activeLang}-${idx}`} className="flex bg-white rounded-xl border border-gray-100 overflow-hidden">
-                    <img src={DEMO_IMAGES[idx]} alt={name} className="w-16 h-16 object-cover flex-shrink-0" />
+                    <img src={DEMO_IMAGES[idx]} alt={name} className="w-16 object-cover flex-shrink-0 self-stretch" />
                     <div className="p-2.5 flex flex-col justify-center min-w-0">
                       <AnimatePresence mode="wait">
                         <motion.p
@@ -925,7 +942,7 @@ export default function HomePage() {
                     }}>
                       <img
                         src={item.img} alt={item.name}
-                        style={{ width: 70, height: 80, objectFit: "cover", flexShrink: 0 }}
+                        style={{ width: 70, objectFit: "cover", flexShrink: 0, alignSelf: "stretch" }}
                       />
                       <div style={{ padding: "10px 10px 10px 0", flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
@@ -1166,9 +1183,9 @@ export default function HomePage() {
               </div>
               {/* Action buttons top-right — trial pill + hamburger menu */}
               <div className="absolute top-3 right-3 flex items-center gap-2">
-                <span className="bg-[#8b6914] text-white text-[11px] px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1.5">
+                <span className="bg-emerald-500/90 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-medium flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-white opacity-90" />
-                  38d left — Subscribe
+                  Active
                 </span>
                 <span className="bg-white/20 text-white text-[11px] px-2.5 py-1.5 rounded-lg border border-white/40 font-medium flex items-center gap-1.5">
                   <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1217,21 +1234,32 @@ export default function HomePage() {
                 { name: "Atlantic Salmon",    price: "$22.00", desc: "Pan-seared fillet, lemon beurre blanc, wilted greens", img: CT_SALMON_URL, avail: false },
                 { name: "Crème Brûlée",       price: "$14.00", desc: "Classic vanilla custard, caramelised sugar top", img: CT_DESSERT_URL, avail: true },
               ].map((item) => (
-                <div key={item.name} className="flex gap-3 p-3 bg-white rounded-xl border border-[#2c2a26]/8" style={{ opacity: item.avail ? 1 : 0.5 }}>
-                  <img src={item.img} className="w-16 h-16 rounded-lg object-cover flex-shrink-0" alt={item.name} />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start gap-2">
-                      <span className="font-semibold text-sm text-[#2c2a26]">{item.name}</span>
-                      <span className="font-semibold text-sm text-[#8b6914] flex-shrink-0">{item.price}</span>
-                    </div>
-                    <p className="text-xs text-[#6b6560] mt-0.5 line-clamp-1">{item.desc}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 ${item.avail ? "bg-emerald-50 text-emerald-700" : "bg-[#f3f4f6] text-[#6b7280]"}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full inline-block ${item.avail ? "bg-emerald-500" : "bg-gray-400"}`} />
-                        {item.avail ? "Available" : "Unavailable"}
-                      </span>
-                      <span className="text-[10px] bg-[#8b6914]/10 text-[#8b6914] px-2 py-0.5 rounded-full font-medium">Edit</span>
-                      <span className="text-[10px] bg-red-50 text-red-500 px-2 py-0.5 rounded-full font-medium">Delete</span>
+                <div key={item.name} className="flex items-stretch" style={{ opacity: item.avail ? 1 : 0.55 }}>
+                  {/* Drag handle — outside card border */}
+                  <div className="flex items-center px-1.5 text-[#2c2a26]/20 flex-shrink-0 cursor-grab select-none">
+                    <svg width="10" height="16" viewBox="0 0 10 16" fill="currentColor">
+                      <circle cx="2.5" cy="2" r="1.5"/><circle cx="7.5" cy="2" r="1.5"/>
+                      <circle cx="2.5" cy="8" r="1.5"/><circle cx="7.5" cy="8" r="1.5"/>
+                      <circle cx="2.5" cy="14" r="1.5"/><circle cx="7.5" cy="14" r="1.5"/>
+                    </svg>
+                  </div>
+                  {/* Card */}
+                  <div className="flex flex-1 bg-white rounded-xl border border-[#2c2a26]/8 overflow-hidden">
+                    <img src={item.img} className="w-16 object-cover flex-shrink-0 self-stretch" alt={item.name} />
+                    <div className="flex-1 min-w-0 p-3">
+                      <div className="flex justify-between items-start gap-2">
+                        <span className="font-semibold text-sm text-[#2c2a26]">{item.name}</span>
+                        <span className="font-semibold text-sm text-[#8b6914] flex-shrink-0">{item.price}</span>
+                      </div>
+                      <p className="text-xs text-[#6b6560] mt-0.5 line-clamp-2">{item.desc}</p>
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 ${item.avail ? "bg-emerald-50 text-emerald-700" : "bg-[#f3f4f6] text-[#6b7280]"}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full inline-block ${item.avail ? "bg-emerald-500" : "bg-gray-400"}`} />
+                          {item.avail ? "Available" : "Unavailable"}
+                        </span>
+                        <span className="text-[10px] border border-[#8b6914]/40 text-[#8b6914] px-2 py-0.5 rounded-full font-medium">Edit</span>
+                        <span className="text-[10px] text-red-400 font-medium">Delete</span>
+                      </div>
                     </div>
                   </div>
                 </div>
