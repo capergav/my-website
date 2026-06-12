@@ -300,7 +300,8 @@ export function AnalyticsClient({
                       paddingAngle={2}
                       label={(props: any) => {
                         const { name, percent } = props;
-                        return percent >= 0.05 ? `${LANGUAGE_NAMES[name as string] ?? (name as string)} ${((percent as number) * 100).toFixed(0)}%` : "";
+                        // Percentage first so LTR base direction prevents RTL (Arabic) bidi corruption
+                        return percent >= 0.05 ? `${((percent as number) * 100).toFixed(0)}% ${LANGUAGE_NAMES[name as string] ?? (name as string)}` : "";
                       }}
                       labelLine={true}
                     >

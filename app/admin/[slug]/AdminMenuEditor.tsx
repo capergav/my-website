@@ -2620,6 +2620,14 @@ async function composeQR(opts: {
       const logoSize = px * 0.22;
       const lx = (canvas.width - logoSize) / 2;
       const ly = y + (px - logoSize) / 2;
+      // object-contain: scale to fit logoSize×logoSize without stretching
+      const naturalW = logoImg.naturalWidth || logoImg.width;
+      const naturalH = logoImg.naturalHeight || logoImg.height;
+      const scale = Math.min(logoSize / naturalW, logoSize / naturalH);
+      const drawW = naturalW * scale;
+      const drawH = naturalH * scale;
+      const drawX = lx + (logoSize - drawW) / 2;
+      const drawY = ly + (logoSize - drawH) / 2;
       if (logoBg) {
         const pad = logoSize * 0.18;
         ctx.fillStyle = logoBgColor;
@@ -2634,7 +2642,7 @@ async function composeQR(opts: {
           ctx.fillRect(lx - pad, ly - pad, logoSize + pad * 2, logoSize + pad * 2);
         }
       }
-      ctx.drawImage(logoImg, lx, ly, logoSize, logoSize);
+      ctx.drawImage(logoImg, drawX, drawY, drawW, drawH);
     } catch { /* logo failed to load */ }
   }
 
