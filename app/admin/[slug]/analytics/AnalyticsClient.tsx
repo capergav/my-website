@@ -296,14 +296,31 @@ export function AnalyticsClient({
                       cx="50%"
                       cy="50%"
                       innerRadius={45}
-                      outerRadius={80}
+                      outerRadius={90}
                       paddingAngle={2}
                       label={(props: any) => {
-                        const { name, percent } = props;
-                        // Percentage first so LTR base direction prevents RTL (Arabic) bidi corruption
-                        return percent >= 0.05 ? `${((percent as number) * 100).toFixed(0)}% ${LANGUAGE_NAMES[name as string] ?? (name as string)}` : "";
+                        const { cx, cy, midAngle, outerRadius, percent, name } = props;
+                        if (percent < 0.08) return null;
+                        const RADIAN = Math.PI / 180;
+                        const radius = outerRadius + 30;
+                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                        return (
+                          <text
+                            x={x}
+                            y={y}
+                            fill="currentColor"
+                            textAnchor={x > cx ? "start" : "end"}
+                            dominantBaseline="central"
+                            fontSize={12}
+                            direction="ltr"
+                            unicodeBidi="embed"
+                          >
+                            {`${((percent as number) * 100).toFixed(0)}% ${LANGUAGE_NAMES[name as string] ?? (name as string)}`}
+                          </text>
+                        );
                       }}
-                      labelLine={true}
+                      labelLine={false}
                     >
                       {langData.map((_, idx) => (
                         <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
@@ -325,6 +342,7 @@ export function AnalyticsClient({
                         paddingTop: 12,
                         width: "100%",
                         lineHeight: "2",
+                        direction: "ltr",
                       }}
                     />
                   </PieChart>
