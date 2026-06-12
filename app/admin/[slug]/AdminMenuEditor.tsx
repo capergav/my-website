@@ -215,22 +215,26 @@ function SortableMenuItem({ item, children }: { item: MenuItemRow; children: Rea
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 10 : 'auto',
     boxShadow: isDragging ? '0 10px 25px -5px rgba(139, 105, 20, 0.35)' : undefined,
-    scale: isDragging ? '1.02' : undefined,
     position: 'relative',
     userSelect: 'none',
     WebkitUserSelect: 'none',
   };
   return (
-    <div ref={setNodeRef} style={style} {...attributes} className="flex items-stretch">
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      className="flex items-stretch rounded-xl overflow-hidden border border-[var(--card-border)] bg-[var(--card)] shadow-sm hover:shadow-md transition-shadow"
+    >
       <div
         {...listeners}
-        className="flex items-center justify-center px-3 self-stretch bg-[var(--card-border)]/40 rounded-l-xl cursor-grab flex-shrink-0 touch-manipulation admin-drag-handle"
+        className="flex items-center justify-center px-3 bg-[var(--card-border)]/40 flex-shrink-0 cursor-grab touch-manipulation self-stretch"
         style={{ touchAction: "none", userSelect: "none", WebkitUserSelect: "none", cursor: "grab" }}
         title="Drag to reorder"
       >
         <GripVertical size={18} className="text-[var(--muted)] transition-colors" />
       </div>
-      <div className="flex-1 min-w-0">{children}</div>
+      {children}
     </div>
   );
 }
@@ -789,7 +793,7 @@ export function AdminMenuEditor({
         <div className="sm:hidden absolute inset-x-0 bottom-0 flex flex-col items-center text-center px-4 pb-4 z-10">
           {restaurant?.logo_url && (
             <img src={restaurant.logo_url} alt="Logo"
-              className="h-12 w-12 object-contain drop-shadow-md mb-1.5"
+              className="h-12 w-12 object-contain rounded-lg drop-shadow-md mb-1.5"
               style={{ background: "transparent" }} />
           )}
           <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest">Admin Panel</p>
@@ -1031,79 +1035,65 @@ export function AdminMenuEditor({
                   )}
                   {items.map((item, idx) => (
                     <SortableMenuItem key={item.id} item={item}>
-                      <motion.div
-                        className={`bg-[var(--card)] rounded-2xl border border-[var(--card-border)] overflow-visible shadow-sm ${
-                          item.available === false ? "opacity-50" : ""
-                        }`}
-                        whileHover={{ y: -2, boxShadow: '0 6px 20px -4px rgba(0,0,0,0.12)', borderColor: 'var(--main-color)' }}
-                        transition={{ duration: 0.2 }}
-                      >
-                        <div className="flex items-stretch">
-                          {/* Item image */}
-                          {item.image_url && (
-                            <img
-                              src={item.image_url}
-                              alt=""
-                              className="object-cover flex-shrink-0"
-                              style={{ width: 64, height: 64, borderRadius: "0 8px 8px 0" }}
-                            />
-                          )}
-
-                          {/* Details */}
-                          <div className="p-3 sm:p-4 flex-1 min-w-0">
-                            <div className="flex justify-between gap-2 items-start flex-wrap">
-                              <div className="min-w-0">
-                                <h3 className="font-serif text-base font-semibold leading-snug text-wrap-balance">{item.name}</h3>
-                                {item.available === false && (
-                                  <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 mt-0.5">
-                                    Unavailable
-                                  </span>
-                                )}
-                              </div>
-                              <span className="font-semibold text-[var(--accent)] tabular-nums text-base flex-shrink-0">
-                                {`$${Number(item.price).toFixed(2)}`}
-                              </span>
-                            </div>
-                            {item.description && (
-                              <p className="text-[var(--muted)] text-xs sm:text-sm mt-1 line-clamp-2 text-wrap-force">
-                                {item.description}
-                              </p>
-                            )}
-                            <div className="flex flex-wrap gap-1.5 mt-2 items-center">
-                              <span data-tour="availability-toggle">
-                              <AvailabilityToggle
-                                available={item.available !== false}
-                                onChange={async (next) => {
-                                  setSaving(true);
-                                  const { error } = await supabase.from("menu_items")
-                                    .update({ available: next }).eq("id", item.id);
-                                  if (error) showMsg("err", error.message);
-                                  else { showMsg("ok", next ? "Marked available." : "Marked unavailable."); await refreshMenu(); }
-                                  setSaving(false);
-                                }}
-                              />
-                              </span>
-                              <motion.button type="button"
-                                onClick={() => { setEditingItem(item); setAddingNew(false); }}
-                                className="px-3 py-1.5 rounded-lg border border-[var(--accent)] text-[var(--accent)] text-xs font-semibold font-sans hover:bg-[var(--accent)] hover:text-white transition-all"
-                                whileTap={{ scale: 0.95 }}
-                                transition={{ duration: 0.08 }}
-                              >
-                                Edit
-                              </motion.button>
-                              <motion.button type="button"
-                                onClick={() => handleDelete(item.id, item.image_url)}
-                                disabled={saving}
-                                className="px-2 py-1.5 text-[var(--muted)] hover:text-red-600 text-xs font-sans disabled:opacity-50 transition-colors"
-                                whileTap={{ scale: 0.95 }}
-                                transition={{ duration: 0.08 }}
-                              >
-                                Delete
-                              </motion.button>
-                            </div>
-                          </div>
+                      {/* Item image — no border-radius, card overflow-hidden clips corners */}
+                      {item.image_url && (
+                        <div className="flex-shrink-0 self-stretch" style={{ width: 72 }}>
+                          <img src={item.image_url} alt="" className="w-full h-full object-cover" />
                         </div>
-                      </motion.div>
+                      )}
+                      {/* Details */}
+                      <div className={`p-3 sm:p-4 flex-1 min-w-0 ${item.available === false ? "opacity-50" : ""}`}>
+                        <div className="flex justify-between gap-2 items-start flex-wrap">
+                          <div className="min-w-0">
+                            <h3 className="font-serif text-base font-semibold leading-snug text-wrap-balance">{item.name}</h3>
+                            {item.available === false && (
+                              <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 mt-0.5">
+                                Unavailable
+                              </span>
+                            )}
+                          </div>
+                          <span className="font-semibold text-[var(--accent)] tabular-nums text-base flex-shrink-0">
+                            {`$${Number(item.price).toFixed(2)}`}
+                          </span>
+                        </div>
+                        {item.description && (
+                          <p className="text-[var(--muted)] text-xs sm:text-sm mt-1 line-clamp-2 text-wrap-force">
+                            {item.description}
+                          </p>
+                        )}
+                        <div className="flex flex-wrap gap-1.5 mt-2 items-center">
+                          <span data-tour="availability-toggle">
+                          <AvailabilityToggle
+                            available={item.available !== false}
+                            onChange={async (next) => {
+                              setSaving(true);
+                              const { error } = await supabase.from("menu_items")
+                                .update({ available: next }).eq("id", item.id);
+                              if (error) showMsg("err", error.message);
+                              else { showMsg("ok", next ? "Marked available." : "Marked unavailable."); await refreshMenu(); }
+                              setSaving(false);
+                            }}
+                          />
+                          </span>
+                          <motion.button type="button"
+                            onClick={() => { setEditingItem(item); setAddingNew(false); }}
+                            className="px-3 py-1.5 rounded-lg border border-[var(--accent)] text-[var(--accent)] text-xs font-semibold font-sans hover:bg-[var(--accent)] hover:text-white transition-all"
+                            whileTap={{ scale: 0.95 }}
+                            transition={{ duration: 0.08 }}
+                          >
+                            Edit
+                          </motion.button>
+                          <motion.button type="button"
+                            onClick={() => handleDelete(item.id, item.image_url)}
+                            disabled={saving}
+                            className="px-2 py-1.5 text-[var(--muted)] hover:text-red-600 text-xs font-sans disabled:opacity-50 transition-colors"
+                            whileTap={{ scale: 0.95 }}
+                            transition={{ duration: 0.08 }}
+                          >
+                            Delete
+                          </motion.button>
+                        </div>
+                      </div>
                     </SortableMenuItem>
                   ))}
                 </div>

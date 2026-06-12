@@ -286,7 +286,7 @@ export function AnalyticsClient({
               Language preferences
             </h2>
             {langData.length > 0 ? (
-              <div style={{ height: 280 }}>
+              <div style={{ height: 300 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -295,9 +295,14 @@ export function AnalyticsClient({
                       nameKey="lang"
                       cx="50%"
                       cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
+                      innerRadius={45}
+                      outerRadius={80}
                       paddingAngle={2}
+                      label={(props: any) => {
+                        const { name, percent } = props;
+                        return percent >= 0.08 ? `${LANGUAGE_NAMES[name as string] ?? (name as string)} ${((percent as number) * 100).toFixed(0)}%` : "";
+                      }}
+                      labelLine={true}
                     >
                       {langData.map((_, idx) => (
                         <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />

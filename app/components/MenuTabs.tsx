@@ -418,7 +418,10 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
       {/* Category content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-[env(safe-area-inset-bottom)]">
         {/* Header + filter */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
+        {(() => {
+          const isLongName = activeCategory.length > 14;
+          return (
+        <div className={`flex ${isLongName ? "flex-col items-start gap-2" : "flex-row items-center justify-between"} mb-4`}>
           <div className="min-w-0">
             {/* Category heading with optional inline thumbnail */}
             {(() => {
@@ -450,7 +453,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
               </p>
             )}
           </div>
-          <div className="relative flex-shrink-0" ref={filterRef}>
+          <div className={`relative ${isLongName ? "w-full" : "flex-shrink-0"}`} ref={filterRef}>
             <button
               type="button"
               onClick={() => setFilterOpen(o => !o)}
@@ -492,6 +495,8 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
             )}
           </div>
         </div>
+          );
+        })()}
 
         {/* Dietary legend — at the top of the item list */}
         <DietaryLegend items={rawItems} />
