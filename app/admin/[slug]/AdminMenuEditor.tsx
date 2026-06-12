@@ -220,21 +220,23 @@ function SortableMenuItem({ item, children }: { item: MenuItemRow; children: Rea
     WebkitUserSelect: 'none',
   };
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      className="flex items-stretch rounded-xl overflow-hidden border border-[var(--card-border)] bg-[var(--card)] shadow-sm hover:shadow-md transition-shadow"
-    >
+    <div ref={setNodeRef} style={style} {...attributes} className="flex items-stretch gap-0 w-full">
+      {/* Drag handle — outside the card border */}
       <div
         {...listeners}
-        className="flex items-center justify-center px-3 bg-[var(--card-border)]/40 flex-shrink-0 cursor-grab touch-manipulation self-stretch"
-        style={{ touchAction: "none", userSelect: "none", WebkitUserSelect: "none", cursor: "grab" }}
+        className="flex items-center justify-center flex-shrink-0 bg-[var(--card-border)]/40 cursor-grab touch-manipulation"
+        style={{ width: 36, borderRadius: "12px 0 0 12px", touchAction: "none", userSelect: "none", WebkitUserSelect: "none" }}
         title="Drag to reorder"
       >
         <GripVertical size={18} className="text-[var(--muted)] transition-colors" />
       </div>
-      {children}
+      {/* Card — border wraps image + content only */}
+      <div
+        className="flex flex-1 min-w-0 border border-[var(--card-border)] bg-[var(--card)] overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+        style={{ borderRadius: "0 12px 12px 0" }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -1035,11 +1037,14 @@ export function AdminMenuEditor({
                   )}
                   {items.map((item, idx) => (
                     <SortableMenuItem key={item.id} item={item}>
-                      {/* Item image — no border-radius, card overflow-hidden clips corners */}
+                      {/* Item image — card overflow-hidden clips corners */}
                       {item.image_url && (
-                        <div className="flex-shrink-0 self-stretch" style={{ width: 72 }}>
-                          <img src={item.image_url} alt="" className="w-full h-full object-cover" />
-                        </div>
+                        <img
+                          src={item.image_url}
+                          alt={item.name}
+                          className="object-cover flex-shrink-0"
+                          style={{ width: 90, alignSelf: "stretch" }}
+                        />
                       )}
                       {/* Details */}
                       <div className={`p-3 sm:p-4 flex-1 min-w-0 ${item.available === false ? "opacity-50" : ""}`}>
