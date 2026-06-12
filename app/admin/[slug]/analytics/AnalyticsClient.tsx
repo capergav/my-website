@@ -286,7 +286,7 @@ export function AnalyticsClient({
               Language preferences
             </h2>
             {langData.length > 0 ? (
-              <div style={{ height: 320 }}>
+              <div style={{ height: 280 }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -295,31 +295,10 @@ export function AnalyticsClient({
                       nameKey="lang"
                       cx="50%"
                       cy="50%"
-                      innerRadius={45}
+                      innerRadius={55}
                       outerRadius={90}
                       paddingAngle={2}
-                      label={(props: any) => {
-                        const { cx, cy, midAngle, outerRadius, percent, name } = props;
-                        if (percent < 0.08) return null;
-                        const RADIAN = Math.PI / 180;
-                        const radius = outerRadius + 30;
-                        const x = cx + radius * Math.cos(-midAngle * RADIAN);
-                        const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                        return (
-                          <text
-                            x={x}
-                            y={y}
-                            fill="currentColor"
-                            textAnchor={x > cx ? "start" : "end"}
-                            dominantBaseline="central"
-                            fontSize={12}
-                            direction="ltr"
-                            unicodeBidi="embed"
-                          >
-                            {`${((percent as number) * 100).toFixed(0)}% ${LANGUAGE_NAMES[name as string] ?? (name as string)}`}
-                          </text>
-                        );
-                      }}
+                      label={false}
                       labelLine={false}
                     >
                       {langData.map((_, idx) => (
@@ -334,7 +313,12 @@ export function AnalyticsClient({
                       layout="horizontal"
                       align="center"
                       verticalAlign="bottom"
-                      formatter={(value) => LANGUAGE_NAMES[value] ?? value}
+                      formatter={(value, entry: any) => {
+                        const total = langData.reduce((s, d) => s + d.count, 0);
+                        const pct = total > 0 ? Math.round((entry.payload?.count ?? 0) / total * 100) : 0;
+                        const langName = LANGUAGE_NAMES[value] ?? value;
+                        return <span dir="ltr">{`${langName} ${pct}%`}</span>;
+                      }}
                       iconType="circle"
                       iconSize={8}
                       wrapperStyle={{
