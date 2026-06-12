@@ -217,12 +217,15 @@ function SortableMenuItem({ item, children }: { item: MenuItemRow; children: Rea
     boxShadow: isDragging ? '0 10px 25px -5px rgba(139, 105, 20, 0.35)' : undefined,
     scale: isDragging ? '1.02' : undefined,
     position: 'relative',
+    userSelect: 'none',
+    WebkitUserSelect: 'none',
   };
   return (
     <div ref={setNodeRef} style={style} {...attributes} className="flex items-stretch">
       <div
         {...listeners}
         className="flex items-center justify-center px-3 self-stretch bg-[var(--card-border)]/40 rounded-l-xl cursor-grab flex-shrink-0 touch-manipulation admin-drag-handle"
+        style={{ touchAction: "none", userSelect: "none", WebkitUserSelect: "none", cursor: "grab" }}
         title="Drag to reorder"
       >
         <GripVertical size={18} className="text-[var(--muted)] transition-colors" />
@@ -1038,9 +1041,12 @@ export function AdminMenuEditor({
                         <div className="flex items-stretch">
                           {/* Item image */}
                           {item.image_url && (
-                            <div className="w-24 sm:w-32 aspect-square overflow-hidden bg-[var(--card-border)] flex-shrink-0 rounded-r-lg">
-                              <img src={item.image_url} alt="" className="w-full h-full object-cover" />
-                            </div>
+                            <img
+                              src={item.image_url}
+                              alt=""
+                              className="object-cover flex-shrink-0"
+                              style={{ width: 64, height: 64, borderRadius: "0 8px 8px 0" }}
+                            />
                           )}
 
                           {/* Details */}

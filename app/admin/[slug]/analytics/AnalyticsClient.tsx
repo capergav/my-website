@@ -298,8 +298,6 @@ export function AnalyticsClient({
                       innerRadius={60}
                       outerRadius={100}
                       paddingAngle={2}
-                      label={({ lang, percent }) => `${LANGUAGE_NAMES[lang as string] ?? lang} ${((percent as number) * 100).toFixed(0)}%`}
-                      labelLine={false}
                     >
                       {langData.map((_, idx) => (
                         <Cell key={idx} fill={CHART_COLORS[idx % CHART_COLORS.length]} />
@@ -310,10 +308,18 @@ export function AnalyticsClient({
                       formatter={(value, name) => [value, LANGUAGE_NAMES[name as string] ?? (name as string)]}
                     />
                     <Legend
+                      layout="horizontal"
+                      align="center"
+                      verticalAlign="bottom"
                       formatter={(value) => LANGUAGE_NAMES[value] ?? value}
                       iconType="circle"
                       iconSize={8}
-                      wrapperStyle={{ fontSize: 11 }}
+                      wrapperStyle={{
+                        fontSize: 11,
+                        paddingTop: 12,
+                        width: "100%",
+                        lineHeight: "2",
+                      }}
                     />
                   </PieChart>
                 </ResponsiveContainer>
