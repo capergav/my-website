@@ -789,7 +789,7 @@ export function AdminMenuEditor({
         <div className="sm:hidden absolute inset-x-0 bottom-0 flex flex-col items-center text-center px-4 pb-4 z-10">
           {restaurant?.logo_url && (
             <img src={restaurant.logo_url} alt="Logo"
-              className="h-10 w-10 object-contain drop-shadow-md mb-1.5"
+              className="h-12 w-12 object-contain drop-shadow-md mb-1.5"
               style={{ background: "transparent" }} />
           )}
           <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest">Admin Panel</p>

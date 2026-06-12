@@ -334,7 +334,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                       key={category}
                       type="button"
                       onClick={handleClick}
-                      className={`flex-shrink-0 snap-start px-3 py-2 rounded-full text-[10px] font-semibold transition-all duration-200 touch-manipulation whitespace-normal line-clamp-2 text-center max-w-[90px] leading-tight ${
+                      className={`flex-shrink-0 snap-start px-3 py-2 rounded-full text-[9px] font-semibold transition-all duration-200 touch-manipulation whitespace-normal line-clamp-2 text-center min-w-[72px] max-w-[88px] leading-tight break-words hyphens-auto ${
                         isActive
                           ? "bg-[var(--accent)]/10 text-[var(--foreground)] border-2 border-[var(--accent)] shadow-sm"
                           : "bg-[var(--card)] text-[var(--foreground)] border border-[var(--card-border)] hover:border-[var(--accent)]/40"
@@ -361,7 +361,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                       key={category}
                       type="button"
                       onClick={handleClick}
-                      className={`flex-shrink-0 snap-start px-3 py-2 rounded-full text-[10px] font-semibold transition-all duration-200 touch-manipulation whitespace-normal line-clamp-2 text-center max-w-[90px] leading-tight ${
+                      className={`flex-shrink-0 snap-start px-3 py-2 rounded-full text-[9px] font-semibold transition-all duration-200 touch-manipulation whitespace-normal line-clamp-2 text-center min-w-[72px] max-w-[88px] leading-tight break-words hyphens-auto ${
                         isActive
                           ? "bg-[var(--accent)]/10 text-[var(--foreground)] border-2 border-[var(--accent)] shadow-sm"
                           : "bg-[var(--card)] text-[var(--foreground)] border border-[var(--card-border)] hover:border-[var(--accent)]/40"
@@ -401,7 +401,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                     </div>
                     {/* Label */}
                     <span
-                      className={`text-[10px] sm:text-xs font-semibold text-center leading-tight px-1 w-full line-clamp-2 uppercase tracking-wide ${
+                      className={`text-[9px] sm:text-xs font-semibold text-center leading-tight px-1 w-full line-clamp-2 uppercase tracking-wide break-words hyphens-auto ${
                         isActive ? "text-[var(--foreground)]" : "text-[var(--muted)]"
                       }`}
                     >
@@ -418,7 +418,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
       {/* Category content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-[env(safe-area-inset-bottom)]">
         {/* Header + filter */}
-        <div className="flex flex-row items-center justify-between gap-2 mb-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
           <div className="min-w-0">
             {/* Category heading with optional inline thumbnail */}
             {(() => {
@@ -438,7 +438,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                       <CategoryIcon name={activeCategory} isActive={false} />
                     </div>
                   )}
-                  <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[var(--foreground)]">
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-[var(--foreground)] break-words hyphens-auto">
                     <CategoryName name={activeCategory} />
                   </h2>
                 </div>
