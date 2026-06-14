@@ -42,9 +42,9 @@ function DLLogoDark({ width = 44, height = 40 }: { width?: number; height?: numb
 function DLLogoNav({ width = 32, height = 29 }: { scrolled: boolean; width?: number; height?: number }) {
   return (
     <svg width={width} height={height} viewBox="0 0 44 40" fill="none">
-      <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="var(--accent)" strokeWidth="2.6" strokeLinejoin="round" />
-      <line x1="26" y1="3" x2="26" y2="37" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
-      <line x1="26" y1="37" x2="42" y2="37" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" />
+      <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#c9a030" strokeWidth="2.6" strokeLinejoin="round" />
+      <line x1="26" y1="3" x2="26" y2="37" stroke="#faf8f5" strokeWidth="2.6" strokeLinecap="round" />
+      <line x1="26" y1="37" x2="42" y2="37" stroke="#faf8f5" strokeWidth="2.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -577,15 +577,15 @@ export default function HomePage() {
       {/* ── NAVBAR ────────────────────────────────────────────────────────────── */}
       <nav className={`sticky top-0 z-50 w-full transition-all duration-300 ${
         scrolled
-          ? "bg-background/92 backdrop-blur-md border-b border-foreground/10"
-          : "bg-background/80 backdrop-blur-sm"
+          ? "bg-black/92 backdrop-blur-md border-b border-white/10"
+          : "bg-black/80 backdrop-blur-sm"
       }`}>
         <div className="max-w-6xl mx-auto px-6 flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2.5">
             <DLLogoNav scrolled={scrolled} width={32} height={29} />
             <span className="text-xl select-none">
-              <span style={{ fontFamily: "Georgia, serif", color: "var(--foreground)", fontWeight: 400 }}>Dine</span>
-              <span style={{ fontFamily: "Georgia, serif", color: "var(--accent)", fontWeight: 700 }}>Links</span>
+              <span style={{ fontFamily: "Georgia, serif", color: "#faf8f5", fontWeight: 400 }}>Dine</span>
+              <span style={{ fontFamily: "Georgia, serif", color: "#c9a030", fontWeight: 700 }}>Links</span>
             </span>
           </Link>
 
@@ -597,22 +597,22 @@ export default function HomePage() {
               { label: "Pricing", id: "pricing" },
             ].map(({ label, id }) => (
               <button key={id} type="button" onClick={() => scrollTo(id)}
-                className="text-sm transition-colors text-foreground/70 hover:text-foreground">
+                className="text-sm transition-colors text-white/70 hover:text-white">
                 {label}
               </button>
             ))}
-            <Link href="/contact" className="text-sm transition-colors text-foreground/70 hover:text-foreground">Contact</Link>
+            <Link href="/contact" className="text-sm transition-colors text-white/70 hover:text-white">Contact</Link>
           </div>
 
           <div className="flex items-center gap-3">
-            {!isLoggedIn && <Link href="/login" className="hidden sm:block text-sm transition-colors text-foreground/70 hover:text-foreground">Sign in</Link>}
+            {!isLoggedIn && <Link href="/login" className="hidden sm:block text-sm transition-colors text-white/70 hover:text-white">Sign in</Link>}
             <Link href={isLoggedIn ? '/admin' : '/signup'} className="rounded-xl px-4 sm:px-5 py-2 text-sm font-medium hover:opacity-90 transition-opacity bg-[#8b6914] text-white">
               {isLoggedIn ? 'Go to my menu' : 'Start free'}
             </Link>
             {/* Hamburger — mobile only */}
             <button
               type="button"
-              className="md:hidden flex flex-col gap-1.5 p-1.5 rounded-lg text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors"
+              className="md:hidden flex flex-col gap-1.5 p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/5 transition-colors"
               onClick={() => setMobileMenuOpen((o) => !o)}
               aria-label="Toggle menu"
             >
@@ -625,7 +625,7 @@ export default function HomePage() {
 
         {/* Mobile dropdown menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-foreground/10 bg-background/98 px-6 py-4 flex flex-col gap-4">
+          <div className="md:hidden border-t border-white/10 bg-black/98 px-6 py-4 flex flex-col gap-4">
             {[
               { label: "Features", id: "features" },
               { label: "How it works", id: "how-it-works" },
@@ -633,12 +633,12 @@ export default function HomePage() {
               { label: "Pricing", id: "pricing" },
             ].map(({ label, id }) => (
               <button key={id} type="button" onClick={() => { scrollTo(id); setMobileMenuOpen(false); }}
-                className="text-sm transition-colors text-foreground/70 hover:text-foreground text-left">
+                className="text-sm transition-colors text-white/70 hover:text-white text-left">
                 {label}
               </button>
             ))}
-            <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="text-sm transition-colors text-foreground/70 hover:text-foreground">Contact</Link>
-            {!isLoggedIn && <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="text-sm transition-colors text-foreground/70 hover:text-foreground">Sign in</Link>}
+            <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="text-sm transition-colors text-white/70 hover:text-white">Contact</Link>
+            {!isLoggedIn && <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="text-sm transition-colors text-white/70 hover:text-white">Sign in</Link>}
             <Link href={isLoggedIn ? '/admin' : '/signup'} onClick={() => setMobileMenuOpen(false)} className="w-full text-center rounded-xl px-4 py-3 text-sm font-semibold bg-[#8b6914] text-white">
               {isLoggedIn ? 'Go to my menu' : 'Start free trial'}
             </Link>
