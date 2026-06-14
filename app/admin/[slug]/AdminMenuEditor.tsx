@@ -1121,7 +1121,7 @@ export function AdminMenuEditor({
         />
       )}
 
-      <OnboardingTour tourKey={tourKey} hasCompletedTour={hasCompletedTour} userId={user?.id} />
+      <OnboardingTour tourKey={tourKey} hasCompletedTour={hasCompletedTour} userId={user?.id} restaurantSlug={restaurantSlug} />
 
       {/* Settings Modal */}
       <SettingsModal
