@@ -76,22 +76,13 @@ const STEPS: StepConfig[] = [
 
 const TOTAL_STEPS = STEPS.length;
 
-// Glow-only highlight — no overlay, additive effect only
-const HIGHLIGHT_STYLE = `
-  @keyframes tourGlow {
-    0%, 100% { box-shadow: 0 0 0 4px rgba(139, 105, 20, 0.2), 0 0 12px rgba(139, 105, 20, 0.27); }
-    50%       { box-shadow: 0 0 0 6px rgba(139, 105, 20, 0.33), 0 0 24px rgba(139, 105, 20, 0.4); }
-  }
-  [data-tour-highlight="true"] {
-    outline: 3px solid var(--accent, #8b6914);
-    outline-offset: 4px;
-    border-radius: 8px;
-    position: relative;
-    z-index: 50;
-    animation: tourGlow 1.5s ease-in-out infinite;
-    transition: outline 0.3s ease;
-  }
-`;
+type SpotlightRect = {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  borderRadius: number;
+};
 
 export function OnboardingTour({
   tourKey,
@@ -100,6 +91,7 @@ export function OnboardingTour({
   slug,
   openMenu,
   closeMenu,
+  isMenuOpen,
 }: {
   tourKey: number;
   hasCompletedTour?: boolean;
@@ -107,11 +99,13 @@ export function OnboardingTour({
   slug: string;
   openMenu: () => void;
   closeMenu: () => void;
+  isMenuOpen: boolean;
 }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [visible, setVisible] = useState(false);
-  const highlightedRef = useRef<Element | null>(null);
-  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
+  const [overlayVisible, setOverlayVisible] = useState(false);
+  const currentHighlightedElRef = useRef<HTMLElement | null>(null);
 
   // Show tour when hasCompletedTour is explicitly false (new user)
   useEffect(() => {
@@ -126,147 +120,187 @@ export function OnboardingTour({
     }
   }, [tourKey]);
 
-  const clearPoll = useCallback(() => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
+  const clearSpotlight = useCallback(() => {
+    setOverlayVisible(false);
+    setSpotlightRect(null);
+    if (currentHighlightedElRef.current) {
+      currentHighlightedElRef.current.style.position = "";
+      currentHighlightedElRef.current.style.zIndex = "";
+      currentHighlightedElRef.current = null;
     }
   }, []);
 
-  const clearHighlight = useCallback(() => {
-    clearPoll();
-    if (highlightedRef.current) {
-      highlightedRef.current.removeAttribute("data-tour-highlight");
-      highlightedRef.current = null;
-    }
-  }, [clearPoll]);
+  const applySpotlight = useCallback((el: Element) => {
+    // Don't spotlight elements hidden by CSS (e.g. sm:hidden on desktop)
+    const initialRect = el.getBoundingClientRect();
+    if (initialRect.width === 0 && initialRect.height === 0) return;
 
-  const applyHighlightEl = useCallback((el: Element) => {
-    el.setAttribute("data-tour-highlight", "true");
-    highlightedRef.current = el;
     el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    // Wait for scroll to settle before measuring position
+    setTimeout(() => {
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return;
+      const padding = 12;
+      setSpotlightRect({
+        top: rect.top - padding,
+        left: rect.left - padding,
+        width: rect.width + padding * 2,
+        height: rect.height + padding * 2,
+        borderRadius: 10,
+      });
+      setOverlayVisible(true);
+      // Lift element above overlay so it appears bright through the hole
+      (el as HTMLElement).style.position = "relative";
+      (el as HTMLElement).style.zIndex = "51";
+      currentHighlightedElRef.current = el as HTMLElement;
+    }, 450);
   }, []);
 
-  // For elements already in the DOM — small delay lets animations settle
-  const applyHighlight = useCallback((selector: string | null) => {
-    clearHighlight();
-    if (!selector) return;
-    setTimeout(() => {
-      const el = document.querySelector(selector);
-      if (el) applyHighlightEl(el);
-    }, 150);
-  }, [clearHighlight, applyHighlightEl]);
-
-  // For elements inside the drawer — poll until they appear after React renders
-  const highlightWithPolling = useCallback((selector: string) => {
-    clearPoll();
-    let attempts = 0;
-    pollIntervalRef.current = setInterval(() => {
-      const el = document.querySelector(selector);
-      if (el) {
-        clearPoll();
-        applyHighlightEl(el);
-      }
-      attempts++;
-      if (attempts > 20) clearPoll(); // give up after ~1s
-    }, 50);
-  }, [clearPoll, applyHighlightEl]);
-
-  // Handle step changes — manage menu state and highlights
-  const goToStep = useCallback((newStep: number) => {
-    const stepConfig = STEPS[newStep];
-    if (!stepConfig) return;
-
-    clearHighlight();
-
-    if (stepConfig.menuOpen) {
+  // Effect 1: control menu open/close based on step
+  useEffect(() => {
+    if (!visible) return;
+    if (currentStep === 7 || currentStep === 8) {
       openMenu();
-      // Poll for drawer elements — they don't exist until React re-renders
-      if (stepConfig.targetSelector) {
-        highlightWithPolling(stepConfig.targetSelector);
-      }
     } else {
       closeMenu();
-      applyHighlight(stepConfig.targetSelector);
     }
+  }, [currentStep, visible, openMenu, closeMenu]);
 
-    setCurrentStep(newStep);
-  }, [openMenu, closeMenu, applyHighlight, highlightWithPolling, clearHighlight]);
-
-  // Initial highlight when tour becomes visible
+  // Effect 2: spotlight for non-menu steps (elements already in DOM)
   useEffect(() => {
-    if (visible && currentStep === 0) {
-      applyHighlight(STEPS[0].targetSelector);
+    if (!visible) return;
+    const step = STEPS[currentStep];
+    if (!step || step.menuOpen) {
+      // Menu steps handled by Effect 3 — just clear any previous spotlight here
+      clearSpotlight();
+      return;
     }
-  }, [visible, currentStep, applyHighlight]);
+    clearSpotlight();
+    if (!step.targetSelector) return;
+
+    const timer = setTimeout(() => {
+      const el = document.querySelector(step.targetSelector!);
+      if (el) applySpotlight(el);
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [currentStep, visible, clearSpotlight, applySpotlight]);
+
+  // Effect 3: once menu IS open, spotlight the drawer element
+  // This is reactive — fires after React renders the drawer into the DOM
+  useEffect(() => {
+    if (!visible || !isMenuOpen) return;
+    if (currentStep === 7) {
+      const el = document.querySelector('[data-tour="theme-branding-option"]');
+      if (el) applySpotlight(el);
+    }
+    if (currentStep === 8) {
+      const el = document.querySelector('[data-tour="qr-option"]');
+      if (el) applySpotlight(el);
+    }
+  }, [isMenuOpen, currentStep, visible, applySpotlight]);
+
+  // Recalculate spotlight position on resize / orientation change
+  useEffect(() => {
+    const handleResize = () => {
+      if (!currentHighlightedElRef.current) return;
+      const rect = currentHighlightedElRef.current.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) return;
+      const padding = 12;
+      setSpotlightRect({
+        top: rect.top - padding,
+        left: rect.left - padding,
+        width: rect.width + padding * 2,
+        height: rect.height + padding * 2,
+        borderRadius: 10,
+      });
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const finish = useCallback(() => {
-    clearHighlight();
+    clearSpotlight();
     closeMenu();
     setVisible(false);
     if (userId) {
       createSupabaseClient().auth.updateUser({ data: { has_completed_tour: true } });
     }
-  }, [userId, clearHighlight, closeMenu]);
+  }, [userId, clearSpotlight, closeMenu]);
 
   // Keyboard navigation
   useEffect(() => {
     if (!visible) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") finish();
-      else if (e.key === "ArrowRight" && currentStep < TOTAL_STEPS - 1) goToStep(currentStep + 1);
-      else if (e.key === "ArrowLeft" && currentStep > 0) goToStep(currentStep - 1);
+      else if (e.key === "ArrowRight" && currentStep < TOTAL_STEPS - 1)
+        setCurrentStep((s) => s + 1);
+      else if (e.key === "ArrowLeft" && currentStep > 0)
+        setCurrentStep((s) => s - 1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [visible, currentStep, finish, goToStep]);
+  }, [visible, currentStep, finish]);
 
   // Cleanup on unmount
   useEffect(() => {
-    return () => clearHighlight();
-  }, [clearHighlight]);
+    return () => clearSpotlight();
+  }, [clearSpotlight]);
 
   if (!visible) return null;
 
   const isFirst = currentStep === 0;
   const isLast = currentStep === TOTAL_STEPS - 1;
 
-  // Dynamic body for the final step
   const stepBody = isLast
     ? `Your menu is live at dinelinks.com/menu/${slug}. Add your real dishes, set your theme, and you're ready for your first customer.`
     : STEPS[currentStep].body;
-
-  const handleNext = () => {
-    if (isLast) {
-      finish();
-    } else {
-      goToStep(currentStep + 1);
-    }
-  };
-
-  const handleBack = () => {
-    if (!isFirst) {
-      goToStep(currentStep - 1);
-    }
-  };
 
   const progressPercent = ((currentStep + 1) / TOTAL_STEPS) * 100;
 
   return (
     <>
-      {/* Inject highlight animation styles */}
-      <style dangerouslySetInnerHTML={{ __html: HIGHLIGHT_STYLE }} />
+      {/* SVG spotlight overlay — dark everywhere, bright hole at target */}
+      {overlayVisible && spotlightRect && (
+        <svg
+          className="fixed inset-0 w-full h-full pointer-events-none"
+          style={{ zIndex: 40 }}
+        >
+          <defs>
+            <mask id="spotlight-mask">
+              {/* White = show dark overlay everywhere */}
+              <rect width="100%" height="100%" fill="white" />
+              {/* Black = cut out the hole — this area becomes transparent */}
+              <rect
+                x={spotlightRect.left}
+                y={spotlightRect.top}
+                width={spotlightRect.width}
+                height={spotlightRect.height}
+                rx={spotlightRect.borderRadius}
+                fill="black"
+              />
+            </mask>
+          </defs>
+          <rect
+            width="100%"
+            height="100%"
+            fill="rgba(0,0,0,0.6)"
+            mask="url(#spotlight-mask)"
+          />
+        </svg>
+      )}
 
-      {/* NO overlay — page stays fully usable. Glow on target draws the eye. */}
-
-      {/* Tooltip card — fixed bottom center */}
+      {/* Tour card — z-index 60, above overlay (40) and lifted element (51) */}
       <AnimatePresence>
         <motion.div
+          key={currentStep}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[400px] bg-white border border-[#e8e4dd] rounded-2xl shadow-xl z-[9999] overflow-hidden"
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[400px] bg-white border border-[#e8e4dd] rounded-2xl shadow-xl overflow-hidden"
+          style={{ zIndex: 60 }}
         >
           {/* Progress bar */}
           <div className="h-1 bg-gray-100 w-full">
@@ -280,7 +314,10 @@ export function OnboardingTour({
           </div>
 
           {/* Content */}
-          <div className="p-5 sm:p-6">
+          <div
+            className="p-5 sm:p-6"
+            style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 20px))" }}
+          >
             {/* Header: title + step counter */}
             <div className="flex items-start justify-between gap-3 mb-3">
               <h3 className="text-base font-semibold text-gray-900 leading-snug">
@@ -298,12 +335,11 @@ export function OnboardingTour({
 
             {/* Buttons */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              {/* Back button or spacer */}
               <div className="order-2 sm:order-1">
                 {!isFirst && (
                   <button
                     type="button"
-                    onClick={handleBack}
+                    onClick={() => setCurrentStep((s) => s - 1)}
                     className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
                   >
                     Back
@@ -311,10 +347,12 @@ export function OnboardingTour({
                 )}
               </div>
 
-              {/* Next/Finish button */}
               <button
                 type="button"
-                onClick={handleNext}
+                onClick={() => {
+                  if (isLast) finish();
+                  else setCurrentStep((s) => s + 1);
+                }}
                 className="order-1 sm:order-2 w-full sm:w-auto px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
                 style={{ backgroundColor: "var(--accent, #8b6914)" }}
               >

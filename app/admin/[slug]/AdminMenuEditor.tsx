@@ -1129,6 +1129,7 @@ export function AdminMenuEditor({
         slug={restaurantSlug}
         openMenu={() => { setMobileOpen(true); document.body.dataset.mobileSheetOpen = "true"; }}
         closeMenu={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
+        isMenuOpen={mobileOpen}
       />
 
       {/* Settings Modal */}
