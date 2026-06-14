@@ -1,71 +1,113 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import { createSupabaseClient } from "@/app/lib/supabase";
 
-type Step = {
+type StepConfig = {
   title: string;
   body: string;
+  targetSelector: string | null;
+  menuOpen: boolean;
 };
 
-const STEPS: Step[] = [
+const STEPS: StepConfig[] = [
   {
     title: "Welcome to DineLinks",
     body: "This quick tour shows you everything you need to know. Your menu is already live — let's walk through how to manage it.",
+    targetSelector: null,
+    menuOpen: false,
   },
   {
     title: "We added a sample item for you",
-    body: "We created a sample dish so you can see how items look. You can edit or delete it anytime — or leave it as a starting point.",
+    body: "We created a sample dish so you can see how items look. Edit or delete it anytime — or use it as a starting point.",
+    targetSelector: "[data-tour='first-item-card']",
+    menuOpen: false,
   },
   {
     title: "Categories keep your menu organised",
-    body: "Each tab is a category — Starters, Mains, Desserts, Drinks, whatever fits your restaurant. Click a tab to switch between them. Drag to reorder.",
+    body: "Each tab is a category — Starters, Mains, Desserts, Drinks. Click to switch between them, drag to reorder.",
+    targetSelector: "[data-tour='tour-categories']",
+    menuOpen: false,
   },
   {
     title: "Adding a new category",
-    body: "Click '+ Add category' in the tab bar to create a new section. You can rename or delete categories anytime from the Manage button.",
+    body: "Click '+ Add category' to create a new section. Rename or delete categories anytime from the Manage button.",
+    targetSelector: "[data-tour='add-category']",
+    menuOpen: false,
   },
   {
     title: "Your menu items",
-    body: "Each card shows the dish name, price, photo, and dietary tags. The drag handle on the left lets you drag items into any order you want.",
+    body: "Each card shows the dish name, price, photo, and dietary tags. The handle on the left lets you drag items into any order.",
+    targetSelector: "[data-tour='first-item-card']",
+    menuOpen: false,
   },
   {
     title: "The Available button",
-    body: "Green dot means the item is live on your menu. Click it to mark an item as unavailable — it stays on your menu but shows as 'Currently unavailable' to customers. Perfect for 86ing something mid-service.",
+    body: "Green dot means the item is live on your menu. Click it to mark something as unavailable mid-service — it stays on the menu but shows as 'Currently unavailable' to customers.",
+    targetSelector: "[data-tour='first-item-available']",
+    menuOpen: false,
   },
   {
     title: "The Edit button",
-    body: "Click Edit to change an item's name, price, description, photo, or dietary tags. Changes go live the moment you save — no reprinting, no waiting.",
+    body: "Click Edit to update a name, price, description, photo, or dietary tags. Changes go live the moment you save.",
+    targetSelector: "[data-tour='first-item-edit']",
+    menuOpen: false,
   },
   {
     title: "Make it look like yours",
-    body: "Open the Menu button → Theme & Branding to change your colours, fonts, and upload your logo. There are 12 presets to get you started, or build a fully custom look.",
+    body: "Theme & Branding lets you change your colours, fonts, and upload your logo. 12 presets to start or build a fully custom look.",
+    targetSelector: "[data-tour='theme-branding-option']",
+    menuOpen: true,
   },
   {
     title: "Your QR code is ready",
-    body: "Open the Menu button → Download QR Code to get your table sticker. Customers scan it and land directly on your menu — translated into their language automatically.",
+    body: "Download QR Code gives you your table sticker. Customers scan it and land on your menu — translated into their language automatically.",
+    targetSelector: "[data-tour='qr-option']",
+    menuOpen: true,
   },
   {
     title: "You're all set",
-    body: "", // Will be set dynamically with slug
+    body: "", // Dynamic — set in render
+    targetSelector: null,
+    menuOpen: false,
   },
 ];
 
 const TOTAL_STEPS = STEPS.length;
 
+// CSS for the pulsing highlight ring
+const HIGHLIGHT_STYLE = `
+  @keyframes tour-pulse {
+    0%, 100% { box-shadow: 0 0 0 3px var(--accent, #8b6914), 0 0 12px var(--accent, #8b6914); }
+    50% { box-shadow: 0 0 0 4px var(--accent, #8b6914), 0 0 20px var(--accent, #8b6914); }
+  }
+  [data-tour-highlight="true"] {
+    animation: tour-pulse 1.5s ease-in-out infinite;
+    position: relative;
+    z-index: 100;
+    border-radius: 12px;
+  }
+`;
+
 export function OnboardingTour({
   tourKey,
   hasCompletedTour,
   userId,
-  restaurantSlug,
+  slug,
+  openMenu,
+  closeMenu,
 }: {
   tourKey: number;
   hasCompletedTour?: boolean;
   userId?: string;
-  restaurantSlug: string;
+  slug: string;
+  openMenu: () => void;
+  closeMenu: () => void;
 }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [visible, setVisible] = useState(false);
+  const highlightedRef = useRef<Element | null>(null);
 
   // Show tour when hasCompletedTour is explicitly false (new user)
   useEffect(() => {
@@ -80,24 +122,80 @@ export function OnboardingTour({
     }
   }, [tourKey]);
 
+  // Clear highlight from previous element
+  const clearHighlight = useCallback(() => {
+    if (highlightedRef.current) {
+      highlightedRef.current.removeAttribute("data-tour-highlight");
+      highlightedRef.current = null;
+    }
+  }, []);
+
+  // Apply highlight to current step's target
+  const applyHighlight = useCallback((selector: string | null) => {
+    clearHighlight();
+    if (!selector) return;
+
+    // Small delay to let menu animations complete
+    setTimeout(() => {
+      const el = document.querySelector(selector);
+      if (el) {
+        el.setAttribute("data-tour-highlight", "true");
+        highlightedRef.current = el;
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 150);
+  }, [clearHighlight]);
+
+  // Handle step changes — manage menu state and highlights
+  const goToStep = useCallback((newStep: number) => {
+    const stepConfig = STEPS[newStep];
+    if (!stepConfig) return;
+
+    // Handle menu state
+    if (stepConfig.menuOpen) {
+      openMenu();
+      // Apply highlight after menu opens
+      setTimeout(() => applyHighlight(stepConfig.targetSelector), 250);
+    } else {
+      closeMenu();
+      applyHighlight(stepConfig.targetSelector);
+    }
+
+    setCurrentStep(newStep);
+  }, [openMenu, closeMenu, applyHighlight]);
+
+  // Initial highlight when tour becomes visible
+  useEffect(() => {
+    if (visible && currentStep === 0) {
+      applyHighlight(STEPS[0].targetSelector);
+    }
+  }, [visible, currentStep, applyHighlight]);
+
   const finish = useCallback(() => {
+    clearHighlight();
+    closeMenu();
     setVisible(false);
     if (userId) {
       createSupabaseClient().auth.updateUser({ data: { has_completed_tour: true } });
     }
-  }, [userId]);
+  }, [userId, clearHighlight, closeMenu]);
 
   // Keyboard navigation
   useEffect(() => {
     if (!visible) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") finish();
-      else if (e.key === "ArrowRight" && currentStep < TOTAL_STEPS - 1) setCurrentStep((s) => s + 1);
-      else if (e.key === "ArrowLeft" && currentStep > 0) setCurrentStep((s) => s - 1);
+      else if (e.key === "ArrowRight" && currentStep < TOTAL_STEPS - 1) goToStep(currentStep + 1);
+      else if (e.key === "ArrowLeft" && currentStep > 0) goToStep(currentStep - 1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [visible, currentStep, finish]);
+  }, [visible, currentStep, finish, goToStep]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => clearHighlight();
+  }, [clearHighlight]);
 
   if (!visible) return null;
 
@@ -106,164 +204,94 @@ export function OnboardingTour({
 
   // Dynamic body for the final step
   const stepBody = isLast
-    ? `Your menu is live at dinelinks.com/menu/${restaurantSlug}. Add your real dishes, set your theme, and you're ready for your first customer.`
+    ? `Your menu is live at dinelinks.com/menu/${slug}. Add your real dishes, set your theme, and you're ready for your first customer.`
     : STEPS[currentStep].body;
 
   const handleNext = () => {
-    if (isLast) finish();
-    else setCurrentStep((s) => s + 1);
+    if (isLast) {
+      finish();
+    } else {
+      goToStep(currentStep + 1);
+    }
   };
 
   const handleBack = () => {
-    if (!isFirst) setCurrentStep((s) => s - 1);
+    if (!isFirst) {
+      goToStep(currentStep - 1);
+    }
   };
 
   const progressPercent = ((currentStep + 1) / TOTAL_STEPS) * 100;
 
   return (
     <>
-      {/* Semi-transparent backdrop — click-through disabled to focus attention */}
+      {/* Inject highlight animation styles */}
+      <style dangerouslySetInnerHTML={{ __html: HIGHLIGHT_STYLE }} />
+
+      {/* Semi-transparent backdrop */}
       <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(0, 0, 0, 0.3)",
-          zIndex: 9998,
-        }}
+        className="fixed inset-0 bg-black/25 z-[9998]"
         onClick={(e) => e.stopPropagation()}
       />
 
       {/* Tooltip card — fixed bottom center */}
-      <div
-        style={{
-          position: "fixed",
-          bottom: 20,
-          left: "50%",
-          transform: "translateX(-50%)",
-          width: "calc(100% - 32px)",
-          maxWidth: 380,
-          background: "#ffffff",
-          border: "1px solid #e8e4dd",
-          borderRadius: 14,
-          boxShadow: "0 20px 50px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.08)",
-          zIndex: 9999,
-          overflow: "hidden",
-        }}
-      >
-        {/* Progress bar */}
-        <div style={{ height: 3, background: "#f0f0f0", width: "100%" }}>
-          <div
-            style={{
-              height: "100%",
-              width: `${progressPercent}%`,
-              background: "var(--accent, #8b6914)",
-              transition: "width 300ms ease",
-            }}
-          />
-        </div>
-
-        {/* Content */}
-        <div style={{ padding: "20px 22px 22px" }}>
-          {/* Header: title + step counter */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: 12,
-              marginBottom: 10,
-            }}
-          >
-            <h3
+      <AnimatePresence>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 20 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="fixed bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[400px] bg-white border border-[#e8e4dd] rounded-2xl shadow-xl z-[9999] overflow-hidden"
+        >
+          {/* Progress bar */}
+          <div className="h-1 bg-gray-100 w-full">
+            <div
+              className="h-full transition-all duration-300 ease-out"
               style={{
-                margin: 0,
-                fontSize: 18,
-                fontWeight: 600,
-                color: "#1a1a1a",
-                lineHeight: 1.3,
+                width: `${progressPercent}%`,
+                backgroundColor: "var(--accent, #8b6914)",
               }}
-            >
-              {STEPS[currentStep].title}
-            </h3>
-            <span
-              style={{
-                fontSize: 11,
-                color: "#888",
-                flexShrink: 0,
-                paddingTop: 4,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {currentStep + 1} of {TOTAL_STEPS}
-            </span>
+            />
           </div>
 
-          {/* Body */}
-          <p
-            style={{
-              margin: "0 0 20px 0",
-              fontSize: 14,
-              lineHeight: 1.6,
-              color: "#555",
-            }}
-          >
-            {stepBody}
-          </p>
+          {/* Content */}
+          <div className="p-5 sm:p-6">
+            {/* Header: title + step counter */}
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <h3 className="text-base font-semibold text-gray-900 leading-snug">
+                {STEPS[currentStep].title}
+              </h3>
+              <span className="text-xs text-gray-400 flex-shrink-0 pt-0.5">
+                {currentStep + 1} of {TOTAL_STEPS}
+              </span>
+            </div>
 
-          {/* Buttons */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-            className="tour-buttons"
-          >
-            {/* Main navigation row */}
-            <div
-              style={{
-                display: "flex",
-                gap: 10,
-                width: "100%",
-              }}
-            >
-              {!isFirst && (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  style={{
-                    flex: 1,
-                    minHeight: 44,
-                    padding: "0 16px",
-                    borderRadius: 10,
-                    border: "1px solid #ddd",
-                    background: "#fff",
-                    color: "#333",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  Back
-                </button>
-              )}
+            {/* Body */}
+            <p className="text-sm text-gray-600 leading-relaxed mb-5">
+              {stepBody}
+            </p>
+
+            {/* Buttons */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              {/* Back button or spacer */}
+              <div className="order-2 sm:order-1">
+                {!isFirst && (
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Back
+                  </button>
+                )}
+              </div>
+
+              {/* Next/Finish button */}
               <button
                 type="button"
                 onClick={handleNext}
-                style={{
-                  flex: isFirst ? 1 : 1,
-                  minHeight: 44,
-                  padding: "0 16px",
-                  borderRadius: 10,
-                  border: "none",
-                  background: "#1a1a1a",
-                  color: "#fff",
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                }}
+                className="order-1 sm:order-2 w-full sm:w-auto px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "var(--accent, #8b6914)" }}
               >
                 {isLast ? "Finish" : "Next"}
               </button>
@@ -274,26 +302,14 @@ export function OnboardingTour({
               <button
                 type="button"
                 onClick={finish}
-                style={{
-                  width: "100%",
-                  minHeight: 36,
-                  padding: "0 16px",
-                  background: "transparent",
-                  border: "none",
-                  color: "#888",
-                  fontSize: 13,
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  textDecoration: "underline",
-                  textUnderlineOffset: 3,
-                }}
+                className="w-full mt-3 py-2 text-gray-400 text-sm underline underline-offset-2 hover:text-gray-600 transition-colors"
               >
                 Skip tour
               </button>
             )}
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </AnimatePresence>
     </>
   );
 }

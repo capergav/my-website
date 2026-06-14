@@ -207,7 +207,7 @@ function fontFamily(font?: string | null) {
 }
 
 
-function SortableMenuItem({ item, children }: { item: MenuItemRow; children: React.ReactNode }) {
+function SortableMenuItem({ item, children, isFirst }: { item: MenuItemRow; children: React.ReactNode; isFirst?: boolean }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
@@ -220,7 +220,7 @@ function SortableMenuItem({ item, children }: { item: MenuItemRow; children: Rea
     WebkitUserSelect: 'none',
   };
   return (
-    <div ref={setNodeRef} style={style} {...attributes} className="flex items-stretch gap-0 w-full">
+    <div ref={setNodeRef} style={style} {...attributes} className="flex items-stretch gap-0 w-full" data-tour={isFirst ? "first-item-card" : undefined}>
       {/* Drag handle — outside the card border */}
       <div
         {...listeners}
@@ -828,7 +828,7 @@ export function AdminMenuEditor({
             style={{ animation: 'slideDown 0.2s ease-out', transition: 'transform 200ms ease-out' }}>
             <SheetThemeButton restaurant={restaurant} onSave={handleSaveTheme} saving={saving}
               onClose={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
-              tourTarget="theme-btn-mobile" />
+              tourTarget="theme-branding-option" />
             <button type="button" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; handleBilling(); }}
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
               <CreditCard size={16} className="text-gray-500" />
@@ -842,7 +842,7 @@ export function AdminMenuEditor({
               </svg>
               Analytics
             </a>
-            <button data-tour="qr-btn" type="button" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; setShowQR(true); }}
+            <button data-tour="qr-option" type="button" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; setShowQR(true); }}
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2} strokeLinecap="round"/>
@@ -1036,7 +1036,7 @@ export function AdminMenuEditor({
                     </div>
                   )}
                   {items.map((item, idx) => (
-                    <SortableMenuItem key={item.id} item={item}>
+                    <SortableMenuItem key={item.id} item={item} isFirst={idx === 0}>
                       {/* Item image — card overflow-hidden clips corners */}
                       {item.image_url && (
                         <img
@@ -1067,7 +1067,7 @@ export function AdminMenuEditor({
                           </p>
                         )}
                         <div className="flex flex-wrap gap-1.5 mt-2 items-center">
-                          <span data-tour="availability-toggle">
+                          <span data-tour={idx === 0 ? "first-item-available" : undefined}>
                           <AvailabilityToggle
                             available={item.available !== false}
                             onChange={async (next) => {
@@ -1081,6 +1081,7 @@ export function AdminMenuEditor({
                           />
                           </span>
                           <motion.button type="button"
+                            data-tour={idx === 0 ? "first-item-edit" : undefined}
                             onClick={() => { setEditingItem(item); setAddingNew(false); }}
                             className="px-3 py-1.5 rounded-lg border border-[var(--accent)] text-[var(--accent)] text-xs font-semibold font-sans hover:bg-[var(--accent)] hover:text-white transition-all"
                             whileTap={{ scale: 0.95 }}
@@ -1121,7 +1122,14 @@ export function AdminMenuEditor({
         />
       )}
 
-      <OnboardingTour tourKey={tourKey} hasCompletedTour={hasCompletedTour} userId={user?.id} restaurantSlug={restaurantSlug} />
+      <OnboardingTour
+        tourKey={tourKey}
+        hasCompletedTour={hasCompletedTour}
+        userId={user?.id}
+        slug={restaurantSlug}
+        openMenu={() => { setMobileOpen(true); document.body.dataset.mobileSheetOpen = "true"; }}
+        closeMenu={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
+      />
 
       {/* Settings Modal */}
       <SettingsModal
