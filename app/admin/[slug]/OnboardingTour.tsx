@@ -76,17 +76,20 @@ const STEPS: StepConfig[] = [
 
 const TOTAL_STEPS = STEPS.length;
 
-// CSS for the pulsing highlight ring
+// Glow-only highlight — no overlay, additive effect only
 const HIGHLIGHT_STYLE = `
-  @keyframes tour-pulse {
-    0%, 100% { box-shadow: 0 0 0 3px var(--accent, #8b6914), 0 0 12px var(--accent, #8b6914); }
-    50% { box-shadow: 0 0 0 4px var(--accent, #8b6914), 0 0 20px var(--accent, #8b6914); }
+  @keyframes tourGlow {
+    0%, 100% { box-shadow: 0 0 0 4px rgba(139, 105, 20, 0.2), 0 0 12px rgba(139, 105, 20, 0.27); }
+    50%       { box-shadow: 0 0 0 6px rgba(139, 105, 20, 0.33), 0 0 24px rgba(139, 105, 20, 0.4); }
   }
   [data-tour-highlight="true"] {
-    animation: tour-pulse 1.5s ease-in-out infinite;
+    outline: 3px solid var(--accent, #8b6914);
+    outline-offset: 4px;
+    border-radius: 8px;
     position: relative;
-    z-index: 100;
-    border-radius: 12px;
+    z-index: 50;
+    animation: tourGlow 1.5s ease-in-out infinite;
+    transition: outline 0.3s ease;
   }
 `;
 
@@ -108,6 +111,7 @@ export function OnboardingTour({
   const [currentStep, setCurrentStep] = useState(0);
   const [visible, setVisible] = useState(false);
   const highlightedRef = useRef<Element | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Show tour when hasCompletedTour is explicitly false (new user)
   useEffect(() => {
@@ -122,47 +126,72 @@ export function OnboardingTour({
     }
   }, [tourKey]);
 
-  // Clear highlight from previous element
+  const clearPoll = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  }, []);
+
   const clearHighlight = useCallback(() => {
+    clearPoll();
     if (highlightedRef.current) {
       highlightedRef.current.removeAttribute("data-tour-highlight");
       highlightedRef.current = null;
     }
+  }, [clearPoll]);
+
+  const applyHighlightEl = useCallback((el: Element) => {
+    el.setAttribute("data-tour-highlight", "true");
+    highlightedRef.current = el;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
   }, []);
 
-  // Apply highlight to current step's target
+  // For elements already in the DOM — small delay lets animations settle
   const applyHighlight = useCallback((selector: string | null) => {
     clearHighlight();
     if (!selector) return;
-
-    // Small delay to let menu animations complete
     setTimeout(() => {
       const el = document.querySelector(selector);
-      if (el) {
-        el.setAttribute("data-tour-highlight", "true");
-        highlightedRef.current = el;
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
+      if (el) applyHighlightEl(el);
     }, 150);
-  }, [clearHighlight]);
+  }, [clearHighlight, applyHighlightEl]);
+
+  // For elements inside the drawer — poll until they appear after React renders
+  const highlightWithPolling = useCallback((selector: string) => {
+    clearPoll();
+    let attempts = 0;
+    pollIntervalRef.current = setInterval(() => {
+      const el = document.querySelector(selector);
+      if (el) {
+        clearPoll();
+        applyHighlightEl(el);
+      }
+      attempts++;
+      if (attempts > 20) clearPoll(); // give up after ~1s
+    }, 50);
+  }, [clearPoll, applyHighlightEl]);
 
   // Handle step changes — manage menu state and highlights
   const goToStep = useCallback((newStep: number) => {
     const stepConfig = STEPS[newStep];
     if (!stepConfig) return;
 
-    // Handle menu state
+    clearHighlight();
+
     if (stepConfig.menuOpen) {
       openMenu();
-      // Apply highlight after menu opens
-      setTimeout(() => applyHighlight(stepConfig.targetSelector), 250);
+      // Poll for drawer elements — they don't exist until React re-renders
+      if (stepConfig.targetSelector) {
+        highlightWithPolling(stepConfig.targetSelector);
+      }
     } else {
       closeMenu();
       applyHighlight(stepConfig.targetSelector);
     }
 
     setCurrentStep(newStep);
-  }, [openMenu, closeMenu, applyHighlight]);
+  }, [openMenu, closeMenu, applyHighlight, highlightWithPolling, clearHighlight]);
 
   // Initial highlight when tour becomes visible
   useEffect(() => {
@@ -228,11 +257,7 @@ export function OnboardingTour({
       {/* Inject highlight animation styles */}
       <style dangerouslySetInnerHTML={{ __html: HIGHLIGHT_STYLE }} />
 
-      {/* Semi-transparent backdrop */}
-      <div
-        className="fixed inset-0 bg-black/25 z-[9998]"
-        onClick={(e) => e.stopPropagation()}
-      />
+      {/* NO overlay — page stays fully usable. Glow on target draws the eye. */}
 
       {/* Tooltip card — fixed bottom center */}
       <AnimatePresence>
