@@ -126,12 +126,23 @@ export function OnboardingTour({
   const [visible, setVisible] = useState(false);
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
   const [overlayOpacity, setOverlayOpacity] = useState(0);
+  const [windowSize, setWindowSize] = useState({ w: 0, h: 0 });
 
   // Refs that don't need to trigger re-renders
   const currentHighlightedElRef = useRef<HTMLElement | null>(null);
   const overlayActiveRef = useRef(false); // true while overlay is shown/fading-in
   const mutationObserverRef = useRef<MutationObserver | null>(null);
   const goToStepRef = useRef<((step: number) => void) | null>(null);
+  const prevTourKeyRef = useRef(tourKey); // Track previous tourKey to detect actual changes
+
+  // ── Window size tracking for overlay rects ─────────────────────────────────
+
+  useEffect(() => {
+    const update = () => setWindowSize({ w: window.innerWidth, h: window.innerHeight });
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   // ── Show / replay ──────────────────────────────────────────────────────────
 
@@ -140,7 +151,10 @@ export function OnboardingTour({
   }, [hasCompletedTour]);
 
   useEffect(() => {
-    if (tourKey > 0) {
+    // Only reset when tourKey actually increases (replay button clicked)
+    // Using ref comparison to avoid resetting when closeMenu reference changes
+    if (tourKey > prevTourKeyRef.current) {
+      prevTourKeyRef.current = tourKey;
       // Kill any pending observer
       mutationObserverRef.current?.disconnect();
       mutationObserverRef.current = null;
@@ -349,37 +363,50 @@ export function OnboardingTour({
     <>
       <style dangerouslySetInnerHTML={{ __html: SPOTLIGHT_CSS }} />
 
-      {/* SVG spotlight overlay — z-40, dark with bright hole */}
+      {/* SVG spotlight overlay — z-40, dark with bright hole using 4 rects (not mask) for smooth animation */}
       <svg
         className="fixed inset-0 w-full h-full pointer-events-none"
         style={{ zIndex: 40, opacity: overlayOpacity, transition: "opacity 300ms ease" }}
         aria-hidden="true"
       >
-        {spotlightRect && (
+        {spotlightRect && windowSize.w > 0 && (
           <>
-            <defs>
-              <mask id="spotlight-mask">
-                {/* White = show dark overlay */}
-                <rect width="100%" height="100%" fill="white" />
-                {/* Black = cut the bright hole */}
-                <rect
-                  x={spotlightRect.left}
-                  y={spotlightRect.top}
-                  width={spotlightRect.width}
-                  height={spotlightRect.height}
-                  rx={spotlightRect.borderRadius}
-                  fill="black"
-                  style={{ transition: SVG_TRANSITION }}
-                />
-              </mask>
-            </defs>
-
-            {/* Dark overlay with hole */}
+            {/* 4 dark rects around the spotlight hole — all animate together */}
+            {/* Top rect */}
             <rect
-              width="100%"
-              height="100%"
+              x="0"
+              y="0"
+              width={windowSize.w}
+              height={Math.max(0, spotlightRect.top)}
               fill="rgba(0,0,0,0.6)"
-              mask="url(#spotlight-mask)"
+              style={{ transition: SVG_TRANSITION }}
+            />
+            {/* Bottom rect */}
+            <rect
+              x="0"
+              y={spotlightRect.top + spotlightRect.height}
+              width={windowSize.w}
+              height={Math.max(0, windowSize.h - spotlightRect.top - spotlightRect.height)}
+              fill="rgba(0,0,0,0.6)"
+              style={{ transition: SVG_TRANSITION }}
+            />
+            {/* Left rect */}
+            <rect
+              x="0"
+              y={spotlightRect.top}
+              width={Math.max(0, spotlightRect.left)}
+              height={spotlightRect.height}
+              fill="rgba(0,0,0,0.6)"
+              style={{ transition: SVG_TRANSITION }}
+            />
+            {/* Right rect */}
+            <rect
+              x={spotlightRect.left + spotlightRect.width}
+              y={spotlightRect.top}
+              width={Math.max(0, windowSize.w - spotlightRect.left - spotlightRect.width)}
+              height={spotlightRect.height}
+              fill="rgba(0,0,0,0.6)"
+              style={{ transition: SVG_TRANSITION }}
             />
 
             {/* Pulsing accent ring around the hole */}
