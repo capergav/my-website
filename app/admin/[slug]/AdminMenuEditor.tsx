@@ -747,7 +747,7 @@ export function AdminMenuEditor({
         {/* Mobile: single hamburger button */}
         <div className="sm:hidden absolute top-3 end-3 z-20">
           <button
-            data-tour="hamburger"
+            data-tour="menu-button"
             type="button"
             onClick={() => { setMobileOpen(true); document.body.dataset.mobileSheetOpen = "true"; }}
             className="w-10 h-10 rounded-xl bg-white/15 border border-white/25 text-white flex items-center justify-center"
@@ -1129,7 +1129,6 @@ export function AdminMenuEditor({
         slug={restaurantSlug}
         openMenu={() => { setMobileOpen(true); document.body.dataset.mobileSheetOpen = "true"; }}
         closeMenu={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
-        isMenuOpen={mobileOpen}
       />
 
       {/* Settings Modal */}

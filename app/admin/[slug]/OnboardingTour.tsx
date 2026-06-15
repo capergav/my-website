@@ -68,7 +68,7 @@ const STEPS: StepConfig[] = [
   },
   {
     title: "You're all set",
-    body: "", // Dynamic — set in render
+    body: "",
     targetSelector: null,
     menuOpen: false,
   },
@@ -84,6 +84,29 @@ type SpotlightRect = {
   borderRadius: number;
 };
 
+// Build a SpotlightRect from a DOMRect with padding
+const fromRect = (rect: DOMRect, padding: number): SpotlightRect => ({
+  top: rect.top - padding,
+  left: rect.left - padding,
+  width: rect.width + padding * 2,
+  height: rect.height + padding * 2,
+  borderRadius: 10,
+});
+
+// CSS transition for SVG geometry properties (morph animation)
+const SVG_TRANSITION =
+  "x 350ms cubic-bezier(0.34,1.56,0.64,1), y 350ms cubic-bezier(0.34,1.56,0.64,1), width 350ms cubic-bezier(0.34,1.56,0.64,1), height 350ms cubic-bezier(0.34,1.56,0.64,1)";
+
+const SPOTLIGHT_CSS = `
+  @keyframes spotlightPulse {
+    0%, 100% { opacity: 0.7; stroke-width: 2; }
+    50%       { opacity: 1;   stroke-width: 3; }
+  }
+  .tour-pulse-ring {
+    animation: spotlightPulse 2s ease-in-out infinite;
+  }
+`;
+
 export function OnboardingTour({
   tourKey,
   hasCompletedTour,
@@ -91,7 +114,6 @@ export function OnboardingTour({
   slug,
   openMenu,
   closeMenu,
-  isMenuOpen,
 }: {
   tourKey: number;
   hasCompletedTour?: boolean;
@@ -99,154 +121,218 @@ export function OnboardingTour({
   slug: string;
   openMenu: () => void;
   closeMenu: () => void;
-  isMenuOpen: boolean;
 }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [visible, setVisible] = useState(false);
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
-  const [overlayVisible, setOverlayVisible] = useState(false);
-  const currentHighlightedElRef = useRef<HTMLElement | null>(null);
+  const [overlayOpacity, setOverlayOpacity] = useState(0);
 
-  // Show tour when hasCompletedTour is explicitly false (new user)
+  // Refs that don't need to trigger re-renders
+  const currentHighlightedElRef = useRef<HTMLElement | null>(null);
+  const overlayActiveRef = useRef(false); // true while overlay is shown/fading-in
+  const mutationObserverRef = useRef<MutationObserver | null>(null);
+  const goToStepRef = useRef<((step: number) => void) | null>(null);
+
+  // ── Show / replay ──────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (hasCompletedTour === false) setVisible(true);
   }, [hasCompletedTour]);
 
-  // Replay tour when tourKey increments
   useEffect(() => {
     if (tourKey > 0) {
+      // Kill any pending observer
+      mutationObserverRef.current?.disconnect();
+      mutationObserverRef.current = null;
+      // Instantly clear spotlight
+      overlayActiveRef.current = false;
+      setOverlayOpacity(0);
+      setSpotlightRect(null);
+      if (currentHighlightedElRef.current) {
+        currentHighlightedElRef.current.style.position = "";
+        currentHighlightedElRef.current.style.zIndex = "";
+        currentHighlightedElRef.current = null;
+      }
+      closeMenu();
       setCurrentStep(0);
       setVisible(true);
     }
-  }, [tourKey]);
+  }, [tourKey, closeMenu]);
 
-  const clearSpotlight = useCallback(() => {
-    setOverlayVisible(false);
+  // ── Spotlight helpers ──────────────────────────────────────────────────────
+
+  const removeSpotlight = useCallback(() => {
+    overlayActiveRef.current = false;
+    if (currentHighlightedElRef.current) {
+      currentHighlightedElRef.current.style.position = "";
+      currentHighlightedElRef.current.style.zIndex = "";
+      currentHighlightedElRef.current = null;
+    }
+    setOverlayOpacity(0);
+    // After fade-out, remove the rect so the SVG renders nothing
+    setTimeout(() => setSpotlightRect(null), 300);
+  }, []);
+
+  const applySpotlight = useCallback((el: HTMLElement) => {
+    // Ignore elements hidden by CSS (e.g. sm:hidden on desktop)
+    const check = el.getBoundingClientRect();
+    if (!check.width && !check.height) return;
+
+    // Clean up the previous highlighted element (before scroll)
+    if (currentHighlightedElRef.current && currentHighlightedElRef.current !== el) {
+      currentHighlightedElRef.current.style.position = "";
+      currentHighlightedElRef.current.style.zIndex = "";
+    }
+    currentHighlightedElRef.current = el;
+    el.style.position = "relative";
+    el.style.zIndex = "51";
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    // Wait for scroll to settle on iOS (500ms)
+    setTimeout(() => {
+      const rect = el.getBoundingClientRect();
+      if (!rect.width && !rect.height) return;
+
+      if (overlayActiveRef.current) {
+        // Already visible — morph the hole to the new element (CSS transition handles it)
+        setSpotlightRect(fromRect(rect, 12));
+      } else {
+        // First appearance — spring open: start small, animate to full size
+        overlayActiveRef.current = true;
+        setSpotlightRect(fromRect(rect, 4));
+        setOverlayOpacity(1);
+        requestAnimationFrame(() => {
+          setTimeout(() => setSpotlightRect(fromRect(rect, 12)), 20);
+        });
+      }
+    }, 500);
+  }, []);
+
+  // ── Step navigation ────────────────────────────────────────────────────────
+
+  const goToStep = useCallback(
+    (newStep: number) => {
+      const step = STEPS[newStep];
+      if (!step) return;
+
+      // Kill any pending MutationObserver
+      mutationObserverRef.current?.disconnect();
+      mutationObserverRef.current = null;
+
+      setCurrentStep(newStep);
+
+      if (step.menuOpen) {
+        // Open the drawer, then wait for target element to appear in DOM
+        openMenu();
+
+        if (step.targetSelector) {
+          const sel = step.targetSelector;
+
+          // Check if element is already in DOM (menu was already open)
+          const existing = document.querySelector(sel) as HTMLElement | null;
+          if (existing) {
+            applySpotlight(existing);
+          } else {
+            // MutationObserver fires the instant React renders the drawer
+            const observer = new MutationObserver(() => {
+              const found = document.querySelector(sel) as HTMLElement | null;
+              if (found) {
+                observer.disconnect();
+                mutationObserverRef.current = null;
+                applySpotlight(found);
+              }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+            mutationObserverRef.current = observer;
+            // Safety timeout — give up after 2s
+            setTimeout(() => {
+              observer.disconnect();
+              if (mutationObserverRef.current === observer) mutationObserverRef.current = null;
+            }, 2000);
+          }
+        }
+      } else {
+        closeMenu();
+
+        if (step.targetSelector) {
+          const sel = step.targetSelector;
+          // Short delay so any close-menu animation settles
+          setTimeout(() => {
+            const el = document.querySelector(sel) as HTMLElement | null;
+            if (el) applySpotlight(el);
+          }, 150);
+        } else {
+          removeSpotlight();
+        }
+      }
+    },
+    [openMenu, closeMenu, applySpotlight, removeSpotlight]
+  );
+
+  // Keep ref current so keyboard handler never captures a stale closure
+  useEffect(() => {
+    goToStepRef.current = goToStep;
+  });
+
+  // ── Finish / skip ──────────────────────────────────────────────────────────
+
+  const finish = useCallback(() => {
+    mutationObserverRef.current?.disconnect();
+    mutationObserverRef.current = null;
+    overlayActiveRef.current = false;
+    setOverlayOpacity(0);
     setSpotlightRect(null);
     if (currentHighlightedElRef.current) {
       currentHighlightedElRef.current.style.position = "";
       currentHighlightedElRef.current.style.zIndex = "";
       currentHighlightedElRef.current = null;
     }
-  }, []);
-
-  const applySpotlight = useCallback((el: Element) => {
-    // Don't spotlight elements hidden by CSS (e.g. sm:hidden on desktop)
-    const initialRect = el.getBoundingClientRect();
-    if (initialRect.width === 0 && initialRect.height === 0) return;
-
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-
-    // Wait for scroll to settle before measuring position
-    setTimeout(() => {
-      const rect = el.getBoundingClientRect();
-      if (rect.width === 0 && rect.height === 0) return;
-      const padding = 12;
-      setSpotlightRect({
-        top: rect.top - padding,
-        left: rect.left - padding,
-        width: rect.width + padding * 2,
-        height: rect.height + padding * 2,
-        borderRadius: 10,
-      });
-      setOverlayVisible(true);
-      // Lift element above overlay so it appears bright through the hole
-      (el as HTMLElement).style.position = "relative";
-      (el as HTMLElement).style.zIndex = "51";
-      currentHighlightedElRef.current = el as HTMLElement;
-    }, 450);
-  }, []);
-
-  // Effect 1: control menu open/close based on step
-  useEffect(() => {
-    if (!visible) return;
-    if (currentStep === 7 || currentStep === 8) {
-      openMenu();
-    } else {
-      closeMenu();
-    }
-  }, [currentStep, visible, openMenu, closeMenu]);
-
-  // Effect 2: spotlight for non-menu steps (elements already in DOM)
-  useEffect(() => {
-    if (!visible) return;
-    const step = STEPS[currentStep];
-    if (!step || step.menuOpen) {
-      // Menu steps handled by Effect 3 — just clear any previous spotlight here
-      clearSpotlight();
-      return;
-    }
-    clearSpotlight();
-    if (!step.targetSelector) return;
-
-    const timer = setTimeout(() => {
-      const el = document.querySelector(step.targetSelector!);
-      if (el) applySpotlight(el);
-    }, 150);
-
-    return () => clearTimeout(timer);
-  }, [currentStep, visible, clearSpotlight, applySpotlight]);
-
-  // Effect 3: once menu IS open, spotlight the drawer element
-  // This is reactive — fires after React renders the drawer into the DOM
-  useEffect(() => {
-    if (!visible || !isMenuOpen) return;
-    if (currentStep === 7) {
-      const el = document.querySelector('[data-tour="theme-branding-option"]');
-      if (el) applySpotlight(el);
-    }
-    if (currentStep === 8) {
-      const el = document.querySelector('[data-tour="qr-option"]');
-      if (el) applySpotlight(el);
-    }
-  }, [isMenuOpen, currentStep, visible, applySpotlight]);
-
-  // Recalculate spotlight position on resize / orientation change
-  useEffect(() => {
-    const handleResize = () => {
-      if (!currentHighlightedElRef.current) return;
-      const rect = currentHighlightedElRef.current.getBoundingClientRect();
-      if (rect.width === 0 && rect.height === 0) return;
-      const padding = 12;
-      setSpotlightRect({
-        top: rect.top - padding,
-        left: rect.left - padding,
-        width: rect.width + padding * 2,
-        height: rect.height + padding * 2,
-        borderRadius: 10,
-      });
-    };
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
-
-  const finish = useCallback(() => {
-    clearSpotlight();
     closeMenu();
     setVisible(false);
     if (userId) {
       createSupabaseClient().auth.updateUser({ data: { has_completed_tour: true } });
     }
-  }, [userId, clearSpotlight, closeMenu]);
+  }, [userId, closeMenu]);
 
-  // Keyboard navigation
+  // ── Keyboard navigation ────────────────────────────────────────────────────
+
   useEffect(() => {
     if (!visible) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") finish();
       else if (e.key === "ArrowRight" && currentStep < TOTAL_STEPS - 1)
-        setCurrentStep((s) => s + 1);
+        goToStepRef.current?.(currentStep + 1);
       else if (e.key === "ArrowLeft" && currentStep > 0)
-        setCurrentStep((s) => s - 1);
+        goToStepRef.current?.(currentStep - 1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [visible, currentStep, finish]);
 
-  // Cleanup on unmount
+  // ── Resize / orientation — recalculate spotlight position ─────────────────
+
   useEffect(() => {
-    return () => clearSpotlight();
-  }, [clearSpotlight]);
+    const onResize = () => {
+      if (!currentHighlightedElRef.current) return;
+      const rect = currentHighlightedElRef.current.getBoundingClientRect();
+      if (!rect.width && !rect.height) return;
+      setSpotlightRect(fromRect(rect, 12));
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // ── Cleanup on unmount ─────────────────────────────────────────────────────
+
+  useEffect(() => {
+    return () => {
+      mutationObserverRef.current?.disconnect();
+      if (currentHighlightedElRef.current) {
+        currentHighlightedElRef.current.style.position = "";
+        currentHighlightedElRef.current.style.zIndex = "";
+      }
+    };
+  }, []);
 
   if (!visible) return null;
 
@@ -261,118 +347,140 @@ export function OnboardingTour({
 
   return (
     <>
-      {/* SVG spotlight overlay — dark everywhere, bright hole at target */}
-      {overlayVisible && spotlightRect && (
-        <svg
-          className="fixed inset-0 w-full h-full pointer-events-none"
-          style={{ zIndex: 40 }}
-        >
-          <defs>
-            <mask id="spotlight-mask">
-              {/* White = show dark overlay everywhere */}
-              <rect width="100%" height="100%" fill="white" />
-              {/* Black = cut out the hole — this area becomes transparent */}
-              <rect
-                x={spotlightRect.left}
-                y={spotlightRect.top}
-                width={spotlightRect.width}
-                height={spotlightRect.height}
-                rx={spotlightRect.borderRadius}
-                fill="black"
-              />
-            </mask>
-          </defs>
-          <rect
-            width="100%"
-            height="100%"
-            fill="rgba(0,0,0,0.6)"
-            mask="url(#spotlight-mask)"
-          />
-        </svg>
-      )}
+      <style dangerouslySetInnerHTML={{ __html: SPOTLIGHT_CSS }} />
 
-      {/* Tour card — z-index 60, above overlay (40) and lifted element (51) */}
-      <AnimatePresence>
-        <motion.div
-          key={currentStep}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-          className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[400px] bg-white border border-[#e8e4dd] rounded-2xl shadow-xl overflow-hidden"
-          style={{ zIndex: 60 }}
-        >
-          {/* Progress bar */}
-          <div className="h-1 bg-gray-100 w-full">
-            <div
-              className="h-full transition-all duration-300 ease-out"
-              style={{
-                width: `${progressPercent}%`,
-                backgroundColor: "var(--accent, #8b6914)",
-              }}
+      {/* SVG spotlight overlay — z-40, dark with bright hole */}
+      <svg
+        className="fixed inset-0 w-full h-full pointer-events-none"
+        style={{ zIndex: 40, opacity: overlayOpacity, transition: "opacity 300ms ease" }}
+        aria-hidden="true"
+      >
+        {spotlightRect && (
+          <>
+            <defs>
+              <mask id="spotlight-mask">
+                {/* White = show dark overlay */}
+                <rect width="100%" height="100%" fill="white" />
+                {/* Black = cut the bright hole */}
+                <rect
+                  x={spotlightRect.left}
+                  y={spotlightRect.top}
+                  width={spotlightRect.width}
+                  height={spotlightRect.height}
+                  rx={spotlightRect.borderRadius}
+                  fill="black"
+                  style={{ transition: SVG_TRANSITION }}
+                />
+              </mask>
+            </defs>
+
+            {/* Dark overlay with hole */}
+            <rect
+              width="100%"
+              height="100%"
+              fill="rgba(0,0,0,0.6)"
+              mask="url(#spotlight-mask)"
             />
-          </div>
 
-          {/* Content */}
+            {/* Pulsing accent ring around the hole */}
+            <rect
+              x={spotlightRect.left}
+              y={spotlightRect.top}
+              width={spotlightRect.width}
+              height={spotlightRect.height}
+              rx={spotlightRect.borderRadius}
+              fill="none"
+              stroke="var(--accent, #8b6914)"
+              strokeWidth="2"
+              className="tour-pulse-ring"
+              style={{ transition: SVG_TRANSITION }}
+            />
+          </>
+        )}
+      </svg>
+
+      {/* Tour card — z-60, slides up on mount */}
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
+        className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[400px] bg-white border border-[#e8e4dd] rounded-2xl shadow-xl overflow-hidden"
+        style={{ zIndex: 60 }}
+      >
+        {/* Progress bar */}
+        <div className="h-1 bg-gray-100 w-full">
           <div
-            className="p-5 sm:p-6"
-            style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 20px))" }}
-          >
-            {/* Header: title + step counter */}
-            <div className="flex items-start justify-between gap-3 mb-3">
-              <h3 className="text-base font-semibold text-gray-900 leading-snug">
-                {STEPS[currentStep].title}
-              </h3>
-              <span className="text-xs text-gray-400 flex-shrink-0 pt-0.5">
-                {currentStep + 1} of {TOTAL_STEPS}
-              </span>
-            </div>
+            className="h-full transition-all duration-300 ease-out"
+            style={{
+              width: `${progressPercent}%`,
+              backgroundColor: "var(--accent, #8b6914)",
+            }}
+          />
+        </div>
 
-            {/* Body */}
-            <p className="text-sm text-gray-600 leading-relaxed mb-5">
-              {stepBody}
-            </p>
-
-            {/* Buttons */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="order-2 sm:order-1">
-                {!isFirst && (
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep((s) => s - 1)}
-                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
-                  >
-                    Back
-                  </button>
-                )}
+        {/* Content */}
+        <div
+          className="p-5 sm:p-6"
+          style={{ paddingBottom: "max(20px, env(safe-area-inset-bottom, 20px))" }}
+        >
+          {/* Title + body fade on step change */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, x: 8 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -8 }}
+              transition={{ duration: 0.15 }}
+            >
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <h3 className="text-base font-semibold text-gray-900 leading-snug">
+                  {STEPS[currentStep].title}
+                </h3>
+                <span className="text-xs text-gray-400 flex-shrink-0 pt-0.5">
+                  {currentStep + 1} of {TOTAL_STEPS}
+                </span>
               </div>
+              <p className="text-sm text-gray-600 leading-relaxed mb-5">{stepBody}</p>
+            </motion.div>
+          </AnimatePresence>
 
-              <button
-                type="button"
-                onClick={() => {
-                  if (isLast) finish();
-                  else setCurrentStep((s) => s + 1);
-                }}
-                className="order-1 sm:order-2 w-full sm:w-auto px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
-                style={{ backgroundColor: "var(--accent, #8b6914)" }}
-              >
-                {isLast ? "Finish" : "Next"}
-              </button>
+          {/* Buttons (stable — no per-step animation) */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="order-2 sm:order-1">
+              {!isFirst && (
+                <button
+                  type="button"
+                  onClick={() => goToStepRef.current?.(currentStep - 1)}
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Back
+                </button>
+              )}
             </div>
-
-            {/* Skip tour — only on first step */}
-            {isFirst && (
-              <button
-                type="button"
-                onClick={finish}
-                className="w-full mt-3 py-2 text-gray-400 text-sm underline underline-offset-2 hover:text-gray-600 transition-colors"
-              >
-                Skip tour
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                if (isLast) finish();
+                else goToStepRef.current?.(currentStep + 1);
+              }}
+              className="order-1 sm:order-2 w-full sm:w-auto px-5 py-2.5 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{ backgroundColor: "var(--accent, #8b6914)" }}
+            >
+              {isLast ? "Finish" : "Next"}
+            </button>
           </div>
-        </motion.div>
-      </AnimatePresence>
+
+          {isFirst && (
+            <button
+              type="button"
+              onClick={finish}
+              className="w-full mt-3 py-2 text-gray-400 text-sm underline underline-offset-2 hover:text-gray-600 transition-colors"
+            >
+              Skip tour
+            </button>
+          )}
+        </div>
+      </motion.div>
     </>
   );
 }
