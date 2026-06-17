@@ -93,6 +93,24 @@ const fromRect = (rect: DOMRect, padding: number): SpotlightRect => ({
   borderRadius: 10,
 });
 
+// Wait for scroll to fully settle before calling callback
+const waitForScrollEnd = (callback: () => void) => {
+  let last = window.scrollY;
+  let stable = 0;
+  const check = setInterval(() => {
+    if (window.scrollY === last) {
+      stable++;
+      if (stable >= 3) {
+        clearInterval(check);
+        callback();
+      }
+    } else {
+      stable = 0;
+      last = window.scrollY;
+    }
+  }, 50);
+};
+
 // CSS transition for SVG geometry properties (morph animation)
 const SVG_TRANSITION =
   "x 350ms cubic-bezier(0.34,1.56,0.64,1), y 350ms cubic-bezier(0.34,1.56,0.64,1), width 350ms cubic-bezier(0.34,1.56,0.64,1), height 350ms cubic-bezier(0.34,1.56,0.64,1)";
@@ -217,24 +235,26 @@ export function OnboardingTour({
     el.style.zIndex = "51";
     el.scrollIntoView({ behavior: "smooth", block: "center" });
 
-    // Wait for scroll to settle on iOS (500ms)
-    setTimeout(() => {
+    // Wait for scroll to fully settle before measuring position
+    waitForScrollEnd(() => {
       const rect = el.getBoundingClientRect();
       if (!rect.width && !rect.height) return;
 
+      const finalRect = fromRect(rect, 12);
+
       if (overlayActiveRef.current) {
-        // Already visible — morph the hole to the new element (CSS transition handles it)
-        setSpotlightRect(fromRect(rect, 12));
+        // Already visible — single atomic update to morph the spotlight
+        setSpotlightRect(finalRect);
       } else {
-        // First appearance — spring open: start small, animate to full size
+        // First appearance — show overlay and spotlight in one atomic update
         overlayActiveRef.current = true;
-        setSpotlightRect(fromRect(rect, 4));
-        setOverlayOpacity(1);
+        // Use requestAnimationFrame to batch both state updates in same frame
         requestAnimationFrame(() => {
-          setTimeout(() => setSpotlightRect(fromRect(rect, 12)), 20);
+          setSpotlightRect(finalRect);
+          setOverlayOpacity(1);
         });
       }
-    }, 500);
+    });
   }, []);
 
   // ── Step navigation ────────────────────────────────────────────────────────
