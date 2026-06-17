@@ -11,7 +11,7 @@ import type { Restaurant } from "@/app/lib/supabase";
 import { ImageUploader } from "./ImageUploader";
 import { OnboardingTour } from "./OnboardingTour";
 import { useSubscription, type SubStatus } from "@/lib/useSubscription";
-import { CreditCard, AlertTriangle, AlertCircle, Plus, GripVertical, UtensilsCrossed, ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertTriangle, AlertCircle, Plus, GripVertical, UtensilsCrossed, ChevronLeft, ChevronRight } from "lucide-react";
 import { AccountDangerZone } from "./AccountDangerZone";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor,
@@ -416,18 +416,6 @@ export function AdminMenuEditor({
     }
   };
 
-  const handleBilling = () => {
-    if (subStatus === 'active') {
-      openPortal();
-    } else {
-      startCheckout();
-    }
-  };
-
-  const billingLabel = subStatus === 'active'
-    ? (cancelAtPeriodEnd ? 'Resubscribe' : 'Manage subscription')
-    : 'Subscribe';
-
   // ── Live font update (colors stay as DineLinks brand) ────────────────────
   useEffect(() => {
     if (!restaurant) return;
@@ -761,17 +749,6 @@ export function AdminMenuEditor({
 
         {/* Desktop action row */}
         <div className="hidden sm:flex absolute top-4 end-4 items-center gap-2 z-20">
-          {(subStatus === 'trialing' || subStatus === 'active' || subStatus === 'canceled') && (
-            <BillingPill
-              subStatus={subStatus}
-              daysLeft={daysLeftInTrial}
-              cancelAtPeriodEnd={cancelAtPeriodEnd}
-              periodEnd={periodEnd}
-              onCheckout={startCheckout}
-              onPortal={openPortal}
-              loading={checkoutLoading || portalLoading}
-            />
-          )}
           <AdminMenuPanel
             onOpenTheme={() => setThemeOpen(true)}
             onReplayTour={() => setTourKey((k) => k + 1)}
@@ -829,11 +806,6 @@ export function AdminMenuEditor({
             <SheetThemeButton restaurant={restaurant} onSave={handleSaveTheme} saving={saving}
               onClose={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
               tourTarget="theme-branding-option" />
-            <button type="button" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; handleBilling(); }}
-              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
-              <CreditCard size={16} className="text-gray-500" />
-              {billingLabel}
-            </button>
             <a href={`/admin/${restaurantSlug}/analytics`}
               onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
               className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
@@ -1854,66 +1826,6 @@ function TrialBanner({
         </div>
       </div>
     </div>
-  );
-}
-
-function BillingPill({
-  subStatus, daysLeft, cancelAtPeriodEnd, periodEnd, onCheckout, onPortal, loading,
-}: {
-  subStatus: SubStatus;
-  daysLeft: number | null;
-  cancelAtPeriodEnd: boolean;
-  periodEnd: Date | null;
-  onCheckout: () => void;
-  onPortal: () => void;
-  loading: boolean;
-}) {
-  const isTrialingExpired = subStatus === 'trialing' && daysLeft !== null && daysLeft <= 0;
-  const isUrgentTrial = subStatus === 'trialing' && daysLeft !== null && daysLeft <= 7 && !isTrialingExpired;
-
-  let label: string;
-  let onClick: () => void;
-  let pillCls: string;
-
-  if (subStatus === 'active' && !cancelAtPeriodEnd) {
-    label = 'Manage subscription';
-    onClick = onPortal;
-    pillCls = 'bg-[var(--card)] border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/40';
-  } else if (subStatus === 'active' && cancelAtPeriodEnd) {
-    const dateStr = periodEnd
-      ? periodEnd.toLocaleDateString('en-CA', { month: 'short', day: 'numeric' })
-      : '';
-    label = `Resubscribe${dateStr ? ` — ends ${dateStr}` : ''}`;
-    onClick = onPortal;
-    pillCls = 'bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100';
-  } else if (subStatus === 'canceled' || isTrialingExpired) {
-    label = 'Subscribe to continue — $25 CAD/mo';
-    onClick = onCheckout;
-    pillCls = 'bg-red-600 border-transparent text-white hover:opacity-90';
-  } else {
-    // trialing (not expired)
-    label = daysLeft !== null ? `${daysLeft}d left — Subscribe $25 CAD/mo` : 'Subscribe — $25 CAD/mo';
-    onClick = onCheckout;
-    pillCls = 'bg-[var(--accent)] border-transparent text-white hover:opacity-90';
-  }
-
-  const ring = isUrgentTrial ? 'ring-1 ring-offset-2 ring-offset-[var(--background)] ring-[var(--accent)]' : '';
-
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={loading}
-      className={`min-h-[44px] px-3.5 py-2 rounded-xl ${pillCls} ${ring} font-medium text-sm border inline-flex items-center gap-2 disabled:opacity-60 transition-opacity`}
-    >
-      {subStatus === 'trialing' && !isTrialingExpired && (
-        <span className="relative flex h-2 w-2 flex-shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-50" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-white" />
-        </span>
-      )}
-      <span>{loading ? 'Redirecting…' : label}</span>
-    </button>
   );
 }
 
