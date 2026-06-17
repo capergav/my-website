@@ -1099,8 +1099,6 @@ export function AdminMenuEditor({
         hasCompletedTour={hasCompletedTour}
         userId={user?.id}
         slug={restaurantSlug}
-        openMenu={() => { setMobileOpen(true); document.body.dataset.mobileSheetOpen = "true"; }}
-        closeMenu={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
       />
 
       {/* Settings Modal */}

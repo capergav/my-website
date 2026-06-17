@@ -112,15 +112,11 @@ export function OnboardingTour({
   hasCompletedTour,
   userId,
   slug,
-  openMenu,
-  closeMenu,
 }: {
   tourKey: number;
   hasCompletedTour?: boolean;
   userId?: string;
   slug: string;
-  openMenu: () => void;
-  closeMenu: () => void;
 }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [visible, setVisible] = useState(false);
@@ -134,6 +130,26 @@ export function OnboardingTour({
   const mutationObserverRef = useRef<MutationObserver | null>(null);
   const goToStepRef = useRef<((step: number) => void) | null>(null);
   const prevTourKeyRef = useRef(tourKey); // Track previous tourKey to detect actual changes
+  const menuOpenedByTourRef = useRef(false); // Track if we opened the menu
+
+  // ── Click simulation helpers ───────────────────────────────────────────────
+
+  const clickMenuButton = useCallback(() => {
+    const btn = document.querySelector('[data-tour="menu-button"]') as HTMLElement | null;
+    if (btn) {
+      btn.click();
+      menuOpenedByTourRef.current = true;
+    }
+  }, []);
+
+  const closeMenu = useCallback(() => {
+    if (!menuOpenedByTourRef.current) return;
+    const closeBtn = document.querySelector('[data-tour="sheet-close"]') as HTMLElement | null;
+    if (closeBtn) {
+      closeBtn.click();
+    }
+    menuOpenedByTourRef.current = false;
+  }, []);
 
   // ── Window size tracking for overlay rects ─────────────────────────────────
 
@@ -152,7 +168,6 @@ export function OnboardingTour({
 
   useEffect(() => {
     // Only reset when tourKey actually increases (replay button clicked)
-    // Using ref comparison to avoid resetting when closeMenu reference changes
     if (tourKey > prevTourKeyRef.current) {
       prevTourKeyRef.current = tourKey;
       // Kill any pending observer
@@ -229,45 +244,55 @@ export function OnboardingTour({
       const step = STEPS[newStep];
       if (!step) return;
 
+      const prevStep = STEPS[currentStep];
+
       // Kill any pending MutationObserver
       mutationObserverRef.current?.disconnect();
       mutationObserverRef.current = null;
 
       setCurrentStep(newStep);
 
+      // Close menu if leaving a menu step for a non-menu step
+      if (prevStep?.menuOpen && !step.menuOpen) {
+        closeMenu();
+      }
+
       if (step.menuOpen) {
-        // Open the drawer, then wait for target element to appear in DOM
-        openMenu();
+        // Click the menu button to open the drawer
+        clickMenuButton();
 
         if (step.targetSelector) {
           const sel = step.targetSelector;
 
-          // Check if element is already in DOM (menu was already open)
-          const existing = document.querySelector(sel) as HTMLElement | null;
-          if (existing) {
-            applySpotlight(existing);
-          } else {
-            // MutationObserver fires the instant React renders the drawer
-            const observer = new MutationObserver(() => {
-              const found = document.querySelector(sel) as HTMLElement | null;
-              if (found) {
-                observer.disconnect();
-                mutationObserverRef.current = null;
-                applySpotlight(found);
-              }
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-            mutationObserverRef.current = observer;
-            // Safety timeout — give up after 2s
-            setTimeout(() => {
+          // Use MutationObserver to wait for the target element to appear in DOM
+          const observer = new MutationObserver(() => {
+            const found = document.querySelector(sel) as HTMLElement | null;
+            if (found) {
               observer.disconnect();
-              if (mutationObserverRef.current === observer) mutationObserverRef.current = null;
-            }, 2000);
-          }
+              mutationObserverRef.current = null;
+              applySpotlight(found);
+            }
+          });
+          observer.observe(document.body, { childList: true, subtree: true });
+          mutationObserverRef.current = observer;
+
+          // Also check immediately in case the menu is already open
+          setTimeout(() => {
+            const existing = document.querySelector(sel) as HTMLElement | null;
+            if (existing) {
+              observer.disconnect();
+              mutationObserverRef.current = null;
+              applySpotlight(existing);
+            }
+          }, 50);
+
+          // Safety timeout — give up after 2s
+          setTimeout(() => {
+            observer.disconnect();
+            if (mutationObserverRef.current === observer) mutationObserverRef.current = null;
+          }, 2000);
         }
       } else {
-        closeMenu();
-
         if (step.targetSelector) {
           const sel = step.targetSelector;
           // Short delay so any close-menu animation settles
@@ -280,7 +305,7 @@ export function OnboardingTour({
         }
       }
     },
-    [openMenu, closeMenu, applySpotlight, removeSpotlight]
+    [currentStep, clickMenuButton, closeMenu, applySpotlight, removeSpotlight]
   );
 
   // Keep ref current so keyboard handler never captures a stale closure
