@@ -93,12 +93,20 @@ const fromRect = (rect: DOMRect, padding: number): SpotlightRect => ({
   borderRadius: 10,
 });
 
-// Wait for scroll to fully settle before calling callback
-const waitForScrollEnd = (callback: () => void) => {
+// Wait for scroll to fully settle AND the target to be within the viewport
+// before calling callback. The viewport check is critical for horizontally
+// scrolling containers (e.g. the category tab bar): scrollIntoView may scroll
+// sideways while getBoundingClientRect still reports off-screen coords until
+// the element actually lands inside the visible area.
+const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
   let last = window.scrollY;
   let stable = 0;
+  let attempts = 0;
   const check = setInterval(() => {
-    if (window.scrollY === last) {
+    attempts++;
+    const rect = el.getBoundingClientRect();
+    const inView = rect.top > 0 && rect.top < window.innerHeight;
+    if (window.scrollY === last && inView) {
       stable++;
       if (stable >= 3) {
         clearInterval(check);
@@ -107,6 +115,11 @@ const waitForScrollEnd = (callback: () => void) => {
     } else {
       stable = 0;
       last = window.scrollY;
+    }
+    // Safety: give up after ~2s and measure anyway so the tour never stalls
+    if (attempts >= 40) {
+      clearInterval(check);
+      callback();
     }
   }, 50);
 };
@@ -235,8 +248,8 @@ export function OnboardingTour({
     el.style.zIndex = "51";
     el.scrollIntoView({ behavior: "smooth", block: "center" });
 
-    // Wait for scroll to fully settle before measuring position
-    waitForScrollEnd(() => {
+    // Wait for scroll to fully settle AND the element to be in view before measuring
+    waitForScrollEnd(el, () => {
       const rect = el.getBoundingClientRect();
       if (!rect.width && !rect.height) return;
 
@@ -290,7 +303,10 @@ export function OnboardingTour({
             if (found) {
               observer.disconnect();
               mutationObserverRef.current = null;
-              applySpotlight(found);
+              // Wait one frame so the mobile drawer finishes painting before we
+              // measure the target — otherwise the spotlight rect is computed
+              // against a not-yet-rendered element and never appears.
+              requestAnimationFrame(() => applySpotlight(found));
             }
           });
           observer.observe(document.body, { childList: true, subtree: true });
@@ -302,7 +318,7 @@ export function OnboardingTour({
             if (existing) {
               observer.disconnect();
               mutationObserverRef.current = null;
-              applySpotlight(existing);
+              requestAnimationFrame(() => applySpotlight(existing));
             }
           }, 50);
 
@@ -404,14 +420,37 @@ export function OnboardingTour({
 
   const progressPercent = ((currentStep + 1) / TOTAL_STEPS) * 100;
 
+  // On menu steps the mobile action drawer (z-50) creates its own stacking
+  // context, so a z-40 overlay would render *behind* it and the spotlight
+  // would be invisible. Lift the overlay above the drawer for those steps.
+  const isMenuStep = STEPS[currentStep].menuOpen;
+  const overlayZ = isMenuStep ? 55 : 40;
+
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: SPOTLIGHT_CSS }} />
 
-      {/* SVG spotlight overlay — z-40, dark with bright hole using 4 rects (not mask) for smooth animation */}
+      {/* Transparent click-blocker — z-39, beneath the overlay. Swallows every
+          tap/click on the dimmed page so the tour can't be interacted around.
+          The spotlit element (z-51), the open menu, and the tour card (z-60)
+          all sit above it and stay interactive. */}
+      <div
+        className="fixed inset-0"
+        style={{ zIndex: 39, pointerEvents: "auto" }}
+        onClickCapture={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        aria-hidden="true"
+      />
+
+      {/* SVG spotlight overlay — dark with a bright hole using 4 rects (not a
+          mask) for smooth animation. Keyed per menu step so it remounts fresh
+          when entering steps 8/9 instead of reusing stale geometry. */}
       <svg
-        className="fixed inset-0 w-full h-full pointer-events-none"
-        style={{ zIndex: 40, opacity: overlayOpacity, transition: "opacity 300ms ease" }}
+        key={isMenuStep ? `overlay-${currentStep}` : "overlay-base"}
+        className="fixed inset-0 w-full h-full"
+        style={{ zIndex: overlayZ, opacity: overlayOpacity, transition: "opacity 300ms ease" }}
         aria-hidden="true"
       >
         {spotlightRect && windowSize.w > 0 && (
