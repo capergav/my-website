@@ -2653,7 +2653,6 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   const [customQrColor, setCustomQrColor]         = useState("#000000");
   const [customBgColor, setCustomBgColor]         = useState("#ffffff");
   const [customFrameColor, setCustomFrameColor]   = useState("#000000");
-  const [showCustomColors, setShowCustomColors]   = useState(false);
   const [qrTemplate, setQrTemplate]               = useState<"simple" | "tagline" | "table">("simple");
   const [qrSize, setQrSize]                       = useState<QRSizeKey>("medium");
   const [qrIncludeLogo, setQrIncludeLogo]         = useState(true);
@@ -2799,12 +2798,12 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                   value={qrHeader}
                   onChange={e => setQrHeader(e.target.value)}
                   title="Click to edit header"
-                  className="absolute left-0 w-full text-center font-serif font-bold bg-transparent border-2 border-transparent hover:border-dashed hover:border-amber-400 focus:border-solid focus:border-amber-500 focus:outline-none rounded transition-colors cursor-text"
+                  className="absolute left-0 w-full text-center font-serif font-bold bg-transparent border border-transparent hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/5 focus:border-[var(--accent)] focus:bg-[var(--accent)]/10 focus:ring-2 focus:ring-[var(--accent)]/20 focus:outline-none rounded-md transition-all cursor-text"
                   style={{
                     top: '3.5%',
                     fontSize: 13,
                     color: customFrameColor,
-                    padding: '2px 4px',
+                    padding: '2px 6px',
                   }}
                 />
               )}
@@ -2815,12 +2814,12 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                   value={qrTagline}
                   onChange={e => setQrTagline(e.target.value)}
                   title="Click to edit tagline"
-                  className="absolute left-0 w-full text-center bg-transparent border-2 border-transparent hover:border-dashed hover:border-amber-400 focus:border-solid focus:border-amber-500 focus:outline-none rounded transition-colors cursor-text"
+                  className="absolute left-0 w-full text-center bg-transparent border border-transparent hover:border-[var(--accent)]/40 hover:bg-[var(--accent)]/5 focus:border-[var(--accent)] focus:bg-[var(--accent)]/10 focus:ring-2 focus:ring-[var(--accent)]/20 focus:outline-none rounded-md transition-all cursor-text"
                   style={{
                     bottom: qrTemplate === 'table' ? '8%' : '7%',
                     fontSize: 10,
                     color: customFrameColor,
-                    padding: '2px 4px',
+                    padding: '2px 6px',
                     fontFamily: 'Georgia, serif',
                   }}
                 />
@@ -2873,33 +2872,25 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
               })}
             </div>
 
-            {/* Customize colors collapsible */}
-            <div className="mt-3">
-              <button type="button" onClick={() => setShowCustomColors(v => !v)}
-                className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-700 transition-colors">
-                <svg className={`w-3 h-3 transition-transform ${showCustomColors ? "rotate-90" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-                Customize colors
-              </button>
-              {showCustomColors && (
-                <div className="mt-3 grid grid-cols-3 gap-3">
-                  {([
-                    { label: "QR color",     value: customQrColor,    set: setCustomQrColor    },
-                    { label: "Background",   value: customBgColor,    set: setCustomBgColor    },
-                    { label: "Frame & text", value: customFrameColor, set: setCustomFrameColor },
-                  ] as { label: string; value: string; set: (v: string) => void }[]).map(({ label, value, set }) => (
-                    <div key={label} className="flex flex-col items-center gap-1.5">
-                      <div className="relative w-9 h-9">
-                        <input type="color" value={value} onChange={e => { set(e.target.value); setQrStyle("classic" as QRStyleKey); }}
-                          className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                        <div className="w-9 h-9 rounded-lg border-2 border-gray-200 shadow-sm" style={{ background: value }} />
-                      </div>
-                      <span className="text-[10px] text-gray-500 text-center leading-tight">{label}</span>
+            {/* Customize colors — always visible in bordered container */}
+            <div className="mt-4 rounded-xl border border-[var(--card-border)] p-4">
+              <p className="text-xs uppercase tracking-widest text-gray-500 mb-3">Customize colors</p>
+              <div className="grid grid-cols-3 gap-3">
+                {([
+                  { label: "QR color",     value: customQrColor,    set: setCustomQrColor    },
+                  { label: "Background",   value: customBgColor,    set: setCustomBgColor    },
+                  { label: "Frame & text", value: customFrameColor, set: setCustomFrameColor },
+                ] as { label: string; value: string; set: (v: string) => void }[]).map(({ label, value, set }) => (
+                  <div key={label} className="flex flex-col items-center gap-1.5">
+                    <div className="relative w-9 h-9">
+                      <input type="color" value={value} onChange={e => { set(e.target.value); setQrStyle("classic" as QRStyleKey); }}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                      <div className="w-9 h-9 rounded-lg border-2 border-gray-200 shadow-sm" style={{ background: value }} />
                     </div>
-                  ))}
-                </div>
-              )}
+                    <span className="text-[11px] text-[var(--foreground)] text-center leading-tight font-medium">{label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -2928,9 +2919,11 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
               ))}
             </div>
             {(qrTemplate === "tagline" || qrTemplate === "table") && (
-              <p style={{ fontSize: 12, color: "#6b6560", marginTop: 6 }}>
-                💡 Tip: you can edit the tagline text in the preview above.
-              </p>
+              <div className="mt-3 rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2">
+                <p className="text-xs text-[var(--foreground)]">
+                  💡 <span className="font-medium">Tip:</span> you can edit the tagline text in the preview above.
+                </p>
+              </div>
             )}
           </div>
 
@@ -3035,9 +3028,11 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
             className="w-full py-2.5 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
             {isDownloading ? "Generating…" : "Download PNG"}
           </button>
-          <p className="text-xs text-[var(--muted)] mt-2 sm:hidden text-center">
-            Tip: tap Download then save to Photos or share via Messages.
-          </p>
+          <div className="mt-3 sm:hidden rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2">
+            <p className="text-xs text-[var(--foreground)] text-center">
+              💡 <span className="font-medium">Tip:</span> tap Download then save to Photos or share via Messages.
+            </p>
+          </div>
         </div>
         <canvas ref={downloadCanvasRef} className="hidden" />
       </div>
