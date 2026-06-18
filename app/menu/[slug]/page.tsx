@@ -9,6 +9,7 @@ import { MenuTabs } from "@/app/components/MenuTabs";
 import { HeroWithLang } from "@/app/components/HeroWithLang";
 import { MenuTracker } from "@/app/components/MenuTracker";
 import { PoweredByFooter } from "@/app/components/PoweredByFooter";
+import { FeedbackForm } from "@/app/components/FeedbackForm";
 import { MenuDirWrapper } from "@/app/components/MenuDirWrapper";
 import { LanguageProvider } from "@/app/context/LanguageContext";
 import { Clock } from "lucide-react";
@@ -38,7 +39,7 @@ export default async function PublicMenuPage({ params }: Props) {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id, muted_color, allow_auto_translate, show_currency_symbol, default_language")
+    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id, muted_color, allow_auto_translate, show_currency_symbol, default_language, feedback_enabled")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -207,6 +208,10 @@ export default async function PublicMenuPage({ params }: Props) {
       )}
       {/* Powered by DineLinks footer */}
       <PoweredByFooter fontColor={fontColor} />
+      {/* Feedback form — only if enabled */}
+      {(restaurant as { feedback_enabled?: boolean | null }).feedback_enabled !== false && (
+        <FeedbackForm restaurantId={restaurant.id} />
+      )}
     </MenuDirWrapper>
     </LanguageProvider>
   );
