@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { WheatOff, Leaf, BarChart3, Star, Flame, Sprout, MilkOff, ShieldCheck } from "lucide-react";
+import { WheatOff, Leaf, BarChart3, Star, Flame, Sprout, MilkOff, ShieldCheck, MessageSquare } from "lucide-react";
 import { AnalyticsDemo } from "@/app/components/AnalyticsDemo";
 import { useIsMobile } from "@/lib/useIsMobile";
 import {
@@ -378,6 +378,11 @@ const FEATURES = [
     icon: <BarChart3 className="w-5 h-5" />,
     title: "Built-in analytics",
     desc: "See exactly how customers use your menu — top items, peak hours, language preferences, and device breakdown. Make data-driven decisions about your menu.",
+  },
+  {
+    icon: <MessageSquare className="w-5 h-5" />,
+    title: "Guest feedback",
+    desc: "Guests leave star ratings and comments right from your menu — zero extra setup. Every response lands in your analytics dashboard so you know what's working.",
   },
   {
     icon: (
@@ -1133,7 +1138,7 @@ export default function HomePage() {
               Know what your customers love
             </h2>
             <p className="text-lg text-[#6b6560] max-w-2xl mx-auto mt-4">
-              Every scan, click, and language switch is logged. See peak hours, most-viewed items, top-performing categories, and which languages your customers actually use — all in a beautiful dashboard.
+              Every scan, click, and language switch is logged. See peak hours, most-viewed items, top-performing categories, the languages your customers actually use, plus guest ratings and comments — all in a beautiful dashboard.
             </p>
             <motion.div className="h-0.5 bg-[#8b6914] mt-4 mx-auto origin-left" style={{ width: 80 }} {...underline()} />
           </motion.div>
@@ -1143,6 +1148,53 @@ export default function HomePage() {
             {...(rm ? {} : { initial: { opacity: 0, y: 40 }, whileInView: { opacity: 1, y: 0 }, viewport: { once: true }, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } })}
           >
             <AnalyticsDemo />
+          </motion.div>
+
+          {/* Guest feedback mockup */}
+          <motion.div className="max-w-4xl mx-auto mt-6" {...enter(0.1)}>
+            <div className="rounded-2xl border border-[#2c2a26]/10 bg-white shadow-sm overflow-hidden">
+              <div className="px-5 sm:px-6 py-4 border-b border-[#2c2a26]/8 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-[#8b6914]" />
+                <h3 className="text-xs font-semibold uppercase tracking-widest text-[#2c2a26]/60">Guest feedback</h3>
+                <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide bg-[#8b6914]/10 text-[#8b6914] px-2 py-0.5 rounded-full">Live in dashboard</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-5 sm:gap-8 p-5 sm:p-6">
+                {/* Average rating */}
+                <div className="flex flex-col items-center justify-center text-center sm:pr-8 sm:border-r sm:border-[#2c2a26]/8">
+                  <p style={{ fontFamily: "Georgia, serif" }} className="text-5xl font-semibold text-[#2c2a26] leading-none">4.6</p>
+                  <div className="flex items-center gap-0.5 mt-2">
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <Star key={i} className="w-4 h-4" fill={i < 4 ? "#8b6914" : "#8b691430"} stroke="none" />
+                    ))}
+                  </div>
+                  <p className="text-xs text-[#6b6560] mt-2">based on 128 responses</p>
+                </div>
+                {/* Breakdown + comment */}
+                <div className="space-y-3">
+                  {[{ s: 5, p: 72 }, { s: 4, p: 18 }, { s: 3, p: 7 }, { s: 2, p: 2 }, { s: 1, p: 1 }].map(({ s, p }) => (
+                    <div key={s} className="flex items-center gap-3">
+                      <span className="flex items-center gap-1 text-xs font-medium text-[#6b6560] w-7">
+                        {s}<Star className="w-3 h-3" fill="#8b6914" stroke="none" />
+                      </span>
+                      <div className="flex-1 h-2 rounded-full bg-[#faf8f5] overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${p}%`, background: "linear-gradient(90deg, #8b6914, #c9a030)" }} />
+                      </div>
+                      <span className="text-xs text-[#6b6560] w-8 text-right">{p}%</span>
+                    </div>
+                  ))}
+                  <div className="pt-2 border-t border-[#2c2a26]/8">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-0.5">
+                        {[0, 1, 2, 3, 4].map((i) => <Star key={i} className="w-3 h-3" fill="#8b6914" stroke="none" />)}
+                      </div>
+                      <span className="text-[10px] font-semibold uppercase tracking-wide bg-[#8b6914]/10 text-[#8b6914] px-2 py-0.5 rounded-full">Food</span>
+                      <span className="text-[10px] text-[#6b6560]">2 days ago</span>
+                    </div>
+                    <p className="text-sm text-[#2c2a26]/80 italic">&ldquo;The duck confit was perfect and the QR menu made ordering so easy.&rdquo;</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>

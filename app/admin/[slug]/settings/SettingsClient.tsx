@@ -25,6 +25,7 @@ type Props = {
   notifyTrialEnding: boolean;
   notifyProductUpdates: boolean;
   defaultLanguage: string;
+  feedbackEnabled: boolean;
   subStatus: string | null;
   trialDaysLeft: number | null;
   cancelAtPeriodEnd: boolean;
@@ -64,6 +65,7 @@ export function SettingsClient({
   slug, restaurantId, userEmail,
   notifyTrialEnding: initTrial,
   notifyProductUpdates: initProduct, defaultLanguage: initLang,
+  feedbackEnabled: initFeedback,
   subStatus, trialDaysLeft, cancelAtPeriodEnd, periodEnd,
 }: Props) {
   const router = useRouter();
@@ -74,6 +76,7 @@ export function SettingsClient({
   const [savingNotifs, setSavingNotifs] = useState(false);
 
   const [defaultLang, setDefaultLang]   = useState(initLang);
+  const [feedbackEnabled, setFeedbackEnabled] = useState(initFeedback);
   const [savingPrefs, setSavingPrefs]   = useState(false);
 
   const [pwLoading, setPwLoading]       = useState(false);
@@ -102,7 +105,7 @@ export function SettingsClient({
     setSavingPrefs(true);
     const { error } = await supabase
       .from("restaurants")
-      .update({ default_language: defaultLang })
+      .update({ default_language: defaultLang, feedback_enabled: feedbackEnabled })
       .eq("id", restaurantId);
     setSavingPrefs(false);
     if (error) showMsg("err", error.message);
@@ -278,6 +281,9 @@ export function SettingsClient({
               {LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
             </select>
           </div>
+          <SettingRow label="Enable guest feedback" sublabel="Let guests leave ratings and comments from your menu. View responses in Analytics.">
+            <MiniToggle checked={feedbackEnabled} onChange={setFeedbackEnabled} />
+          </SettingRow>
         </SectionCard>
         <button type="button" onClick={savePrefs} disabled={savingPrefs}
           className="mt-3 px-5 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50">

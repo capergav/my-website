@@ -3104,6 +3104,7 @@ function SettingsModal({
   const [notifyTrial, setNotifyTrial] = useState(true);
   const [notifyProduct, setNotifyProduct] = useState(false);
   const [defaultLang, setDefaultLang] = useState("en");
+  const [feedbackEnabled, setFeedbackEnabled] = useState(true);
 
   const [isDirty, setIsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -3119,13 +3120,15 @@ function SettingsModal({
     if (!open || loaded) return;
     Promise.all([
       supabase.auth.getUser(),
-      supabase.from("restaurants").select("default_language").eq("id", restaurantId).maybeSingle(),
+      supabase.from("restaurants").select("default_language, feedback_enabled").eq("id", restaurantId).maybeSingle(),
     ]).then(([{ data: userData }, { data: restData }]) => {
       if (!userData.user) return;
       const meta = userData.user.user_metadata ?? {};
+      const rest = restData as { default_language?: string | null; feedback_enabled?: boolean | null } | null;
       setNotifyTrial(meta.notify_trial_ending ?? true);
       setNotifyProduct(meta.notify_product_updates ?? false);
-      setDefaultLang((restData as { default_language?: string | null } | null)?.default_language ?? "en");
+      setDefaultLang(rest?.default_language ?? "en");
+      setFeedbackEnabled(rest?.feedback_enabled ?? true);
       setIsDirty(false);
       setLoaded(true);
     });
@@ -3147,7 +3150,7 @@ function SettingsModal({
           notify_product_updates: notifyProduct,
         },
       }),
-      supabase.from("restaurants").update({ default_language: defaultLang }).eq("id", restaurantId),
+      supabase.from("restaurants").update({ default_language: defaultLang, feedback_enabled: feedbackEnabled }).eq("id", restaurantId),
     ]);
     setSaving(false);
     const error = authError ?? restError;
@@ -3377,6 +3380,9 @@ function SettingsModal({
                   {SETTINGS_LANGUAGES.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
                 </select>
               </div>
+              <SettingRow label="Enable guest feedback" sublabel="Let guests leave ratings and comments from your menu. View responses in Analytics.">
+                <MiniToggle checked={feedbackEnabled} onChange={(v) => { setFeedbackEnabled(v); setIsDirty(true); }} />
+              </SettingRow>
             </SectionCard>
           </section>
 
