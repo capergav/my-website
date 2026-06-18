@@ -41,15 +41,17 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
   const prevSince = new Date(Date.now() - days * 2 * 24 * 60 * 60 * 1000).toISOString();
 
   // Fetch all events in range + prev period
-  const [{ data: events }, { data: prevEvents }, { data: menuItems }] = await Promise.all([
+  const [{ data: events }, { data: prevEvents }, { data: menuItems }, { data: feedbackRows }] = await Promise.all([
     admin.from("menu_analytics").select("*").eq("restaurant_id", restaurant.id).gte("created_at", since),
     admin.from("menu_analytics").select("event_type, session_id, visitor_id").eq("restaurant_id", restaurant.id).gte("created_at", prevSince).lt("created_at", since),
     admin.from("menu_items").select("id, name, category").eq("restaurant_id", restaurant.id),
+    admin.from("guest_feedback").select("rating, categories, comment, visit_type, created_at").eq("restaurant_id", restaurant.id).gte("created_at", since).order("created_at", { ascending: false }),
   ]);
 
   const allEvents = (events ?? []) as AnalyticsEvent[];
   const allPrev = (prevEvents ?? []) as { event_type: string; session_id: string; visitor_id: string | null }[];
   const items = (menuItems ?? []) as { id: string; name: string; category: string | null }[];
+  const feedback = (feedbackRows ?? []) as FeedbackRow[];
 
   // ── Aggregations (JS, fine until 100k+ events) ──────────────────────────────
 
@@ -167,6 +169,49 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
     trendVisitors: trendPct(uniqueVisitors, prevUniqueVisitors),
   };
 
+  // ── Guest feedback aggregations ─────────────────────────────────────────────
+  const totalResponses = feedback.length;
+  const avgRating = totalResponses > 0
+    ? Math.round((feedback.reduce((s, f) => s + (f.rating ?? 0), 0) / totalResponses) * 10) / 10
+    : 0;
+
+  // Rating breakdown: 5★ down to 1★
+  const ratingCounts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  for (const f of feedback) {
+    if (f.rating >= 1 && f.rating <= 5) ratingCounts[f.rating]++;
+  }
+  const ratingBreakdown = [5, 4, 3, 2, 1].map((star) => ({ star, count: ratingCounts[star] }));
+
+  // Category breakdown
+  const categoryCounts: Record<string, number> = {};
+  for (const f of feedback) {
+    if (Array.isArray(f.categories)) {
+      for (const c of f.categories) categoryCounts[c] = (categoryCounts[c] ?? 0) + 1;
+    }
+  }
+  const categoryBreakdown = Object.entries(categoryCounts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([key, count]) => ({ key, count }));
+
+  // Recent comments (only entries with a comment), already newest-first
+  const comments = feedback
+    .filter((f) => f.comment && f.comment.trim().length > 0)
+    .map((f) => ({
+      rating: f.rating,
+      categories: Array.isArray(f.categories) ? f.categories : [],
+      comment: f.comment as string,
+      visitType: f.visit_type,
+      createdAt: f.created_at,
+    }));
+
+  const feedbackData = {
+    totalResponses,
+    avgRating,
+    ratingBreakdown,
+    categoryBreakdown,
+    comments,
+  };
+
   return (
     <AnalyticsClient
       slug={slug}
@@ -178,10 +223,20 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
       totalItemViews={totalItemViews}
       langData={langData}
       hourData={hourData}
+      feedback={feedbackData}
       hasData={allEvents.length > 0}
     />
   );
 }
+
+// Guest feedback row (subset of guest_feedback columns)
+type FeedbackRow = {
+  rating: number;
+  categories: string[] | null;
+  comment: string | null;
+  visit_type: string | null;
+  created_at: string;
+};
 
 // Type used in aggregations
 type AnalyticsEvent = {
