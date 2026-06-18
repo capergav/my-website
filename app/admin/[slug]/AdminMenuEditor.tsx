@@ -2486,15 +2486,17 @@ async function composeQR(opts: {
   size: QRSizeKey;
   includeLogo: boolean;
   logoBg: boolean;
-  logoBgShape: "circle" | "square" | "rounded";
+  logoBgShape: "circle" | "square" | "rounded" | "none";
   logoBgColor: string;
+  logoSizePercent: number; // 10-25
+  logoPadding: number; // 0-30 as percentage of logo size
   tagline: string;
   header: string;
   logoUrl: string | null;
   canvas: HTMLCanvasElement;
   skipText?: boolean;
 }) {
-  const { slug, fgColor, bgColor, textColor, template, size, includeLogo, logoBg, logoBgShape, logoBgColor, tagline, header, logoUrl, canvas, skipText } = opts;
+  const { slug, fgColor, bgColor, textColor, template, size, includeLogo, logoBg, logoBgShape, logoBgColor, logoSizePercent, logoPadding, tagline, header, logoUrl, canvas, skipText } = opts;
   const px = SIZES_MAP[size];
   const url = window.location.origin + "/menu/" + slug;
 
@@ -2535,31 +2537,48 @@ async function composeQR(opts: {
   if (includeLogo && logoUrl) {
     try {
       const logoImg = await loadImage(logoUrl);
-      const logoSize = px * 0.22;
-      const lx = (canvas.width - logoSize) / 2;
-      const ly = y + (px - logoSize) / 2;
+      // Logo size as percentage of QR width (clamped 10-25% for scannability)
+      const logoSize = px * (Math.min(25, Math.max(10, logoSizePercent)) / 100);
+
+      // Single center point for both logo and background shape
+      const centerX = canvas.width / 2;
+      const centerY = y + px / 2;
+
       // object-contain: scale to fit logoSize×logoSize without stretching
       const naturalW = logoImg.naturalWidth || logoImg.width;
       const naturalH = logoImg.naturalHeight || logoImg.height;
       const scale = Math.min(logoSize / naturalW, logoSize / naturalH);
       const drawW = naturalW * scale;
       const drawH = naturalH * scale;
-      const drawX = lx + (logoSize - drawW) / 2;
-      const drawY = ly + (logoSize - drawH) / 2;
-      if (logoBg) {
-        const pad = logoSize * 0.18;
+
+      // Center the logo at (centerX, centerY)
+      const drawX = centerX - drawW / 2;
+      const drawY = centerY - drawH / 2;
+
+      // Draw background shape if enabled
+      if (logoBg && logoBgShape !== "none") {
+        // Padding as percentage of logo size
+        const pad = logoSize * (logoPadding / 100);
+        const bgSize = logoSize + pad * 2;
         ctx.fillStyle = logoBgColor;
+
         if (logoBgShape === "circle") {
           ctx.beginPath();
-          ctx.arc(canvas.width / 2, ly + logoSize / 2, (logoSize + pad * 2) / 2, 0, Math.PI * 2);
+          ctx.arc(centerX, centerY, bgSize / 2, 0, Math.PI * 2);
           ctx.fill();
         } else if (logoBgShape === "rounded") {
-          roundRect(ctx, lx - pad, ly - pad, logoSize + pad * 2, logoSize + pad * 2, (logoSize + pad * 2) * 0.18);
+          const bgX = centerX - bgSize / 2;
+          const bgY = centerY - bgSize / 2;
+          roundRect(ctx, bgX, bgY, bgSize, bgSize, bgSize * 0.18);
           ctx.fill();
         } else {
-          ctx.fillRect(lx - pad, ly - pad, logoSize + pad * 2, logoSize + pad * 2);
+          // square
+          const bgX = centerX - bgSize / 2;
+          const bgY = centerY - bgSize / 2;
+          ctx.fillRect(bgX, bgY, bgSize, bgSize);
         }
       }
+
       ctx.drawImage(logoImg, drawX, drawY, drawW, drawH);
     } catch { /* logo failed to load */ }
   }
@@ -2638,9 +2657,11 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   const [qrTemplate, setQrTemplate]               = useState<"simple" | "tagline" | "table">("simple");
   const [qrSize, setQrSize]                       = useState<QRSizeKey>("medium");
   const [qrIncludeLogo, setQrIncludeLogo]         = useState(true);
-  const [qrLogoBg, setQrLogoBg]                   = useState(false);
-  const [qrLogoBgShape, setQrLogoBgShape]         = useState<"circle" | "square" | "rounded">("circle");
+  const [qrLogoBg, setQrLogoBg]                   = useState(true);
+  const [qrLogoBgShape, setQrLogoBgShape]         = useState<"circle" | "square" | "rounded" | "none">("circle");
   const [qrLogoBgColor, setQrLogoBgColor]         = useState("#ffffff");
+  const [qrLogoSize, setQrLogoSize]               = useState(18); // 10-25% of QR width
+  const [qrLogoPadding, setQrLogoPadding]         = useState(18); // 0-30% of logo size
   const [qrTagline, setQrTagline]                 = useState("Scan to view our menu");
   const [qrHeader, setQrHeader]                   = useState(restaurantName);
   const [isDownloading, setIsDownloading]         = useState(false);
@@ -2661,10 +2682,12 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     logoBg: qrLogoBg,
     logoBgShape: qrLogoBgShape,
     logoBgColor: qrLogoBgColor,
+    logoSizePercent: qrLogoSize,
+    logoPadding: qrLogoPadding,
     tagline: qrTagline,
     header: qrHeader,
     logoUrl,
-  }), [slug, customQrColor, customBgColor, customFrameColor, qrTemplate, qrSize, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrTagline, qrHeader, logoUrl]);
+  }), [slug, customQrColor, customBgColor, customFrameColor, qrTemplate, qrSize, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrLogoSize, qrLogoPadding, qrTagline, qrHeader, logoUrl]);
 
   // Live preview — rendered at 4× display size for crisp text, no text drawn (inputs overlay instead)
   useEffect(() => {
@@ -2926,34 +2949,79 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
           {/* Logo */}
           {logoUrl && (
-            <div className="space-y-3 rounded-xl border border-[var(--card-border)] p-4">
+            <div className="space-y-4 rounded-xl border border-[var(--card-border)] p-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-[var(--foreground)]">Include logo in center</span>
                 <Toggle checked={qrIncludeLogo} onChange={setQrIncludeLogo} />
               </div>
               {qrIncludeLogo && (
-                <div className="space-y-3 pt-2 border-t border-gray-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-[var(--foreground)]">Add background behind logo</span>
-                    <Toggle checked={qrLogoBg} onChange={setQrLogoBg} />
+                <div className="space-y-4 pt-3 border-t border-gray-200">
+                  {/* Logo size slider */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-[var(--foreground)]">Logo size</span>
+                      <span className="text-xs text-[var(--muted)]">{qrLogoSize}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={10}
+                      max={25}
+                      value={qrLogoSize}
+                      onChange={e => setQrLogoSize(Number(e.target.value))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]"
+                    />
+                    <div className="flex justify-between text-[10px] text-[var(--muted)] mt-1">
+                      <span>Small</span>
+                      <span>Large</span>
+                    </div>
                   </div>
-                  {qrLogoBg && (
-                    <div className="flex gap-3 items-center flex-wrap">
-                      {(["circle", "square", "rounded"] as const).map(shape => (
-                        <button key={shape} type="button" onClick={() => setQrLogoBgShape(shape)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${qrLogoBgShape === shape ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--card-border)] text-[var(--foreground)]"}`}>
+
+                  {/* Background shape */}
+                  <div>
+                    <span className="text-sm text-[var(--foreground)] block mb-2">Background shape</span>
+                    <div className="flex gap-2 flex-wrap">
+                      {(["none", "circle", "rounded", "square"] as const).map(shape => (
+                        <button key={shape} type="button" onClick={() => { setQrLogoBgShape(shape); if (shape !== "none") setQrLogoBg(true); else setQrLogoBg(false); }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${qrLogoBgShape === shape ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/50"}`}>
                           {shape}
                         </button>
                       ))}
-                      <div className="flex items-center gap-2 ml-auto">
-                        <span className="text-xs text-[var(--muted)]">Color</span>
-                        <div className="relative w-8 h-8">
-                          <input type="color" value={qrLogoBgColor} onChange={e => setQrLogoBgColor(e.target.value)}
-                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                          <div className="w-8 h-8 rounded-lg border-2 border-gray-200 shadow-sm" style={{ background: qrLogoBgColor }} />
+                    </div>
+                  </div>
+
+                  {/* Background color + padding (only when shape is not "none") */}
+                  {qrLogoBgShape !== "none" && (
+                    <>
+                      {/* Logo padding slider */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm text-[var(--foreground)]">Logo padding</span>
+                          <span className="text-xs text-[var(--muted)]">{qrLogoPadding}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={30}
+                          value={qrLogoPadding}
+                          onChange={e => setQrLogoPadding(Number(e.target.value))}
+                          className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]"
+                        />
+                        <div className="flex justify-between text-[10px] text-[var(--muted)] mt-1">
+                          <span>Tight</span>
+                          <span>Spacious</span>
                         </div>
                       </div>
-                    </div>
+
+                      {/* Background color */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-[var(--foreground)]">Background color</span>
+                        <div className="relative w-9 h-9">
+                          <input type="color" value={qrLogoBgColor} onChange={e => setQrLogoBgColor(e.target.value)}
+                            className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                          <div className="w-9 h-9 rounded-lg border-2 border-gray-200 shadow-sm" style={{ background: qrLogoBgColor }} />
+                        </div>
+                      </div>
+                    </>
                   )}
                 </div>
               )}
