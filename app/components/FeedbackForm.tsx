@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLanguage } from "@/app/context/LanguageContext";
 import { t } from "@/app/lib/translations";
 import { MessageSquare, X, Star } from "lucide-react";
@@ -24,14 +24,6 @@ export function FeedbackForm({ restaurantId }: { restaurantId: string }) {
   const [visitType, setVisitType] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showThanks, setShowThanks] = useState(false);
-  const [canSubmit, setCanSubmit] = useState(false);
-  const [pageLoadTime] = useState(() => Date.now());
-
-  // Anti-bot: only allow submit after 10 seconds on page
-  useEffect(() => {
-    const timer = setTimeout(() => setCanSubmit(true), 10000);
-    return () => clearTimeout(timer);
-  }, []);
 
   const toggleCategory = (key: string) => {
     setSelectedCategories((prev) =>
@@ -40,10 +32,7 @@ export function FeedbackForm({ restaurantId }: { restaurantId: string }) {
   };
 
   const handleSubmit = async () => {
-    if (!rating || isSubmitting || !canSubmit) return;
-
-    // Additional anti-bot check
-    if (Date.now() - pageLoadTime < 10000) return;
+    if (!rating || isSubmitting) return;
 
     setIsSubmitting(true);
 
@@ -243,7 +232,7 @@ export function FeedbackForm({ restaurantId }: { restaurantId: string }) {
                 {/* Submit */}
                 <button
                   onClick={handleSubmit}
-                  disabled={!rating || isSubmitting || !canSubmit}
+                  disabled={!rating || isSubmitting}
                   className="w-full py-3 rounded-xl text-white font-medium text-base transition-opacity disabled:opacity-50"
                   style={{ backgroundColor: "var(--accent)" }}
                 >
