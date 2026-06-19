@@ -45,7 +45,8 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
     admin.from("menu_analytics").select("*").eq("restaurant_id", restaurant.id).gte("created_at", since),
     admin.from("menu_analytics").select("event_type, session_id, visitor_id").eq("restaurant_id", restaurant.id).gte("created_at", prevSince).lt("created_at", since),
     admin.from("menu_items").select("id, name, category").eq("restaurant_id", restaurant.id),
-    admin.from("guest_feedback").select("rating, categories, comment, visit_type, created_at").eq("restaurant_id", restaurant.id).gte("created_at", since).order("created_at", { ascending: false }),
+    // Guest feedback is a permanent record — always all-time, never scoped to the date range tab
+    admin.from("guest_feedback").select("rating, categories, comment, visit_type, created_at").eq("restaurant_id", restaurant.id).order("created_at", { ascending: false }),
   ]);
 
   const allEvents = (events ?? []) as AnalyticsEvent[];
