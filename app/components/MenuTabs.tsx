@@ -287,14 +287,14 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
             <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-l from-[var(--background)] to-transparent" />
             {canScrollLeft && (
               <button type="button" onClick={scrollLeft}
-                className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                className="flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
                 aria-label="Scroll categories left">
                 <ChevronLeft size={16} />
               </button>
             )}
             {canScrollRight && (
               <button type="button" onClick={scrollRight}
-                className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                className="flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
                 aria-label="Scroll categories right">
                 <ChevronRight size={16} />
               </button>
@@ -513,7 +513,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
           >
           {items.length === 0 && (
             <p className="text-center text-[var(--muted)] py-12 text-sm">
-              No items match this filter.
+              {t("ui.noItemsMatchFilter")}
             </p>
           )}
           {items.map((item, idx) => {
@@ -575,7 +575,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                 </div>
                 {item.available === false && (
                   <span className="inline-flex items-center mt-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
-                    Currently unavailable
+                    {t("ui.unavailable")}
                   </span>
                 )}
                 <DietaryIcons item={item} />
