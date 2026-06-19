@@ -1616,6 +1616,9 @@ function AdminMenuPanel({
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
+      // While the onboarding tour is driving the dropdown (steps 8/9), ignore
+      // outside clicks so the tour card's "Next" button doesn't close it.
+      if (document.body.dataset.tourActive === "true") return;
       const target = e.target as Node;
       if (
         panelRef.current && !panelRef.current.contains(target) &&
@@ -1659,6 +1662,7 @@ function AdminMenuPanel({
           className="w-64 rounded-xl bg-white border border-[#e8e4dd] shadow-2xl z-[100] max-h-[80vh] overflow-y-auto"
         >
           <button
+            data-tour="theme-branding-option"
             type="button"
             onClick={() => { setOpen(false); onOpenTheme(); }}
             className="w-full text-left px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 flex items-center gap-3 transition-colors"
@@ -1683,7 +1687,7 @@ function AdminMenuPanel({
             View live menu
           </a>
           <button
-            data-tour="qr-btn"
+            data-tour="qr-option"
             type="button"
             onClick={() => { setOpen(false); onOpenQR(); }}
             className="w-full text-left px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 flex items-center gap-3 transition-colors"

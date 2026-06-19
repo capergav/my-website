@@ -162,24 +162,66 @@ export function OnboardingTour({
   const goToStepRef = useRef<((step: number) => void) | null>(null);
   const prevTourKeyRef = useRef(tourKey); // Track previous tourKey to detect actual changes
   const menuOpenedByTourRef = useRef(false); // Track if we opened the menu
+  const desktopMenuRef = useRef(false); // Track whether we opened the desktop dropdown (vs mobile sheet)
 
   // ── Click simulation helpers ───────────────────────────────────────────────
 
+  // The action menu is two different components depending on viewport:
+  //  • Mobile (<640px): a full-screen sheet, opened by [data-tour="menu-button"]
+  //    and closed by [data-tour="sheet-close"].
+  //  • Desktop (≥640px): the AdminMenuPanel dropdown, toggled by
+  //    [data-tour="tour-menu"]. Both Theme & QR options live inside it.
+  // On desktop the mobile sheet is sm:hidden (0×0), so clicking the mobile
+  // button there would never reveal a measurable target — we must drive the
+  // desktop dropdown instead.
+  const isDesktop = () =>
+    typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches;
+
   const clickMenuButton = useCallback(() => {
-    const btn = document.querySelector('[data-tour="menu-button"]') as HTMLElement | null;
-    if (btn) {
-      btn.click();
+    if (isDesktop()) {
+      // Mark the tour as driving the dropdown so its outside-click handler
+      // won't close it when the user presses "Next" on the tour card.
+      document.body.dataset.tourActive = "true";
+      // Idempotent: only click to open if the dropdown isn't already open.
+      const alreadyOpen = document.querySelector(
+        '[data-tour="theme-branding-option"], [data-tour="qr-option"]'
+      );
+      if (!alreadyOpen) {
+        const btn = document.querySelector('[data-tour="tour-menu"]') as HTMLElement | null;
+        btn?.click();
+      }
       menuOpenedByTourRef.current = true;
+      desktopMenuRef.current = true;
+    } else {
+      const btn = document.querySelector('[data-tour="menu-button"]') as HTMLElement | null;
+      if (btn) {
+        btn.click();
+        menuOpenedByTourRef.current = true;
+        desktopMenuRef.current = false;
+      }
     }
   }, []);
 
   const closeMenu = useCallback(() => {
     if (!menuOpenedByTourRef.current) return;
-    const closeBtn = document.querySelector('[data-tour="sheet-close"]') as HTMLElement | null;
-    if (closeBtn) {
-      closeBtn.click();
+    if (desktopMenuRef.current) {
+      delete document.body.dataset.tourActive;
+      // Toggle the dropdown shut via its trigger button (only if still open).
+      const stillOpen = document.querySelector(
+        '[data-tour="theme-branding-option"], [data-tour="qr-option"]'
+      );
+      if (stillOpen) {
+        const btn = document.querySelector('[data-tour="tour-menu"]') as HTMLElement | null;
+        btn?.click();
+      }
+    } else {
+      const closeBtn = document.querySelector('[data-tour="sheet-close"]') as HTMLElement | null;
+      if (closeBtn) {
+        closeBtn.click();
+      }
     }
     menuOpenedByTourRef.current = false;
+    desktopMenuRef.current = false;
   }, []);
 
   // ── Window size tracking for overlay rects ─────────────────────────────────
@@ -420,11 +462,13 @@ export function OnboardingTour({
 
   const progressPercent = ((currentStep + 1) / TOTAL_STEPS) * 100;
 
-  // On menu steps the mobile action drawer (z-50) creates its own stacking
-  // context, so a z-40 overlay would render *behind* it and the spotlight
-  // would be invisible. Lift the overlay above the drawer for those steps.
+  // On menu steps the action menu creates its own stacking context — the
+  // mobile sheet is z-50 and the desktop AdminMenuPanel dropdown is z-[100].
+  // A z-40 overlay would render *behind* them and the spotlight would be
+  // invisible, so lift the overlay above both for those steps (the desktop
+  // dropdown at z-100 is the higher of the two).
   const isMenuStep = STEPS[currentStep].menuOpen;
-  const overlayZ = isMenuStep ? 55 : 40;
+  const overlayZ = isMenuStep ? 101 : 40;
 
   return (
     <>
@@ -510,13 +554,14 @@ export function OnboardingTour({
         )}
       </svg>
 
-      {/* Tour card — z-60, slides up on mount */}
+      {/* Tour card — must sit above the menu-step overlay (z-101) so the
+          "Next" button stays visible and clickable on steps 8/9. */}
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
         className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[400px] bg-white border border-[#e8e4dd] rounded-2xl shadow-xl overflow-hidden"
-        style={{ zIndex: 60 }}
+        style={{ zIndex: 120 }}
       >
         {/* Progress bar */}
         <div className="h-1 bg-gray-100 w-full">
