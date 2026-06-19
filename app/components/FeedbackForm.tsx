@@ -88,8 +88,11 @@ export function FeedbackForm({ restaurantId }: { restaurantId: string }) {
       {/* Floating feedback button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-20 right-4 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95"
+        className="fixed z-50 flex items-center gap-2 px-4 py-2.5 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95"
         style={{
+          position: "fixed",
+          bottom: "calc(env(safe-area-inset-bottom, 0px) + 24px)",
+          right: "16px",
           backgroundColor: "var(--accent)",
           color: "#fff",
           fontFamily: "system-ui, sans-serif",
@@ -109,17 +112,18 @@ export function FeedbackForm({ restaurantId }: { restaurantId: string }) {
         >
           <div
             dir={isRtl ? "rtl" : "ltr"}
-            className="w-full max-w-lg bg-white rounded-t-2xl shadow-2xl max-h-[85vh] overflow-y-auto"
-            style={{ animation: "slideUp 0.2s ease-out" }}
+            className="w-full max-w-lg rounded-t-2xl shadow-2xl max-h-[85vh] overflow-y-auto"
+            style={{ animation: "slideUp 0.2s ease-out", backgroundColor: "var(--card)", color: "var(--foreground)" }}
           >
             {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
+            <div className="sticky top-0 px-5 py-4 flex items-center justify-between border-b" style={{ backgroundColor: "var(--card)", borderColor: "var(--card-border)" }}>
+              <h2 className="text-lg font-semibold" style={{ color: "var(--foreground)" }}>
                 {t("feedback.title", locale)}
               </h2>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500"
+                className="p-1.5 rounded-full transition-colors"
+                style={{ color: "var(--foreground)", opacity: 0.5 }}
               >
                 <X size={20} />
               </button>
@@ -130,7 +134,7 @@ export function FeedbackForm({ restaurantId }: { restaurantId: string }) {
                 <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center" style={{ backgroundColor: "var(--accent)" }}>
                   <Star size={32} className="text-white fill-white" />
                 </div>
-                <p className="text-lg font-medium text-gray-900">
+                <p className="text-lg font-medium" style={{ color: "var(--foreground)" }}>
                   {t("feedback.thanks", locale)}
                 </p>
               </div>
@@ -149,11 +153,12 @@ export function FeedbackForm({ restaurantId }: { restaurantId: string }) {
                     >
                       <Star
                         size={36}
-                        className={`transition-colors ${
+                        className="transition-colors"
+                        style={
                           star <= displayRating
-                            ? "fill-amber-400 text-amber-400"
-                            : "text-gray-300"
-                        }`}
+                            ? { color: "var(--accent)", fill: "var(--accent)" }
+                            : { color: "var(--muted)", opacity: 0.4 }
+                        }
                       />
                     </button>
                   ))}
@@ -169,12 +174,10 @@ export function FeedbackForm({ restaurantId }: { restaurantId: string }) {
                           key={key}
                           type="button"
                           onClick={() => toggleCategory(key)}
-                          className={`px-3.5 py-1.5 rounded-full text-sm font-medium border transition-all ${
-                            selected
-                              ? "border-transparent text-white"
-                              : "border-gray-200 text-gray-700 bg-white hover:border-gray-300"
-                          }`}
-                          style={selected ? { backgroundColor: "var(--accent)" } : {}}
+                          className="px-3.5 py-1.5 rounded-full text-sm font-medium border transition-all"
+                          style={selected
+                            ? { backgroundColor: "var(--accent)", borderColor: "transparent", color: "#fff" }
+                            : { backgroundColor: "var(--card)", borderColor: "var(--card-border)", color: "var(--foreground)" }}
                         >
                           {t(translationKey, locale)}
                         </button>
@@ -185,7 +188,7 @@ export function FeedbackForm({ restaurantId }: { restaurantId: string }) {
 
                 {/* Visit type */}
                 <div>
-                  <p className="text-sm text-gray-500 mb-2 text-center">
+                  <p className="text-sm mb-2 text-center" style={{ color: "var(--muted)" }}>
                     {t("feedback.visitType", locale)}
                   </p>
                   <div className="flex gap-2 justify-center">
@@ -196,12 +199,10 @@ export function FeedbackForm({ restaurantId }: { restaurantId: string }) {
                           key={type}
                           type="button"
                           onClick={() => setVisitType(visitType === type ? null : type)}
-                          className={`px-4 py-1.5 rounded-lg text-sm font-medium border transition-all ${
-                            selected
-                              ? "border-transparent text-white"
-                              : "border-gray-200 text-gray-700 bg-white hover:border-gray-300"
-                          }`}
-                          style={selected ? { backgroundColor: "var(--accent)" } : {}}
+                          className="px-4 py-1.5 rounded-lg text-sm font-medium border transition-all"
+                          style={selected
+                            ? { backgroundColor: "var(--accent)", borderColor: "transparent", color: "#fff" }
+                            : { backgroundColor: "var(--card)", borderColor: "var(--card-border)", color: "var(--foreground)" }}
                         >
                           {t(`feedback.${type}`, locale)}
                         </button>
@@ -217,10 +218,15 @@ export function FeedbackForm({ restaurantId }: { restaurantId: string }) {
                     onChange={(e) => setComment(e.target.value.slice(0, 300))}
                     placeholder={t("feedback.comment", locale)}
                     rows={3}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-offset-0"
-                    style={{ "--tw-ring-color": "var(--accent)" } as React.CSSProperties}
+                    className="w-full px-4 py-3 rounded-xl border resize-none focus:outline-none focus:ring-2 focus:ring-offset-0"
+                    style={{
+                      backgroundColor: "var(--card)",
+                      color: "var(--foreground)",
+                      borderColor: "color-mix(in srgb, var(--accent) 30%, transparent)",
+                      "--tw-ring-color": "var(--accent)",
+                    } as React.CSSProperties}
                   />
-                  <p className="text-xs text-gray-400 text-right mt-1">
+                  <p className="text-xs text-right mt-1" style={{ color: "var(--muted)" }}>
                     {comment.length}/300
                   </p>
                 </div>
