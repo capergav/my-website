@@ -169,6 +169,8 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
   const [activeLang, setActiveLang] = useState("English");
   const langData = DEMO_TRANSLATIONS[activeLang] ?? DEMO_TRANSLATIONS["English"];
   const { categoryName, categoryNote, items: names } = langData;
+  // Mirror the real customer menu: Arabic flips the phone mockup to RTL.
+  const isRtl = LANGUAGES.find((l) => l.name === activeLang)?.rtl ?? false;
 
   return (
     <section id="languages" className="bg-white py-24">
@@ -194,7 +196,7 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
             className="flex-shrink-0 w-full lg:w-auto flex justify-center"
             {...(rm ? {} : { initial: { opacity: 0, x: -30 }, whileInView: { opacity: 1, x: 0 }, viewport: { once: true }, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } })}
           >
-            <div className="rounded-3xl overflow-hidden shadow-2xl border-4 border-[#2c2a26]/10 w-64 sm:w-72 bg-white">
+            <div dir={isRtl ? "rtl" : "ltr"} className="rounded-3xl overflow-hidden shadow-2xl border-4 border-[#2c2a26]/10 w-64 sm:w-72 bg-white">
               <div className="relative h-32 overflow-hidden">
                 <img src={CT_HERO_URL} alt="" className="w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />

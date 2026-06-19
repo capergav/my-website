@@ -893,15 +893,15 @@ export function AdminMenuEditor({
           <div data-tour="tour-categories" className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
             <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
               {adminCanScrollLeft && (
-                <button type="button" onClick={adminScrollLeft}
-                  className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
-                  <ChevronLeft size={14} />
+                <button type="button" onClick={adminScrollLeft} aria-label="Scroll categories left"
+                  className="flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-7 md:h-7 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+                  <ChevronLeft size={16} />
                 </button>
               )}
               {adminCanScrollRight && (
-                <button type="button" onClick={adminScrollRight}
-                  className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
-                  <ChevronRight size={14} />
+                <button type="button" onClick={adminScrollRight} aria-label="Scroll categories right"
+                  className="flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-7 md:h-7 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+                  <ChevronRight size={16} />
                 </button>
               )}
               <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
