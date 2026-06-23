@@ -36,6 +36,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# claude code skills (installed locally, not committed; ui-ux submodule kept via exception)
+.claude/skills/
+!.claude/skills/ui-ux
+skills-lock.json
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

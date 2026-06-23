@@ -61,7 +61,10 @@
       "Bash(vercel --prod)",
       "Bash(git rm:*)",
       "Read(//tmp/**)",
-      "Bash(curl -s \"https://raw.githubusercontent.com/capergav/my-website/main/app/page.tsx\")"
+      "Bash(curl -s \"https://raw.githubusercontent.com/capergav/my-website/main/app/page.tsx\")",
+      "mcp__claude_ai_Supabase__list_tables",
+      "Read(//c/Users/Gavin/.agents/skills/web-quality-audit/**)",
+      "WebFetch(domain:dinelinks.com)"
     ]
   }
 }

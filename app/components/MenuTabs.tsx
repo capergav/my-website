@@ -554,7 +554,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
               {/* Content */}
               <div className="p-3 sm:p-5 min-w-0 flex-1 flex flex-col justify-center">
                 <div className="flex justify-between items-baseline gap-3">
-                  <h3 className="text-lg sm:text-xl font-semibold text-[var(--foreground)] min-w-0 text-wrap-balance">
+                  <h3 className="text-lg sm:text-xl font-semibold text-[var(--foreground)] min-w-0 text-wrap-balance hyphens-auto">
                     <TranslatedText text={item.name} />
                   </h3>
                   {item.chefs_favorite ? (
@@ -580,7 +580,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
                 )}
                 <DietaryIcons item={item} />
                 {item.description && (
-                  <p className="text-[var(--muted)] mt-2 text-sm sm:text-base leading-relaxed line-clamp-2 text-wrap-force whitespace-pre-line break-words [overflow-wrap:anywhere]">
+                  <p className="text-[var(--muted)] mt-2 text-sm sm:text-base leading-relaxed line-clamp-2 whitespace-pre-line break-words hyphens-auto">
                     <TranslatedText text={item.description} as="span" />
                   </p>
                 )}
