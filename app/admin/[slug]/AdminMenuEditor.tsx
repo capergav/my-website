@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
@@ -2745,7 +2745,10 @@ async function composeQR(opts: {
     const availH = Math.max(60, innerBottom - innerTop);
     const qrPx = Math.max(60, Math.min(innerW, availH));
     const qrX = (W - qrPx) / 2;
-    const qrY = innerTop + (availH - qrPx) / 2;
+    // No header/tagline → center the QR (and therefore its logo) on the TRUE
+    // canvas center. Otherwise the reserved bottom watermark band nudges it up.
+    const noText = headerLines.length === 0 && taglineLines.length === 0;
+    const qrY = noText ? (H - qrPx) / 2 : innerTop + (availH - qrPx) / 2;
 
     if (headerLines.length) {
       ctx.fillStyle = textColor;
@@ -2852,6 +2855,86 @@ function FormatThumb({ format, active }: { format: FormatKey; active: boolean })
       ) : (
         <rect x={19 - 4.5} y={19 - 4.5} width="9" height="9" rx="1.5" fill={qr} opacity="0.85" />
       )}
+    </svg>
+  );
+}
+
+// Template card preview — combines the SELECTED format's shape/aspect with the
+// template's text layout (QR only / + tagline / name + tagline), so the owner
+// sees what each template looks like on the format they picked.
+function TemplatePreview({ format, template, active }: {
+  format: FormatKey;
+  template: "simple" | "tagline" | "table";
+  active: boolean;
+}) {
+  const fmt = FORMATS[format];
+  const round = !!fmt.round;
+  const isLandscape = fmt.orientation === "landscape";
+  const VB = 64, MAX = 54;
+  let w = MAX, h = MAX;
+  if (fmt.aspect >= 1) h = MAX / fmt.aspect; else w = MAX * fmt.aspect;
+  const x = (VB - w) / 2;
+  const y = (VB - h) / 2;
+  const stroke = active ? "var(--accent)" : "var(--muted)";
+  const ink = active ? "var(--accent)" : "var(--muted)";
+  const showName = template === "table";
+  const showTag = template === "tagline" || template === "table";
+  const bar = (bx: number, by: number, bw: number, op: number) => (
+    <rect x={bx} y={by} width={bw} height={2} rx={1} fill={ink} opacity={op} />
+  );
+
+  let content: ReactNode;
+  if (isLandscape) {
+    const pad = 5;
+    const qrS = Math.min(h - pad * 2, w * 0.42);
+    const qrX = x + pad;
+    const qrY = y + (h - qrS) / 2;
+    const tx = qrX + qrS + 4;
+    const tw = x + w - pad - tx;
+    content = (
+      <>
+        <rect x={qrX} y={qrY} width={qrS} height={qrS} rx={2} fill={ink} opacity={0.85} />
+        {showName && bar(tx, y + h / 2 - 6, tw, 0.7)}
+        <rect x={tx} y={y + h / 2 - 1} width={tw * 0.85} height={2} rx={1} fill={ink} opacity={0.45} />
+        {showTag && bar(tx, y + h / 2 + 5, tw * 0.7, 0.45)}
+      </>
+    );
+  } else if (round) {
+    const qrS = w * 0.5;
+    const qrX = x + (w - qrS) / 2;
+    const qrY = y + (h - qrS) / 2;
+    content = (
+      <>
+        {showName && bar(32 - 9, qrY - 5, 18, 0.7)}
+        <rect x={qrX} y={qrY} width={qrS} height={qrS} rx={2} fill={ink} opacity={0.85} />
+        {showTag && bar(32 - 7, qrY + qrS + 3, 14, 0.45)}
+      </>
+    );
+  } else {
+    const pad = 5;
+    const innerTop = y + pad + (showName ? 8 : 0);
+    const innerBot = y + h - pad - (showTag ? 8 : 0);
+    const band = innerBot - innerTop;
+    const qrS = Math.min(w - pad * 2, band);
+    const qrX = x + (w - qrS) / 2;
+    const qrY = innerTop + (band - qrS) / 2;
+    content = (
+      <>
+        {showName && bar(x + w * 0.2, y + pad, w * 0.6, 0.7)}
+        <rect x={qrX} y={qrY} width={qrS} height={qrS} rx={2} fill={ink} opacity={0.85} />
+        {showTag && bar(x + w * 0.25, y + h - pad - 2, w * 0.5, 0.45)}
+      </>
+    );
+  }
+
+  return (
+    <svg width="100%" viewBox="0 0 64 64" style={{ maxWidth: 64 }}>
+      {round ? (
+        <circle cx={32} cy={32} r={Math.min(w, h) / 2} stroke={stroke} strokeWidth={1.5} fill="none" />
+      ) : (
+        <rect x={x} y={y} width={w} height={h} rx={3} stroke={stroke} strokeWidth={1.5} fill="none" />
+      )}
+      {content}
     </svg>
   );
 }
@@ -3171,14 +3254,8 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
               ]).map(t => (
                 <div key={t.id} onClick={() => setQrTemplate(t.id)}
                   className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all ${qrTemplate === t.id ? "border-[var(--accent)]" : "border-[var(--card-border)] hover:border-[var(--accent)]/40"}`}>
-                  <div className="bg-[var(--background)] rounded-lg p-2 mb-2 flex flex-col items-center gap-1 min-h-[80px] justify-center border border-[var(--card-border)]">
-                    {t.id === "table" && (
-                      <div className="w-full text-center text-[8px] text-[var(--muted)] font-bold truncate px-1">Restaurant</div>
-                    )}
-                    <div className="w-10 h-10 bg-[var(--card-border)]/30 rounded flex items-center justify-center text-[8px] text-[var(--muted)]">QR</div>
-                    {(t.id === "tagline" || t.id === "table") && (
-                      <div className="w-full text-center text-[8px] text-[var(--muted)] truncate px-1">Tagline text</div>
-                    )}
+                  <div className="bg-[var(--background)] rounded-lg p-2 mb-2 flex items-center justify-center min-h-[80px] border border-[var(--card-border)]">
+                    <TemplatePreview format={qrFormat} template={t.id} active={qrTemplate === t.id} />
                   </div>
                   <span className="text-xs text-[var(--muted)]">{t.label}</span>
                 </div>
