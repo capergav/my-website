@@ -2592,6 +2592,38 @@ function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number
   return lines;
 }
 
+// Draws the DineLinks "DL" monogram (exact match of the logo in app/page.tsx)
+// into ctx. Top-left anchored at (x, y), scaled to height h. Returns drawn width.
+// Vector paths are stroked, so it stays crisp at any output resolution.
+function drawDLLogo(ctx: CanvasRenderingContext2D, x: number, y: number, h: number, lColor: string): number {
+  const s = h / 40; // logo viewBox is 0 0 44 40
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(s, s);
+  ctx.lineWidth = 2.6;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  // "D" — gold outline (M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z)
+  ctx.strokeStyle = "#c9a030";
+  ctx.beginPath();
+  ctx.moveTo(4, 3);
+  ctx.lineTo(4, 37);
+  ctx.quadraticCurveTo(4, 37, 15, 37);
+  ctx.quadraticCurveTo(30, 37, 30, 20);
+  ctx.quadraticCurveTo(30, 3, 15, 3);
+  ctx.closePath();
+  ctx.stroke();
+  // "L" — contrasting stroke (vertical 26,3→26,37 then horizontal 26,37→42,37)
+  ctx.strokeStyle = lColor;
+  ctx.beginPath();
+  ctx.moveTo(26, 3);
+  ctx.lineTo(26, 37);
+  ctx.lineTo(42, 37);
+  ctx.stroke();
+  ctx.restore();
+  return (44 / 40) * h;
+}
+
 async function composeQR(opts: {
   slug: string;
   fgColor: string;
@@ -2644,6 +2676,14 @@ async function composeQR(opts: {
     const s = maxWidth / W;
     W = Math.round(W * s);
     H = Math.round(H * s);
+  } else if (!maxWidth) {
+    // Download path — guarantee a high-res output floor so prints stay crisp.
+    const minW = size === "small" ? 1200 : size === "medium" ? 2000 : 3000;
+    if (W < minW) {
+      const s = minW / W;
+      W = Math.round(W * s);
+      H = Math.round(H * s);
+    }
   }
   canvas.width = W;
   canvas.height = H;
@@ -2768,38 +2808,30 @@ async function composeQR(opts: {
     }
   }
 
-  // ── Watermark ───────────────────────────────────────────────────────────────
-  ctx.globalAlpha = 0.55;
+  // ── Watermark — exact DineLinks "DL" mark + domain ───────────────────────────
+  ctx.globalAlpha = 0.6;
   ctx.fillStyle = textColor;
   ctx.font = `${W * 0.022}px system-ui, -apple-system, sans-serif`;
-  const miniSize = W * 0.034;
-  const wmY = H - pad * 0.55;
+  const logoH = W * 0.046;
+  const logoW = (44 / 40) * logoH;
+  const gap = W * 0.016;
+  ctx.textBaseline = "alphabetic";
   if (roundCrop) {
-    ctx.textAlign = "center";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText("dinelinks.com", W / 2, H - wmH * 0.5);
+    const cy = H - wmH * 0.5;
+    const domainW = ctx.measureText("dinelinks.com").width;
+    const totalW = logoW + gap + domainW;
+    const startX = (W - totalW) / 2;
+    drawDLLogo(ctx, startX, cy - logoH * 0.82, logoH, textColor);
+    ctx.textAlign = "left";
+    ctx.fillStyle = textColor;
+    ctx.fillText("dinelinks.com", startX + logoW + gap, cy);
   } else {
+    const wmY = H - pad * 0.55;
     ctx.textAlign = "right";
-    ctx.textBaseline = "alphabetic";
     ctx.fillText("dinelinks.com", W - pad, wmY);
     const domainW = ctx.measureText("dinelinks.com").width;
-    const mx = W - pad - domainW - W * 0.018 - miniSize;
-    const my = wmY - miniSize * 0.82;
-    ctx.lineWidth = miniSize * 0.08;
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "#8b6914";
-    ctx.beginPath();
-    ctx.moveTo(mx + miniSize * 0.1, my + miniSize * 0.1);
-    ctx.lineTo(mx + miniSize * 0.1, my + miniSize * 0.9);
-    ctx.quadraticCurveTo(mx + miniSize * 0.9, my + miniSize * 0.9, mx + miniSize * 0.9, my + miniSize * 0.5);
-    ctx.quadraticCurveTo(mx + miniSize * 0.9, my + miniSize * 0.1, mx + miniSize * 0.1, my + miniSize * 0.1);
-    ctx.stroke();
-    ctx.strokeStyle = "#2c2a26";
-    ctx.beginPath();
-    ctx.moveTo(mx + miniSize * 0.65, my + miniSize * 0.1);
-    ctx.lineTo(mx + miniSize * 0.65, my + miniSize * 0.9);
-    ctx.lineTo(mx + miniSize * 1.05, my + miniSize * 0.9);
-    ctx.stroke();
+    const lx = W - pad - domainW - gap - logoW;
+    drawDLLogo(ctx, lx, wmY - logoH * 0.82, logoH, textColor);
   }
   ctx.globalAlpha = 1;
 
@@ -3033,7 +3065,10 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   useEffect(() => {
     const myId = ++renderIdRef.current;
     const off = document.createElement("canvas");
-    composeQR({ ...commonOpts(), canvas: off, maxWidth: 640 }).then(() => {
+    // Render the preview at the device pixel ratio (2x/3x on retina) so the
+    // displayed canvas — capped by CSS to a small box — stays crisp, not blurry.
+    const dpr = typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 3) : 1;
+    composeQR({ ...commonOpts(), canvas: off, maxWidth: Math.round(640 * dpr) }).then(() => {
       if (myId !== renderIdRef.current) return;
       const vis = previewCanvasRef.current;
       if (!vis) return;
