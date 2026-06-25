@@ -2812,7 +2812,7 @@ async function composeQR(opts: {
   ctx.globalAlpha = 0.6;
   ctx.fillStyle = textColor;
   ctx.font = `${W * 0.022}px system-ui, -apple-system, sans-serif`;
-  const logoH = W * 0.046;
+  const logoH = W * 0.023;
   const logoW = (44 / 40) * logoH;
   const gap = W * 0.016;
   ctx.textBaseline = "alphabetic";
@@ -2993,33 +2993,46 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     setCustomFrameColor(p.frame);
   };
 
-  const [qrFormat, setQrFormat]                   = useState<FormatKey>("sticker");
-  const [qrStyle, setQrStyle]                     = useState<QRStyleKey>("classic");
-  const [customQrColor, setCustomQrColor]         = useState("#000000");
-  const [customBgColor, setCustomBgColor]         = useState("#ffffff");
-  const [customFrameColor, setCustomFrameColor]   = useState("#000000");
-  const [qrModuleStyle, setQrModuleStyle]         = useState<QRModuleStyle>("square");
-  const [qrTemplate, setQrTemplate]               = useState<"simple" | "tagline" | "table">("simple");
-  const [qrSize, setQrSize]                       = useState<QRSizeKey>("medium");
-  const [qrIncludeLogo, setQrIncludeLogo]         = useState(true);
-  const [qrLogoBg, setQrLogoBg]                   = useState(true);
-  const [qrLogoBgShape, setQrLogoBgShape]         = useState<"circle" | "square" | "rounded" | "none">("circle");
-  const [qrLogoBgColor, setQrLogoBgColor]         = useState("#ffffff");
-  const [qrLogoSize, setQrLogoSize]               = useState(18); // 10-40% of QR width
-  const [qrLogoPadding, setQrLogoPadding]         = useState(18); // 0-30% of logo size
-  const [qrTagline, setQrTagline]                 = useState("Scan to view our menu");
-  const [qrHeader, setQrHeader]                   = useState(restaurantName);
+  // ── Persisted settings — restore the owner's last QR choices ─────────────────
+  const STORAGE_KEY = `dinelinks-qr-settings-${slug}`;
+  const savedRef = useRef<Record<string, unknown> | null>(null);
+  if (savedRef.current === null) {
+    savedRef.current = (() => {
+      if (typeof window === "undefined") return {};
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); } catch { return {}; }
+    })();
+  }
+  const saved = savedRef.current as Record<string, unknown>;
+  const pick = <T,>(key: string, fallback: T): T =>
+    (saved[key] === undefined || saved[key] === null ? fallback : saved[key] as T);
+
+  const [qrFormat, setQrFormat]                   = useState<FormatKey>(pick("qrFormat", "sticker"));
+  const [qrStyle, setQrStyle]                     = useState<QRStyleKey>(pick("qrStyle", "classic"));
+  const [customQrColor, setCustomQrColor]         = useState(pick("customQrColor", "#000000"));
+  const [customBgColor, setCustomBgColor]         = useState(pick("customBgColor", "#ffffff"));
+  const [customFrameColor, setCustomFrameColor]   = useState(pick("customFrameColor", "#000000"));
+  const [qrModuleStyle, setQrModuleStyle]         = useState<QRModuleStyle>(pick("qrModuleStyle", "square"));
+  const [qrTemplate, setQrTemplate]               = useState<"simple" | "tagline" | "table">(pick("qrTemplate", "simple"));
+  const [qrSize, setQrSize]                       = useState<QRSizeKey>(pick("qrSize", "medium"));
+  const [qrIncludeLogo, setQrIncludeLogo]         = useState(pick("qrIncludeLogo", true));
+  const [qrLogoBg, setQrLogoBg]                   = useState(pick("qrLogoBg", true));
+  const [qrLogoBgShape, setQrLogoBgShape]         = useState<"circle" | "square" | "rounded" | "none">(pick("qrLogoBgShape", "circle"));
+  const [qrLogoBgColor, setQrLogoBgColor]         = useState(pick("qrLogoBgColor", "#ffffff"));
+  const [qrLogoSize, setQrLogoSize]               = useState(pick("qrLogoSize", 18)); // 10-40% of QR width
+  const [qrLogoPadding, setQrLogoPadding]         = useState(pick("qrLogoPadding", 18)); // 0-30% of logo size
+  const [qrTagline, setQrTagline]                 = useState(pick("qrTagline", "Scan to view our menu"));
+  const [qrHeader, setQrHeader]                   = useState(pick("qrHeader", restaurantName));
   // Text styling
-  const [headerFontSize, setHeaderFontSize]       = useState(22); // 14-36 reference px
-  const [taglineFontSize, setTaglineFontSize]     = useState(16); // 12-32 reference px
-  const [qrFont, setQrFont]                       = useState<FontKey>("serif");
-  const [textAlign, setTextAlign]                 = useState<"left" | "center" | "right">("center");
-  const [taglineOffset, setTaglineOffset]         = useState(0);  // -40..40 reference px
+  const [headerFontSize, setHeaderFontSize]       = useState(pick("headerFontSize", 22)); // 14-36 reference px
+  const [taglineFontSize, setTaglineFontSize]     = useState(pick("taglineFontSize", 16)); // 12-32 reference px
+  const [qrFont, setQrFont]                       = useState<FontKey>(pick("qrFont", "serif"));
+  const [textAlign, setTextAlign]                 = useState<"left" | "center" | "right">(pick("textAlign", "center"));
+  const [taglineOffset, setTaglineOffset]         = useState(pick("taglineOffset", 0));  // -40..40 reference px
   // Card
-  const [cardPadding, setCardPadding]             = useState(35); // 0-100
-  const [showBorder, setShowBorder]               = useState(false);
-  const [roundCrop, setRoundCrop]                 = useState(false);
+  const [cardPadding, setCardPadding]             = useState(pick("cardPadding", 35)); // 0-100
+  const [showBorder, setShowBorder]               = useState(pick("showBorder", false));
   const [isDownloading, setIsDownloading]         = useState(false);
+  const [settingsSaved, setSettingsSaved]         = useState(false);
 
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const downloadCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -3051,7 +3064,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     cardPadding,
     showBorder,
     moduleStyle: qrModuleStyle,
-    roundCrop: FORMATS[qrFormat].round ? roundCrop : false,
+    roundCrop: !!FORMATS[qrFormat].round, // circular crop applies automatically for coaster only
     includeLogo: qrIncludeLogo,
     logoBg: qrLogoBg,
     logoBgShape: qrLogoBgShape,
@@ -3059,7 +3072,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     logoSizePercent: qrLogoSize,
     logoPadding: qrLogoPadding,
     logoUrl,
-  }), [slug, customQrColor, customBgColor, customFrameColor, qrFormat, qrSize, qrTemplate, qrHeader, qrTagline, headerFontSize, taglineFontSize, qrFont, textAlign, taglineOffset, cardPadding, showBorder, qrModuleStyle, roundCrop, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrLogoSize, qrLogoPadding, logoUrl]);
+  }), [slug, customQrColor, customBgColor, customFrameColor, qrFormat, qrSize, qrTemplate, qrHeader, qrTagline, headerFontSize, taglineFontSize, qrFont, textAlign, taglineOffset, cardPadding, showBorder, qrModuleStyle, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrLogoSize, qrLogoPadding, logoUrl]);
 
   // Live preview — render to offscreen at capped width, then blit only if still latest.
   useEffect(() => {
@@ -3077,6 +3090,31 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
       vis.getContext("2d")!.drawImage(off, 0, 0);
     }).catch(() => {});
   }, [commonOpts]);
+
+  // Snapshot of every user choice we persist (roundCrop is derived from format).
+  const buildSettings = useCallback(() => ({
+    qrFormat, qrStyle, customQrColor, customBgColor, customFrameColor, qrModuleStyle,
+    qrTemplate, qrSize, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor,
+    qrLogoSize, qrLogoPadding, qrTagline, qrHeader, headerFontSize, taglineFontSize,
+    qrFont, textAlign, taglineOffset, cardPadding, showBorder,
+  }), [qrFormat, qrStyle, customQrColor, customBgColor, customFrameColor, qrModuleStyle,
+    qrTemplate, qrSize, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor,
+    qrLogoSize, qrLogoPadding, qrTagline, qrHeader, headerFontSize, taglineFontSize,
+    qrFont, textAlign, taglineOffset, cardPadding, showBorder]);
+
+  // Auto-save on every change so reopening the modal restores where they left off.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSettings())); } catch {}
+  }, [buildSettings, STORAGE_KEY]);
+
+  const handleSaveSettings = () => {
+    if (typeof window !== "undefined") {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(buildSettings())); } catch {}
+    }
+    setSettingsSaved(true);
+    setTimeout(() => setSettingsSaved(false), 1800);
+  };
 
   const handleDownloadQR = async () => {
     setIsDownloading(true);
@@ -3493,10 +3531,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                 <Toggle checked={showBorder} onChange={setShowBorder} />
               </div>
               {fmt.round && (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-[var(--foreground)]">Round (circular crop)</span>
-                  <Toggle checked={roundCrop} onChange={setRoundCrop} />
-                </div>
+                <p className="text-[11px] text-[var(--muted)]">Coasters are cropped to a circle automatically.</p>
               )}
             </div>
           </div>
@@ -3518,10 +3553,16 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
         {/* Footer */}
         <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)]">
-          <button type="button" onClick={handleDownloadQR} disabled={isDownloading}
-            className="w-full py-2.5 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
-            {isDownloading ? "Generating…" : "Download PNG"}
-          </button>
+          <div className="flex gap-2">
+            <button type="button" onClick={handleSaveSettings}
+              className="flex-shrink-0 px-4 py-2.5 rounded-xl border border-[var(--accent)] bg-transparent text-[var(--accent)] font-medium text-sm hover:bg-[var(--accent)]/10 transition-colors">
+              {settingsSaved ? "Saved ✓" : "Save settings"}
+            </button>
+            <button type="button" onClick={handleDownloadQR} disabled={isDownloading}
+              className="flex-1 py-2.5 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
+              {isDownloading ? "Generating…" : "Download PNG"}
+            </button>
+          </div>
           <div className="mt-3 sm:hidden rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2">
             <p className="text-xs text-[var(--foreground)] text-center">
               💡 <span className="font-medium">Tip:</span> tap Download then save to Photos or share via Messages.
