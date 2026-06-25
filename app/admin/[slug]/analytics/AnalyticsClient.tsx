@@ -73,6 +73,7 @@ type Props = {
       createdAt: string;
     }[];
   };
+  feedbackEnabled: boolean;
   hasData: boolean;
 };
 
@@ -152,7 +153,7 @@ function Stars({ value, size = 16 }: { value: number; size?: number }) {
 
 export function AnalyticsClient({
   slug, restaurantName, days, stats, dailyScans, topItems, totalItemViews,
-  langData, hourData, feedback, hasData,
+  langData, hourData, feedback, feedbackEnabled, hasData,
 }: Props) {
   const router = useRouter();
 
@@ -487,7 +488,23 @@ export function AnalyticsClient({
             Guest feedback
           </h2>
 
-          {feedback.totalResponses === 0 ? (
+          {!feedbackEnabled ? (
+            <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-8 sm:p-12 text-center">
+              <div className="text-5xl mb-4">💬</div>
+              <h3 className="text-lg font-semibold text-[#2c2a26] mb-2" style={{ fontFamily: "Georgia, serif" }}>
+                Guest feedback is turned off
+              </h3>
+              <p className="text-[#2c2a26]/60 leading-relaxed max-w-md mx-auto mb-6">
+                Guest feedback is currently turned off. Enable it in Settings to start collecting ratings from your customers.
+              </p>
+              <Link
+                href={`/admin/${slug}/settings`}
+                className="inline-flex items-center px-5 py-2.5 rounded-xl bg-[#8b6914] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+              >
+                Open Settings
+              </Link>
+            </div>
+          ) : feedback.totalResponses === 0 ? (
             <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm p-8 sm:p-12 text-center">
               <div className="text-5xl mb-4">💬</div>
               <h3 className="text-lg font-semibold text-[#2c2a26] mb-2" style={{ fontFamily: "Georgia, serif" }}>

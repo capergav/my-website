@@ -18,7 +18,7 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, slug, owner_id")
+    .select("id, name, slug, owner_id, feedback_enabled")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -225,6 +225,7 @@ export default async function AnalyticsPage({ params, searchParams }: Props) {
       langData={langData}
       hourData={hourData}
       feedback={feedbackData}
+      feedbackEnabled={(restaurant as { feedback_enabled?: boolean | null }).feedback_enabled !== false}
       hasData={allEvents.length > 0}
     />
   );
