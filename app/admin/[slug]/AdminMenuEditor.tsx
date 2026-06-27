@@ -375,7 +375,7 @@ export function AdminMenuEditor({
     });
   }, [supabase, restaurantId, initialGrouped]);
 
-  const { status: subStatus, isActive, daysLeftInTrial, isTrialExpired, cancelAtPeriodEnd, periodEnd } = useSubscription(user?.id);
+  const { status: subStatus, isActive, daysLeftInTrial, isTrialExpired, cancelAtPeriodEnd, periodEnd, hasStripeSubscription } = useSubscription(user?.id);
 
   const startCheckout = async () => {
     if (!user) return;
@@ -1111,6 +1111,7 @@ export function AdminMenuEditor({
         trialDaysLeft={daysLeftInTrial}
         cancelAtPeriodEnd={cancelAtPeriodEnd}
         periodEnd={periodEnd}
+        hasStripeSubscription={hasStripeSubscription}
         restaurantId={restaurantId}
       />
 
@@ -3620,7 +3621,7 @@ function SettingRow({ label, sublabel, children }: { label: string; sublabel?: s
 }
 
 function SettingsModal({
-  open, onClose, slug, userEmail, subStatus, trialDaysLeft, cancelAtPeriodEnd, periodEnd, restaurantId,
+  open, onClose, slug, userEmail, subStatus, trialDaysLeft, cancelAtPeriodEnd, periodEnd, hasStripeSubscription, restaurantId,
 }: {
   open: boolean;
   onClose: () => void;
@@ -3630,6 +3631,7 @@ function SettingsModal({
   trialDaysLeft: number | null;
   cancelAtPeriodEnd: boolean;
   periodEnd: Date | null;
+  hasStripeSubscription: boolean;
   restaurantId: string;
 }) {
   const supabase = createSupabaseClient();
@@ -3763,10 +3765,13 @@ function SettingsModal({
 
   const planLabel = (() => {
     if (!subStatus || subStatus === "none") return "No active plan";
-    if (subStatus === "trialing")
-      return trialDaysLeft !== null && trialDaysLeft > 0
+    if (subStatus === "trialing") {
+      const left = trialDaysLeft !== null && trialDaysLeft > 0
         ? `Free trial — ${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`
         : "Free trial — expired";
+      // Subscribed mid-trial: real subscription, billing starts when the trial ends.
+      return hasStripeSubscription ? `${left} · Subscribed` : left;
+    }
     if (subStatus === "active" && cancelAtPeriodEnd && periodEnd)
       return `Pro plan — Cancels on ${periodEnd.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}`;
     if (subStatus === "active") return "Pro plan — Active";
@@ -3859,10 +3864,15 @@ function SettingsModal({
             {sectionHeader("Billing")}
             <SectionCard>
               <SettingRow label="Current plan" sublabel={planLabel}>
-                {(!subStatus || subStatus === "none" || subStatus === "trialing") ? (
+                {(!subStatus || subStatus === "none" || (subStatus === "trialing" && !hasStripeSubscription)) ? (
                   <button type="button" onClick={openCheckout}
                     className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
                     Start subscription — $25 CAD/mo
+                  </button>
+                ) : (subStatus === "trialing" && hasStripeSubscription) ? (
+                  <button type="button" onClick={openPortal}
+                    className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
+                    Manage subscription
                   </button>
                 ) : subStatus === "active" && cancelAtPeriodEnd ? (
                   <button type="button" onClick={openPortal}
@@ -3891,7 +3901,7 @@ function SettingsModal({
                 <div className="px-4 py-2 text-xs text-[var(--muted)]">Cancels on {periodEnd.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}.</div>
               )}
               <SettingRow label="Invoices" sublabel="View and download past invoices">
-                {(!subStatus || subStatus === "none" || subStatus === "trialing") ? (
+                {(!subStatus || subStatus === "none" || (subStatus === "trialing" && !hasStripeSubscription)) ? (
                   <span className="text-xs text-[var(--muted)] italic">No invoices yet — invoices appear after your first payment.</span>
                 ) : (
                   <button type="button" onClick={openPortal}

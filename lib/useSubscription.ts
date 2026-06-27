@@ -9,6 +9,7 @@ export function useSubscription(userId: string | undefined) {
   const [trialEnd, setTrialEnd] = useState<Date | null>(null);
   const [periodEnd, setPeriodEnd] = useState<Date | null>(null);
   const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
+  const [stripeSubscriptionId, setStripeSubscriptionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userId) { setStatus('none'); return; }
@@ -17,7 +18,7 @@ export function useSubscription(userId: string | undefined) {
     const supabase = createSupabaseClient();
     supabase
       .from('subscriptions')
-      .select('status, trial_end, current_period_end, cancel_at_period_end')
+      .select('status, trial_end, current_period_end, cancel_at_period_end, stripe_subscription_id')
       .eq('user_id', userId)
       .maybeSingle()
       .then(({ data }) => {
@@ -26,6 +27,7 @@ export function useSubscription(userId: string | undefined) {
         if (data.trial_end) setTrialEnd(new Date(data.trial_end));
         if (data.current_period_end) setPeriodEnd(new Date(data.current_period_end));
         setCancelAtPeriodEnd(data.cancel_at_period_end ?? false);
+        setStripeSubscriptionId(data.stripe_subscription_id ?? null);
       });
   }, [userId]);
 
@@ -35,5 +37,10 @@ export function useSubscription(userId: string | undefined) {
     : null;
   const isTrialExpired = status === 'trialing' && trialEnd !== null && trialEnd < new Date();
 
-  return { status, isActive, trialEnd, periodEnd, daysLeftInTrial, isTrialExpired, cancelAtPeriodEnd };
+  // A 'trialing' row that already carries a stripe_subscription_id means the
+  // user subscribed mid-trial (real subscription, just hasn't been billed yet).
+  // Callers use this to distinguish "subscribed mid-trial" from "never subscribed".
+  const hasStripeSubscription = stripeSubscriptionId !== null;
+
+  return { status, isActive, trialEnd, periodEnd, daysLeftInTrial, isTrialExpired, cancelAtPeriodEnd, stripeSubscriptionId, hasStripeSubscription };
 }
