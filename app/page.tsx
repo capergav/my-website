@@ -402,7 +402,7 @@ const FEATURES = [
       </svg>
     ),
     title: "QR code ready",
-    desc: "4 styles and 3 templates (QR Only, With Tagline, Table Card). Download as PNG and print or post anywhere. Shareable link included.",
+    desc: "Generate print-ready QR codes in six formats — table sticker, table tent, wall poster, A-frame sign, counter card, and coaster. Match your brand with custom colors, dot shapes, styles, and your own logo, then download and print. Shareable link included.",
   },
 ];
 

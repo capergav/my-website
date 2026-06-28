@@ -3,7 +3,6 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/app/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
 import { MenuTabs } from "@/app/components/MenuTabs";
 import { HeroWithLang } from "@/app/components/HeroWithLang";
@@ -96,7 +95,7 @@ export default async function PublicMenuPage({ params }: Props) {
   const [{ data: menuItems }, { data: categoryNotesRows }, { data: categoryRows }] = await Promise.all([
     supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }).order("name", { ascending: true }),
     supabase.from("category_notes").select("category, note").eq("restaurant_id", restaurant.id),
-    supabase.from("restaurant_categories").select("name, show_image, image_url, banner_item_id, use_banner, image_mode").eq("restaurant_id", restaurant.id),
+    supabase.from("restaurant_categories").select("name, show_image, image_url, banner_item_id, use_banner, image_mode, sort_order").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }),
   ]);
 
   // Build a lookup of item images for banner_item_id resolution
@@ -129,9 +128,14 @@ export default async function PublicMenuPage({ params }: Props) {
     return acc;
   }, {});
 
+  // Order categories by the restaurant's saved sort_order (source of truth),
+  // exactly matching the admin panel. restaurant_categories is already ordered
+  // by sort_order above; only keep categories that actually have items, then
+  // append any orphan categories that exist on items but not in the table.
+  const dbCategoryOrder = (categoryRows ?? []).map((r) => (r as { name: string }).name);
   const sortedCategories = [
-    ...CATEGORY_ORDER.filter((c) => grouped[c]),
-    ...Object.keys(grouped).filter((c) => !(CATEGORY_ORDER as readonly string[]).includes(c)),
+    ...dbCategoryOrder.filter((c) => grouped[c]),
+    ...Object.keys(grouped).filter((c) => !dbCategoryOrder.includes(c)),
   ];
 
   // Fallback: if banner is on but no banner_item_id, use first item image in category
