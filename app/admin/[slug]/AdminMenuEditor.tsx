@@ -439,7 +439,7 @@ export function AdminMenuEditor({
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
     if (params.get('subscription') === 'success' || params.get('subscribed') === 'true') {
-      setMessage({ type: 'ok', text: "You're subscribed! Welcome to DineLinks Pro." });
+      setMessage({ type: 'ok', text: "You're subscribed! Welcome to DineLinks Monthly." });
       setTimeout(() => setMessage(null), 5000);
       // Clean URL so refreshing doesn't re-show the toast
       const clean = new URL(window.location.href);
@@ -3773,9 +3773,9 @@ function SettingsModal({
       return hasStripeSubscription ? `${left} · Subscribed` : left;
     }
     if (subStatus === "active" && cancelAtPeriodEnd && periodEnd)
-      return `Pro plan — Cancels on ${periodEnd.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}`;
-    if (subStatus === "active") return "Pro plan — Active";
-    if (subStatus === "past_due") return "Pro Plan — Payment past due";
+      return `DineLinks Monthly — Cancels on ${periodEnd.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}`;
+    if (subStatus === "active") return "DineLinks Monthly — Active";
+    if (subStatus === "past_due") return "DineLinks Monthly — Payment past due";
     if (subStatus === "canceled") return "No active plan";
     return subStatus;
   })();
@@ -3867,7 +3867,7 @@ function SettingsModal({
                 {(!subStatus || subStatus === "none" || (subStatus === "trialing" && !hasStripeSubscription)) ? (
                   <button type="button" onClick={openCheckout}
                     className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
-                    Start subscription — $25 CAD/mo
+                    DineLinks Monthly — $25 CAD/mo
                   </button>
                 ) : (subStatus === "trialing" && hasStripeSubscription) ? (
                   <button type="button" onClick={openPortal}
@@ -3881,7 +3881,7 @@ function SettingsModal({
                   </button>
                 ) : subStatus === "active" ? (
                   <div className="flex flex-col items-end gap-2">
-                    <span className="text-sm font-semibold text-green-600">Pro Plan — Active ✓</span>
+                    <span className="text-sm font-semibold text-green-600">DineLinks Monthly — Active ✓</span>
                     <button type="button" onClick={openPortal}
                       className="px-4 py-2 text-sm font-medium bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
                       Cancel subscription
@@ -3890,7 +3890,7 @@ function SettingsModal({
                 ) : (
                   <button type="button" onClick={openCheckout}
                     className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
-                    Subscribe — $25 CAD/mo
+                    DineLinks Monthly — $25 CAD/mo
                   </button>
                 )}
               </SettingRow>

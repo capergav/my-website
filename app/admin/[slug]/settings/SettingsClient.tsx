@@ -151,9 +151,9 @@ export function SettingsClient({
         ? `Free trial — ${trialDaysLeft} day${trialDaysLeft === 1 ? "" : "s"} left`
         : "Free trial — expired";
     if (subStatus === "active" && cancelAtPeriodEnd && periodEnd)
-      return `Pro plan — Cancels on ${periodEnd.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}`;
-    if (subStatus === "active") return "Pro plan — Active";
-    if (subStatus === "past_due") return "Pro Plan — Payment past due";
+      return `DineLinks Monthly — Cancels on ${periodEnd.toLocaleDateString("en-CA", { month: "short", day: "numeric", year: "numeric" })}`;
+    if (subStatus === "active") return "DineLinks Monthly — Active";
+    if (subStatus === "past_due") return "DineLinks Monthly — Payment past due";
     if (subStatus === "canceled") return "No active plan";
     return subStatus;
   })();
@@ -238,7 +238,7 @@ export function SettingsClient({
             {subStatus === "trialing" ? (
               <button type="button" onClick={openCheckout}
                 className="px-4 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity">
-                Subscribe — $25 CAD/mo
+                DineLinks Monthly — $25 CAD/mo
               </button>
             ) : subStatus === "active" && cancelAtPeriodEnd ? (
               <button type="button" onClick={openPortal}
