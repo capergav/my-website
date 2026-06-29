@@ -1309,7 +1309,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       {open && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
           style={{ animation: 'fadeIn 0.15s ease-out' }}>
-          <div className="flex flex-col w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl bg-[var(--card)] shadow-2xl"
+          <div className="flex flex-col w-full max-w-lg md:max-w-3xl max-h-[90vh] overflow-hidden rounded-2xl bg-[var(--card)] shadow-2xl"
             style={{ animation: 'modalIn 0.15s ease-out' }}>
             <div className="flex-shrink-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 rounded-t-2xl flex items-center justify-between">
               <div>
@@ -1353,7 +1353,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
               {/* PRESETS */}
               <div className="space-y-3">
                 <div className="text-xs uppercase tracking-widest text-gray-500">Choose a theme</div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {PRESETS.map((preset) => {
                     const isSelected = selectedPreset === preset.name;
                     return (
@@ -1407,7 +1407,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                   {/* Colors */}
                   <div>
                     <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest mb-3">Colors</p>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       {colors.map(({ label, value, set }) => (
                         <div key={label} className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] p-3 flex flex-col gap-2">
                           <label className="block text-xs font-semibold text-[var(--muted)]">{label}</label>
@@ -3183,7 +3183,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   return (
     <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/60 sm:p-4"
       style={{ animation: "fadeIn 0.15s ease-out" }}>
-      <div className="flex flex-col w-full sm:max-w-lg max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-t-2xl sm:rounded-2xl bg-[var(--card)] shadow-2xl"
+      <div className="flex flex-col w-full sm:max-w-lg md:max-w-3xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-t-2xl sm:rounded-2xl bg-[var(--card)] shadow-2xl"
         style={{ animation: "modalIn 0.15s ease-out" }}>
 
         {/* Header */}
@@ -3203,11 +3203,11 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
           {/* Live preview */}
           <div className="flex justify-center">
-            <div className="flex items-center justify-center w-full rounded-xl bg-[var(--background)] border border-[var(--card-border)] p-4" style={{ minHeight: 200 }}>
+            <div className="flex items-center justify-center w-full rounded-xl bg-[var(--background)] border border-[var(--card-border)] p-4 min-h-[200px] md:min-h-[300px]">
               <canvas
                 ref={previewCanvasRef}
-                className="rounded-lg shadow-sm"
-                style={{ display: "block", maxWidth: "100%", maxHeight: 340, height: "auto", width: "auto" }}
+                className="rounded-lg shadow-sm max-h-[340px] md:max-h-[460px]"
+                style={{ display: "block", maxWidth: "100%", height: "auto", width: "auto" }}
               />
             </div>
           </div>
@@ -3234,7 +3234,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
           {/* Style */}
           <div>
             <p className={sectionLabel}>Style</p>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {(Object.keys(stylePresets) as QRStyleKey[]).map((key) => {
                 const p = stylePresets[key];
                 const isSelected = qrStyle === key;
@@ -3790,7 +3790,7 @@ function SettingsModal({
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4"
       style={{ animation: "fadeIn 0.15s ease-out" }}
       onClick={handleClose}>
-      <div className="flex flex-col w-full max-w-lg max-h-[90vh] overflow-hidden rounded-2xl bg-[var(--card)] shadow-2xl"
+      <div className="flex flex-col w-full max-w-lg md:max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl bg-[var(--card)] shadow-2xl"
         style={{ animation: "modalIn 0.15s ease-out" }}
         onClick={(e) => e.stopPropagation()}>
 
