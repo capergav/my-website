@@ -2514,12 +2514,31 @@ function ManageCategoriesModal({
 // ── QR Code Modal ─────────────────────────────────────────────────────────────
 
 const QR_STYLES_MAP = {
-  classic: { fg: "#000000", bg: "#ffffff" },
-  brand:   { fg: "#2c2a26", bg: "#faf8f5" },
-  gold:    { fg: "#8b6914", bg: "#ffffff" },
-  dark:    { fg: "#faf8f5", bg: "#2c2a26" },
+  classic:    { fg: "#000000", bg: "#ffffff" },
+  brand:      { fg: "#2c2a26", bg: "#faf8f5" },
+  restaurant: { fg: "#2c2a26", bg: "#ffffff" },
+  dark:       { fg: "#faf8f5", bg: "#2c2a26" },
 } as const;
 type QRStyleKey = keyof typeof QR_STYLES_MAP;
+
+// WCAG-style relative-contrast ratio between two hex colors (1:1 … 21:1).
+// Used to warn when a QR's fg/bg pairing is too low-contrast to scan reliably.
+function contrastRatio(hex1: string, hex2: string): number {
+  const lum = (hex: string): number => {
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
+    if (!m) return 0;
+    const chan = [m[1], m[2], m[3]].map((h) => {
+      const c = parseInt(h, 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    return 0.2126 * chan[0] + 0.7152 * chan[1] + 0.0722 * chan[2];
+  };
+  const l1 = lum(hex1);
+  const l2 = lum(hex2);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
 
 // Output size acts as a quality multiplier on each format's base width.
 const SIZE_SCALE = { small: 1, medium: 1.5, large: 2 } as const;
@@ -3050,14 +3069,18 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   const logoUrl = (restaurant as Restaurant & { logo_url?: string | null })?.logo_url ?? null;
   const restaurantName = restaurant?.name ?? "Your Restaurant";
 
-  const brandFg = restaurant?.accent_color ?? "#8b6914";
-  const brandBg = restaurant?.background_color ?? "#faf8f5";
+  const brandFg   = restaurant?.accent_color ?? "#8b6914";
+  const brandBg   = restaurant?.background_color ?? "#faf8f5";
+  const brandFont = restaurant?.font_color ?? "#2c2a26";
+  const brandCard = restaurant?.main_color ?? "#ffffff";
 
   const stylePresets: Record<QRStyleKey, { fg: string; bg: string; frame: string; label: string }> = {
-    classic: { fg: "#000000", bg: "#ffffff", frame: "#000000", label: "Classic" },
-    brand:   { fg: brandFg,   bg: brandBg,   frame: brandFg,   label: "Brand"   },
-    gold:    { fg: "#8b6914", bg: "#faf8f5", frame: "#8b6914", label: "Gold"    },
-    dark:    { fg: "#faf8f5", bg: "#1f1d1a", frame: "#faf8f5", label: "Dark"    },
+    classic:    { fg: "#000000",  bg: "#ffffff",  frame: "#000000",  label: "Classic"    },
+    brand:      { fg: brandFg,    bg: brandBg,    frame: brandFg,    label: "Brand"      },
+    // Uses the restaurant's OWN theme colors so the QR matches their menu:
+    // dark foreground text on the card/main color, framed in the accent color.
+    restaurant: { fg: brandFont,  bg: brandCard,  frame: brandFg,    label: "Restaurant" },
+    dark:       { fg: "#faf8f5",  bg: "#1f1d1a",  frame: "#faf8f5",  label: "Dark"       },
   };
 
   const selectStyle = (key: QRStyleKey) => {
@@ -3082,7 +3105,10 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     (saved[key] === undefined || saved[key] === null ? fallback : saved[key] as T);
 
   const [qrFormat, setQrFormat]                   = useState<FormatKey>(pick("qrFormat", "sticker"));
-  const [qrStyle, setQrStyle]                     = useState<QRStyleKey>(pick("qrStyle", "classic"));
+  const [qrStyle, setQrStyle]                     = useState<QRStyleKey>(() => {
+    const s = pick<string>("qrStyle", "classic");
+    return (s in QR_STYLES_MAP ? s : "classic") as QRStyleKey; // "gold" is retired → fall back
+  });
   const [customQrColor, setCustomQrColor]         = useState(pick("customQrColor", "#000000"));
   const [customBgColor, setCustomBgColor]         = useState(pick("customBgColor", "#ffffff"));
   const [customFrameColor, setCustomFrameColor]   = useState(pick("customFrameColor", "#000000"));
@@ -3312,7 +3338,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
           {/* Style */}
           <div>
             <p className={sectionLabel}>Style</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {(Object.keys(stylePresets) as QRStyleKey[]).map((key) => {
                 const p = stylePresets[key];
                 const isSelected = qrStyle === key;
@@ -3375,6 +3401,11 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                   </div>
                 ))}
               </div>
+              {contrastRatio(customQrColor, customBgColor) < 2.5 && (
+                <p className="mt-3 text-[11px] leading-snug text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
+                  ⚠ Low contrast between QR color and background — this may be hard for phones to scan. Test it before printing.
+                </p>
+              )}
             </div>
           </div>
 
