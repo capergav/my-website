@@ -124,9 +124,9 @@ const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
   }, 50);
 };
 
-// CSS transition for SVG geometry properties (morph animation)
-const SVG_TRANSITION =
-  "x 350ms cubic-bezier(0.34,1.56,0.64,1), y 350ms cubic-bezier(0.34,1.56,0.64,1), width 350ms cubic-bezier(0.34,1.56,0.64,1), height 350ms cubic-bezier(0.34,1.56,0.64,1)";
+// Bouncy spring curve shared by the spotlight morph (geometry) so every
+// step-to-step move keeps the same overshoot feel.
+const SPOTLIGHT_EASE = [0.34, 1.56, 0.64, 1] as const;
 
 export function OnboardingTour({
   tourKey,
@@ -143,7 +143,9 @@ export function OnboardingTour({
   const [visible, setVisible] = useState(false);
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
   const [overlayOpacity, setOverlayOpacity] = useState(0);
-  const [windowSize, setWindowSize] = useState({ w: 0, h: 0 });
+  // Whether the cutout hole is open (true) or the screen is plainly dimmed
+  // with no hole (false — welcome / final steps, and while a cutout fades in).
+  const [holeOpen, setHoleOpen] = useState(false);
 
   // Refs that don't need to trigger re-renders
   const currentHighlightedElRef = useRef<HTMLElement | null>(null);
@@ -214,15 +216,6 @@ export function OnboardingTour({
     desktopMenuRef.current = false;
   }, []);
 
-  // ── Window size tracking for overlay rects ─────────────────────────────────
-
-  useEffect(() => {
-    const update = () => setWindowSize({ w: window.innerWidth, h: window.innerHeight });
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, []);
-
   // ── Show / replay ──────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -239,6 +232,7 @@ export function OnboardingTour({
       // Instantly clear spotlight
       overlayActiveRef.current = false;
       setOverlayOpacity(0);
+      setHoleOpen(false);
       setSpotlightRect(null);
       if (currentHighlightedElRef.current) {
         currentHighlightedElRef.current.style.position = "";
@@ -258,8 +252,11 @@ export function OnboardingTour({
     if (!visible) return;
     const step = STEPS[currentStep];
     if (!step.menuOpen && !step.targetSelector) {
+      // Plain dimmed screen: close the hole (fades the cutout out) but keep
+      // the dark overlay. spotlightRect is left mounted so the cutout can
+      // fade out gracefully; it's re-driven the moment a target step runs.
       overlayActiveRef.current = true;
-      setSpotlightRect(null);
+      setHoleOpen(false);
       setOverlayOpacity(1);
     }
   }, [visible, currentStep]);
@@ -276,7 +273,7 @@ export function OnboardingTour({
       currentHighlightedElRef.current = null;
     }
     overlayActiveRef.current = true;
-    setSpotlightRect(null);
+    setHoleOpen(false);
     setOverlayOpacity(1);
   }, []);
 
@@ -302,18 +299,14 @@ export function OnboardingTour({
 
       const finalRect = fromRect(rect, 12);
 
-      if (overlayActiveRef.current) {
-        // Already visible — single atomic update to morph the spotlight
-        setSpotlightRect(finalRect);
-      } else {
-        // First appearance — show overlay and spotlight in one atomic update
-        overlayActiveRef.current = true;
-        // Use requestAnimationFrame to batch both state updates in same frame
-        requestAnimationFrame(() => {
-          setSpotlightRect(finalRect);
-          setOverlayOpacity(1);
-        });
-      }
+      // Single geometry source. If the cutout is already open this morphs it
+      // (bouncy spring); if it's the first cutout it mounts AT this position
+      // and fades in (motion animates opacity only, never geometry-from-zero),
+      // so there's no sweep from the corner.
+      overlayActiveRef.current = true;
+      setSpotlightRect(finalRect);
+      setHoleOpen(true);
+      setOverlayOpacity(1);
     });
   }, []);
 
@@ -403,6 +396,7 @@ export function OnboardingTour({
     mutationObserverRef.current = null;
     overlayActiveRef.current = false;
     setOverlayOpacity(0);
+    setHoleOpen(false);
     setSpotlightRect(null);
     if (currentHighlightedElRef.current) {
       currentHighlightedElRef.current.style.position = "";
@@ -491,71 +485,55 @@ export function OnboardingTour({
         aria-hidden="true"
       />
 
-      {/* SVG spotlight overlay — a single dark rect whose hole is punched by a
-          <mask>, plus a crisp accent ring. The mask hole and the ring read from
-          the EXACT SAME geometry (position, size, rounded corners) and share
-          the identical SVG_TRANSITION, so the cutout and the border are one
-          locked unit — no leading/lagging, no square-hole vs rounded-ring
-          corner mismatch, and therefore no colored fringing. Keyed per menu
-          step so it remounts fresh when entering steps 8/9. */}
-      <svg
-        key={isMenuStep ? `overlay-${currentStep}` : "overlay-base"}
-        className="fixed inset-0 w-full h-full"
-        style={{ zIndex: overlayZ, opacity: overlayOpacity, transition: "opacity 300ms ease" }}
+      {/* Plain dark dim — shown on welcome / final steps, and as the base layer
+          a cutout fades in over. Fades out (holeOpen) as the spotlight takes
+          over, so the first cutout appears as a clean reveal, not a pop. */}
+      <div
+        className="fixed inset-0"
+        style={{
+          zIndex: overlayZ,
+          background: "rgba(0,0,0,0.6)",
+          opacity: holeOpen ? 0 : overlayOpacity,
+          transition: "opacity 300ms ease",
+          pointerEvents: "none",
+        }}
         aria-hidden="true"
-      >
-        {windowSize.w > 0 && (
-          <>
-            <defs>
-              {/* white = keep the dark overlay, black = punch the hole. When
-                  spotlightRect is null (welcome / final step) there's no black
-                  rect, so the mask is fully white and the whole screen dims
-                  with no cutout. */}
-              <mask id="tour-spotlight-mask">
-                <rect x="0" y="0" width={windowSize.w} height={windowSize.h} fill="white" />
-                {spotlightRect && (
-                  <rect
-                    x={spotlightRect.left}
-                    y={spotlightRect.top}
-                    width={spotlightRect.width}
-                    height={spotlightRect.height}
-                    rx={spotlightRect.borderRadius}
-                    fill="black"
-                    style={{ transition: SVG_TRANSITION }}
-                  />
-                )}
-              </mask>
-            </defs>
+      />
 
-            {/* Dark overlay with the hole punched out by the mask */}
-            <rect
-              x="0"
-              y="0"
-              width={windowSize.w}
-              height={windowSize.h}
-              fill="rgba(0,0,0,0.6)"
-              mask="url(#tour-spotlight-mask)"
-            />
-
-            {/* Crisp accent ring — identical geometry + transition to the mask
-                hole above. Solid stroke, accent color only, no blur/glow. */}
-            {spotlightRect && (
-              <rect
-                x={spotlightRect.left}
-                y={spotlightRect.top}
-                width={spotlightRect.width}
-                height={spotlightRect.height}
-                rx={spotlightRect.borderRadius}
-                fill="none"
-                stroke="var(--accent, #8b6914)"
-                strokeWidth="2.5"
-                shapeRendering="geometricPrecision"
-                style={{ transition: SVG_TRANSITION }}
-              />
-            )}
-          </>
-        )}
-      </svg>
+      {/* Spotlight cutout + accent border as ONE element. The dark surround is
+          this element's box-shadow and the ring is this element's border, so
+          the hole edge and the border are literally the same box driven by one
+          animated geometry — they can never lead or lag each other. Geometry
+          lives only in `animate` (never `initial`), so on first appearance it
+          mounts AT the target and just fades opacity in — no sweep from zero.
+          Keyed per menu step so steps 8/9 fade in fresh instead of morphing
+          across the screen from the previous element. */}
+      {spotlightRect && (
+        <motion.div
+          key={isMenuStep ? `spot-${currentStep}` : "spot-base"}
+          aria-hidden="true"
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: holeOpen ? overlayOpacity : 0,
+            top: spotlightRect.top,
+            left: spotlightRect.left,
+            width: spotlightRect.width,
+            height: spotlightRect.height,
+          }}
+          transition={{
+            opacity: { duration: 0.3, ease: "easeOut" },
+            default: { duration: 0.35, ease: SPOTLIGHT_EASE },
+          }}
+          style={{
+            position: "fixed",
+            zIndex: overlayZ,
+            borderRadius: spotlightRect.borderRadius,
+            border: "2.5px solid var(--accent, #8b6914)",
+            boxShadow: "0 0 0 9999px rgba(0,0,0,0.6)",
+            pointerEvents: "none",
+          }}
+        />
+      )}
 
       {/* Tour card — must sit above the menu-step overlay (z-101) so the
           "Next" button stays visible and clickable on steps 8/9. */}
