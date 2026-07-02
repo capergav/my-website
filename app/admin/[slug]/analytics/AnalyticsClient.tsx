@@ -152,7 +152,7 @@ function Stars({ value, size = 16 }: { value: number; size?: number }) {
 }
 
 export function AnalyticsClient({
-  slug, restaurantName, days, stats, dailyScans, topItems, totalItemViews,
+  slug, restaurantName, days, stats, dailyScans, topItems,
   langData, hourData, feedback, feedbackEnabled, hasData,
 }: Props) {
   const router = useRouter();
@@ -427,59 +427,6 @@ export function AnalyticsClient({
           <p className="text-xs text-[#2c2a26]/40 mt-2 text-right">
             Times shown in your local timezone ({Intl.DateTimeFormat().resolvedOptions().timeZone})
           </p>
-        </div>
-
-        {/* Item performance table */}
-        <div className="bg-white rounded-2xl border border-[#2c2a26]/8 shadow-sm overflow-hidden">
-          <div className="px-5 sm:px-6 py-4 border-b border-[#2c2a26]/8">
-            <h2 className="text-sm font-semibold text-[#2c2a26] uppercase tracking-widest opacity-60">
-              Item performance
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-[#2c2a26]/8 bg-[#faf8f5]/60">
-                  <th className="text-left px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50">Item</th>
-                  <th className="text-left px-3 py-3 text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50 hidden sm:table-cell">Category</th>
-                  <th className="text-right px-3 py-3 text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50">Views</th>
-                  <th className="text-right px-5 py-3 text-[10px] font-semibold uppercase tracking-widest text-[#2c2a26]/50 hidden sm:table-cell">% of total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-5 py-8 text-center text-[#2c2a26]/40 text-sm">
-                      No item clicks recorded yet
-                    </td>
-                  </tr>
-                ) : (
-                  topItems.map((item, idx) => {
-                    const pct = totalItemViews > 0 ? ((item.views / totalItemViews) * 100).toFixed(1) : "0";
-                    const isLow = item.views === 0;
-                    return (
-                      <tr key={item.id} className={`border-b border-[#2c2a26]/5 transition-colors hover:bg-[#faf8f5]/60 ${isLow ? "opacity-50" : ""}`}>
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-[#2c2a26]/30 w-5 text-right">{idx + 1}</span>
-                            <span className={`font-medium ${isLow ? "text-[#2c2a26]/40" : "text-[#2c2a26]"}`}>{item.name}</span>
-                            {isLow && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-50 text-red-600">
-                                Consider removing
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-3 py-3 text-[#2c2a26]/50 hidden sm:table-cell">{item.category}</td>
-                        <td className="px-3 py-3 text-right font-semibold text-[#2c2a26]">{item.views}</td>
-                        <td className="px-5 py-3 text-right text-[#2c2a26]/50 hidden sm:table-cell">{pct}%</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
         </div>
 
         {/* Guest feedback */}

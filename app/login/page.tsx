@@ -117,7 +117,7 @@ export default function LoginPage() {
               <line x1="26" y1="37" x2="42" y2="37" stroke="#ffffff" strokeWidth="2.6" strokeLinecap="round"/>
             </svg>
           </div>
-          <p className="text-white text-xs font-semibold uppercase tracking-widest">DineLinks</p>
+          <p className="text-white text-xs font-semibold tracking-widest">DineLinks</p>
         </Link>
 
         {/* Frosted glass card */}
