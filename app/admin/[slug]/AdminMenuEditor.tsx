@@ -2641,6 +2641,7 @@ async function composeQR(opts: {
   fontKey: FontKey;
   textAlign: "left" | "center" | "right";
   taglineOffset: number;   // reference px, vertical nudge of tagline
+  headerSpacing: number;   // reference px, extra space above & below header
   cardPadding: number;     // 0–100
   showBorder: boolean;
   moduleStyle: QRModuleStyle;
@@ -2658,7 +2659,7 @@ async function composeQR(opts: {
   const {
     slug, fgColor, bgColor, textColor, format, size, showHeader, showTagline,
     header, tagline, headerFontSize, taglineFontSize, fontKey, textAlign, taglineOffset,
-    cardPadding, showBorder, moduleStyle, roundCrop, includeLogo, logoBg, logoBgShape,
+    headerSpacing, cardPadding, showBorder, moduleStyle, roundCrop, includeLogo, logoBg, logoBgShape,
     logoBgColor, logoSizePercent, logoPadding, logoUrl, canvas, maxWidth,
   } = opts;
 
@@ -2741,7 +2742,9 @@ async function composeQR(opts: {
     ctx.font = `600 ${headerPx}px ${fam}`;
     headerLines = wrapLines(ctx, header.trim(), innerW, 2);
   }
-  const headerBlockH = headerLines.length ? headerLines.length * headerPx * 1.18 + headerPx * 0.4 : 0;
+  // Extra breathing room above & below the header text (owner-adjustable).
+  const hsp = headerSpacing * ts;
+  const headerBlockH = headerLines.length ? headerLines.length * headerPx * 1.18 + headerPx * 0.4 + hsp * 2 : 0;
 
   let taglineLines: string[] = [];
   if (showTagline && tagline.trim()) {
@@ -2771,7 +2774,7 @@ async function composeQR(opts: {
       ctx.fillStyle = textColor;
       ctx.font = `600 ${headerPx}px ${fam}`;
       for (const line of headerLines) { ctx.fillText(line, colAnchorX, ty); ty += headerPx * 1.18; }
-      ty += headerPx * 0.4;
+      ty += headerPx * 0.4 + hsp;
     }
     if (taglineLines.length) {
       ty += taglineOffset * ts;
@@ -2794,7 +2797,7 @@ async function composeQR(opts: {
     if (headerLines.length) {
       ctx.fillStyle = textColor;
       ctx.font = `600 ${headerPx}px ${fam}`;
-      let hy = pad;
+      let hy = pad + hsp;
       for (const line of headerLines) { ctx.fillText(line, anchorX, hy); hy += headerPx * 1.18; }
     }
 
@@ -3029,6 +3032,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   const [qrFont, setQrFont]                       = useState<FontKey>(pick("qrFont", "serif"));
   const [textAlign, setTextAlign]                 = useState<"left" | "center" | "right">(pick("textAlign", "center"));
   const [taglineOffset, setTaglineOffset]         = useState(pick("taglineOffset", 0));  // -40..40 reference px
+  const [headerSpacing, setHeaderSpacing]         = useState(pick("headerSpacing", 0));  // -20..40 reference px — space above & below header
   // Card
   const [cardPadding, setCardPadding]             = useState(pick("cardPadding", 35)); // 0-100
   const [showBorder, setShowBorder]               = useState(pick("showBorder", false));
@@ -3062,6 +3066,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     fontKey: qrFont,
     textAlign,
     taglineOffset,
+    headerSpacing,
     cardPadding,
     showBorder,
     moduleStyle: qrModuleStyle,
@@ -3073,7 +3078,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     logoSizePercent: qrLogoSize,
     logoPadding: qrLogoPadding,
     logoUrl,
-  }), [slug, customQrColor, customBgColor, customFrameColor, qrFormat, qrSize, qrTemplate, qrHeader, qrTagline, headerFontSize, taglineFontSize, qrFont, textAlign, taglineOffset, cardPadding, showBorder, qrModuleStyle, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrLogoSize, qrLogoPadding, logoUrl]);
+  }), [slug, customQrColor, customBgColor, customFrameColor, qrFormat, qrSize, qrTemplate, qrHeader, qrTagline, headerFontSize, taglineFontSize, qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder, qrModuleStyle, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrLogoSize, qrLogoPadding, logoUrl]);
 
   // Live preview — render to offscreen at capped width, then blit only if still latest.
   useEffect(() => {
@@ -3097,11 +3102,11 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     qrFormat, qrStyle, customQrColor, customBgColor, customFrameColor, qrModuleStyle,
     qrTemplate, qrSize, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor,
     qrLogoSize, qrLogoPadding, qrTagline, qrHeader, headerFontSize, taglineFontSize,
-    qrFont, textAlign, taglineOffset, cardPadding, showBorder,
+    qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder,
   }), [qrFormat, qrStyle, customQrColor, customBgColor, customFrameColor, qrModuleStyle,
     qrTemplate, qrSize, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor,
     qrLogoSize, qrLogoPadding, qrTagline, qrHeader, headerFontSize, taglineFontSize,
-    qrFont, textAlign, taglineOffset, cardPadding, showBorder]);
+    qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder]);
 
   // Auto-save on every change so reopening the modal restores where they left off.
   useEffect(() => {
@@ -3389,6 +3394,23 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                     <input type="range" min={14} max={36} value={headerFontSize}
                       onChange={e => setHeaderFontSize(Number(e.target.value))}
                       className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]" />
+                  </div>
+                )}
+
+                {/* Header vertical spacing */}
+                {showHeader && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm text-[var(--foreground)]">Header spacing</span>
+                      <span className="text-xs text-[var(--muted)]">{headerSpacing > 0 ? `+${headerSpacing}` : headerSpacing}</span>
+                    </div>
+                    <input type="range" min={-20} max={40} value={headerSpacing}
+                      onChange={e => setHeaderSpacing(Number(e.target.value))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]" />
+                    <div className="flex justify-between text-[10px] text-[var(--muted)] mt-1">
+                      <span>Tight</span>
+                      <span>Roomy</span>
+                    </div>
                   </div>
                 )}
 
