@@ -128,16 +128,6 @@ const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
 const SVG_TRANSITION =
   "x 350ms cubic-bezier(0.34,1.56,0.64,1), y 350ms cubic-bezier(0.34,1.56,0.64,1), width 350ms cubic-bezier(0.34,1.56,0.64,1), height 350ms cubic-bezier(0.34,1.56,0.64,1)";
 
-const SPOTLIGHT_CSS = `
-  @keyframes spotlightPulse {
-    0%, 100% { opacity: 0.7; stroke-width: 2; }
-    50%       { opacity: 1;   stroke-width: 3; }
-  }
-  .tour-pulse-ring {
-    animation: spotlightPulse 2s ease-in-out infinite;
-  }
-`;
-
 export function OnboardingTour({
   tourKey,
   hasCompletedTour,
@@ -261,18 +251,33 @@ export function OnboardingTour({
     }
   }, [tourKey, closeMenu]);
 
+  // ── Dim the screen on target-less steps (welcome / final) ──────────────────
+  // These steps never run applySpotlight, so activate the plain dark overlay
+  // here. Runs on first mount (step 0) and after the replay reset.
+  useEffect(() => {
+    if (!visible) return;
+    const step = STEPS[currentStep];
+    if (!step.menuOpen && !step.targetSelector) {
+      overlayActiveRef.current = true;
+      setSpotlightRect(null);
+      setOverlayOpacity(1);
+    }
+  }, [visible, currentStep]);
+
   // ── Spotlight helpers ──────────────────────────────────────────────────────
 
   const removeSpotlight = useCallback(() => {
-    overlayActiveRef.current = false;
+    // Detach any highlighted element but KEEP the dark overlay visible as a
+    // plain dimmed screen (no cutout). This keeps the dimming consistent on
+    // steps with no specific target (welcome + final step).
     if (currentHighlightedElRef.current) {
       currentHighlightedElRef.current.style.position = "";
       currentHighlightedElRef.current.style.zIndex = "";
       currentHighlightedElRef.current = null;
     }
-    setOverlayOpacity(0);
-    // After fade-out, remove the rect so the SVG renders nothing
-    setTimeout(() => setSpotlightRect(null), 300);
+    overlayActiveRef.current = true;
+    setSpotlightRect(null);
+    setOverlayOpacity(1);
   }, []);
 
   const applySpotlight = useCallback((el: HTMLElement) => {
@@ -472,8 +477,6 @@ export function OnboardingTour({
 
   return (
     <>
-      <style dangerouslySetInnerHTML={{ __html: SPOTLIGHT_CSS }} />
-
       {/* Transparent click-blocker — z-39, beneath the overlay. Swallows every
           tap/click on the dimmed page so the tour can't be interacted around.
           The spotlit element (z-51), the open menu, and the tour card (z-60)
@@ -497,6 +500,17 @@ export function OnboardingTour({
         style={{ zIndex: overlayZ, opacity: overlayOpacity, transition: "opacity 300ms ease" }}
         aria-hidden="true"
       >
+        {/* Target-less steps (welcome / final): plain dimmed screen, no cutout */}
+        {!spotlightRect && windowSize.w > 0 && (
+          <rect
+            x="0"
+            y="0"
+            width={windowSize.w}
+            height={windowSize.h}
+            fill="rgba(0,0,0,0.6)"
+          />
+        )}
+
         {spotlightRect && windowSize.w > 0 && (
           <>
             {/* 4 dark rects around the spotlight hole — all animate together */}
@@ -537,7 +551,10 @@ export function OnboardingTour({
               style={{ transition: SVG_TRANSITION }}
             />
 
-            {/* Pulsing accent ring around the hole */}
+            {/* Crisp accent ring around the hole. Reads the SAME geometry as
+                the dark rects above and uses the identical SVG_TRANSITION, so
+                the ring and the cutout resize/appear as one locked unit. No
+                blur/glow — a clean solid accent stroke, no colored fringing. */}
             <rect
               x={spotlightRect.left}
               y={spotlightRect.top}
@@ -546,8 +563,8 @@ export function OnboardingTour({
               rx={spotlightRect.borderRadius}
               fill="none"
               stroke="var(--accent, #8b6914)"
-              strokeWidth="2"
-              className="tour-pulse-ring"
+              strokeWidth="2.5"
+              shapeRendering="geometricPrecision"
               style={{ transition: SVG_TRANSITION }}
             />
           </>
