@@ -28,7 +28,7 @@ export default function BillingPage() {
           Full access to DineLinks for 60 days free, then $25 CAD/month. Cancel anytime.
         </p>
         <p className="text-sm text-[#6b6560] mb-8">
-          Head back to your admin dashboard and click{" "}<strong>Start subscription</strong>{" "}in the top navigation to begin.
+          Head back to your admin dashboard and click{" "}<strong>DineLinks Monthly</strong>{" "}in the top navigation to begin.
         </p>
         <Link
           href="/admin"
