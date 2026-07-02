@@ -139,7 +139,11 @@ export function SettingsClient({
   };
 
   const openCheckout = async () => {
-    const res = await fetch("/api/stripe/checkout", { method: "POST" });
+    const res = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ restaurantSlug: slug }),
+    });
     const data = await res.json();
     if (data.url) window.location.href = data.url;
   };

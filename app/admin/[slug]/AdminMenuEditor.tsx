@@ -384,7 +384,7 @@ export function AdminMenuEditor({
       const res = await fetch('/api/stripe/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, userEmail: user.email, restaurantSlug }),
+        body: JSON.stringify({ restaurantSlug }),
       });
       const { url } = await res.json();
       if (url) window.location.href = url;
@@ -406,7 +406,7 @@ export function AdminMenuEditor({
       const res = await fetch('/api/stripe/portal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, restaurantSlug }),
+        body: JSON.stringify({ restaurantSlug }),
       });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
@@ -3789,12 +3789,10 @@ function SettingsModal({
     if (data.url) {
       window.open(data.url, "_blank");
     } else if (data.redirect_to_checkout) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
       const res2 = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: user.id, userEmail: user.email, restaurantSlug: slug }),
+        body: JSON.stringify({ restaurantSlug: slug }),
       });
       const data2 = await res2.json();
       if (data2.url) window.location.href = data2.url;
@@ -3804,12 +3802,10 @@ function SettingsModal({
   };
 
   const openCheckout = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId: user.id, userEmail: user.email, restaurantSlug: slug }),
+      body: JSON.stringify({ restaurantSlug: slug }),
     });
     const data = await res.json();
     if (data.url) window.location.href = data.url;

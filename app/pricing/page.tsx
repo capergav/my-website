@@ -15,10 +15,7 @@ export default function PricingPage() {
   const handleGetStarted = async () => {
     if (!user) { window.location.href = '/signup?redirect=/pricing'; return; }
     setLoading(true);
-    const res = await fetch('/api/stripe/checkout', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user.id, userEmail: user.email }),
-    });
+    const res = await fetch('/api/stripe/checkout', { method: 'POST' });
     const { url } = await res.json();
     if (url) window.location.href = url;
     else setLoading(false);

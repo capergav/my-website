@@ -2,11 +2,22 @@ export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { createSupabaseServerClient } from '@/app/lib/supabase';
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId, userEmail, restaurantSlug } = await req.json();
-    if (!userId || !userEmail) return NextResponse.json({ error: 'Missing user info' }, { status: 400 });
+    // Identity ALWAYS comes from the session cookie — never trust a body-supplied
+    // userId/userEmail. restaurantSlug (used only for return URLs) may still come
+    // from the body and is harmless.
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user || !user.email) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+    const userId = user.id;
+    const userEmail = user.email;
+
+    const { restaurantSlug } = await req.json().catch(() => ({}));
 
     const { data: existing } = await supabaseAdmin
       .from('subscriptions')
