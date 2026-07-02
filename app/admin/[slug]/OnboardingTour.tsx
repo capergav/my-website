@@ -491,82 +491,68 @@ export function OnboardingTour({
         aria-hidden="true"
       />
 
-      {/* SVG spotlight overlay — dark with a bright hole using 4 rects (not a
-          mask) for smooth animation. Keyed per menu step so it remounts fresh
-          when entering steps 8/9 instead of reusing stale geometry. */}
+      {/* SVG spotlight overlay — a single dark rect whose hole is punched by a
+          <mask>, plus a crisp accent ring. The mask hole and the ring read from
+          the EXACT SAME geometry (position, size, rounded corners) and share
+          the identical SVG_TRANSITION, so the cutout and the border are one
+          locked unit — no leading/lagging, no square-hole vs rounded-ring
+          corner mismatch, and therefore no colored fringing. Keyed per menu
+          step so it remounts fresh when entering steps 8/9. */}
       <svg
         key={isMenuStep ? `overlay-${currentStep}` : "overlay-base"}
         className="fixed inset-0 w-full h-full"
         style={{ zIndex: overlayZ, opacity: overlayOpacity, transition: "opacity 300ms ease" }}
         aria-hidden="true"
       >
-        {/* Target-less steps (welcome / final): plain dimmed screen, no cutout */}
-        {!spotlightRect && windowSize.w > 0 && (
-          <rect
-            x="0"
-            y="0"
-            width={windowSize.w}
-            height={windowSize.h}
-            fill="rgba(0,0,0,0.6)"
-          />
-        )}
-
-        {spotlightRect && windowSize.w > 0 && (
+        {windowSize.w > 0 && (
           <>
-            {/* 4 dark rects around the spotlight hole — all animate together */}
-            {/* Top rect */}
+            <defs>
+              {/* white = keep the dark overlay, black = punch the hole. When
+                  spotlightRect is null (welcome / final step) there's no black
+                  rect, so the mask is fully white and the whole screen dims
+                  with no cutout. */}
+              <mask id="tour-spotlight-mask">
+                <rect x="0" y="0" width={windowSize.w} height={windowSize.h} fill="white" />
+                {spotlightRect && (
+                  <rect
+                    x={spotlightRect.left}
+                    y={spotlightRect.top}
+                    width={spotlightRect.width}
+                    height={spotlightRect.height}
+                    rx={spotlightRect.borderRadius}
+                    fill="black"
+                    style={{ transition: SVG_TRANSITION }}
+                  />
+                )}
+              </mask>
+            </defs>
+
+            {/* Dark overlay with the hole punched out by the mask */}
             <rect
               x="0"
               y="0"
               width={windowSize.w}
-              height={Math.max(0, spotlightRect.top)}
+              height={windowSize.h}
               fill="rgba(0,0,0,0.6)"
-              style={{ transition: SVG_TRANSITION }}
-            />
-            {/* Bottom rect */}
-            <rect
-              x="0"
-              y={spotlightRect.top + spotlightRect.height}
-              width={windowSize.w}
-              height={Math.max(0, windowSize.h - spotlightRect.top - spotlightRect.height)}
-              fill="rgba(0,0,0,0.6)"
-              style={{ transition: SVG_TRANSITION }}
-            />
-            {/* Left rect */}
-            <rect
-              x="0"
-              y={spotlightRect.top}
-              width={Math.max(0, spotlightRect.left)}
-              height={spotlightRect.height}
-              fill="rgba(0,0,0,0.6)"
-              style={{ transition: SVG_TRANSITION }}
-            />
-            {/* Right rect */}
-            <rect
-              x={spotlightRect.left + spotlightRect.width}
-              y={spotlightRect.top}
-              width={Math.max(0, windowSize.w - spotlightRect.left - spotlightRect.width)}
-              height={spotlightRect.height}
-              fill="rgba(0,0,0,0.6)"
-              style={{ transition: SVG_TRANSITION }}
+              mask="url(#tour-spotlight-mask)"
             />
 
-            {/* Crisp accent ring around the hole. Reads the SAME geometry as
-                the dark rects above and uses the identical SVG_TRANSITION, so
-                the ring and the cutout resize/appear as one locked unit. No
-                blur/glow — a clean solid accent stroke, no colored fringing. */}
-            <rect
-              x={spotlightRect.left}
-              y={spotlightRect.top}
-              width={spotlightRect.width}
-              height={spotlightRect.height}
-              rx={spotlightRect.borderRadius}
-              fill="none"
-              stroke="var(--accent, #8b6914)"
-              strokeWidth="2.5"
-              shapeRendering="geometricPrecision"
-              style={{ transition: SVG_TRANSITION }}
-            />
+            {/* Crisp accent ring — identical geometry + transition to the mask
+                hole above. Solid stroke, accent color only, no blur/glow. */}
+            {spotlightRect && (
+              <rect
+                x={spotlightRect.left}
+                y={spotlightRect.top}
+                width={spotlightRect.width}
+                height={spotlightRect.height}
+                rx={spotlightRect.borderRadius}
+                fill="none"
+                stroke="var(--accent, #8b6914)"
+                strokeWidth="2.5"
+                shapeRendering="geometricPrecision"
+                style={{ transition: SVG_TRANSITION }}
+              />
+            )}
           </>
         )}
       </svg>
