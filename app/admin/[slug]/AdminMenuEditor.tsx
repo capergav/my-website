@@ -2632,6 +2632,7 @@ async function composeQR(opts: {
   textColor: string;
   format: FormatKey;
   size: QRSizeKey;
+  qrScale: number;         // 50–100 — QR grid size within its available card area
   showHeader: boolean;
   showTagline: boolean;
   header: string;
@@ -2657,7 +2658,7 @@ async function composeQR(opts: {
   maxWidth?: number;       // preview cap — uniformly scales the whole card
 }) {
   const {
-    slug, fgColor, bgColor, textColor, format, size, showHeader, showTagline,
+    slug, fgColor, bgColor, textColor, format, size, qrScale, showHeader, showTagline,
     header, tagline, headerFontSize, taglineFontSize, fontKey, textAlign, taglineOffset,
     headerSpacing, cardPadding, showBorder, moduleStyle, roundCrop, includeLogo, logoBg, logoBgShape,
     logoBgColor, logoSizePercent, logoPadding, logoUrl, canvas, maxWidth,
@@ -2753,11 +2754,15 @@ async function composeQR(opts: {
   }
   const taglineBlockH = taglineLines.length ? taglineLines.length * taglinePx * 1.18 + taglinePx * 0.5 : 0;
 
+  // Owner-adjustable QR grid size within its available area (shrinks → more
+  // whitespace, 100% → fills the area as before). Clamped for scannability.
+  const qrScaleFactor = Math.min(1, Math.max(0.5, qrScale / 100));
+
   if (fmt.orientation === "landscape") {
     // ── Counter card: QR on the left, text column on the right ───────────────
     const qrAreaW = innerW * 0.46;
     const availH = H - pad * 2 - wmH;
-    const qrPx = Math.max(60, Math.min(qrAreaW, availH));
+    const qrPx = Math.max(60, Math.min(qrAreaW, availH) * qrScaleFactor);
     const qrX = pad + (qrAreaW - qrPx) / 2;
     const qrY = pad + (availH - qrPx) / 2;
     ctx.drawImage(renderQRCanvas(url, Math.round(qrPx), fgColor, bgColor, moduleStyle), qrX, qrY, qrPx, qrPx);
@@ -2787,7 +2792,7 @@ async function composeQR(opts: {
     const innerTop = pad + headerBlockH;
     const innerBottom = H - pad - wmH - taglineBlockH;
     const availH = Math.max(60, innerBottom - innerTop);
-    const qrPx = Math.max(60, Math.min(innerW, availH));
+    const qrPx = Math.max(60, Math.min(innerW, availH) * qrScaleFactor);
     const qrX = (W - qrPx) / 2;
     // No header/tagline → center the QR (and therefore its logo) on the TRUE
     // canvas center. Otherwise the reserved bottom watermark band nudges it up.
@@ -3018,6 +3023,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   const [qrModuleStyle, setQrModuleStyle]         = useState<QRModuleStyle>(pick("qrModuleStyle", "square"));
   const [qrTemplate, setQrTemplate]               = useState<"simple" | "tagline" | "table">(pick("qrTemplate", "simple"));
   const [qrSize, setQrSize]                       = useState<QRSizeKey>(pick("qrSize", "medium"));
+  const [qrScale, setQrScale]                     = useState<number>(pick("qrScale", 100)); // 50-100% of available card area
   const [qrIncludeLogo, setQrIncludeLogo]         = useState(pick("qrIncludeLogo", true));
   const [qrLogoBg, setQrLogoBg]                   = useState(pick("qrLogoBg", true));
   const [qrLogoBgShape, setQrLogoBgShape]         = useState<"circle" | "square" | "rounded" | "none">(pick("qrLogoBgShape", "circle"));
@@ -3057,6 +3063,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     textColor: customFrameColor,
     format: qrFormat,
     size: qrSize,
+    qrScale,
     showHeader: qrTemplate === "table",
     showTagline: qrTemplate === "tagline" || qrTemplate === "table",
     header: qrHeader,
@@ -3078,7 +3085,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     logoSizePercent: qrLogoSize,
     logoPadding: qrLogoPadding,
     logoUrl,
-  }), [slug, customQrColor, customBgColor, customFrameColor, qrFormat, qrSize, qrTemplate, qrHeader, qrTagline, headerFontSize, taglineFontSize, qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder, qrModuleStyle, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrLogoSize, qrLogoPadding, logoUrl]);
+  }), [slug, customQrColor, customBgColor, customFrameColor, qrFormat, qrSize, qrScale, qrTemplate, qrHeader, qrTagline, headerFontSize, taglineFontSize, qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder, qrModuleStyle, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrLogoSize, qrLogoPadding, logoUrl]);
 
   // Live preview — render to offscreen at capped width, then blit only if still latest.
   useEffect(() => {
@@ -3100,11 +3107,11 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   // Snapshot of every user choice we persist (roundCrop is derived from format).
   const buildSettings = useCallback(() => ({
     qrFormat, qrStyle, customQrColor, customBgColor, customFrameColor, qrModuleStyle,
-    qrTemplate, qrSize, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor,
+    qrTemplate, qrSize, qrScale, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor,
     qrLogoSize, qrLogoPadding, qrTagline, qrHeader, headerFontSize, taglineFontSize,
     qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder,
   }), [qrFormat, qrStyle, customQrColor, customBgColor, customFrameColor, qrModuleStyle,
-    qrTemplate, qrSize, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor,
+    qrTemplate, qrSize, qrScale, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor,
     qrLogoSize, qrLogoPadding, qrTagline, qrHeader, headerFontSize, taglineFontSize,
     qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder]);
 
@@ -3535,6 +3542,29 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
               </div>
             </div>
           )}
+
+          {/* QR code size */}
+          <div>
+            <p className={sectionLabel}>QR code size</p>
+            <div className="rounded-xl border border-[var(--card-border)] p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-[var(--foreground)]">Size within card</span>
+                <span className="text-xs text-[var(--muted)]">{qrScale}%</span>
+              </div>
+              <input type="range" min={50} max={100} value={qrScale}
+                onChange={e => setQrScale(Number(e.target.value))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]" />
+              <div className="flex justify-between text-[10px] text-[var(--muted)] mt-1">
+                <span>Smaller</span>
+                <span>Fills card</span>
+              </div>
+              {qrScale < 65 && (
+                <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
+                  ⚠ A small QR can be hard to scan from a distance or at small print sizes. Test it with your phone before printing.
+                </p>
+              )}
+            </div>
+          </div>
 
           {/* Card */}
           <div>
