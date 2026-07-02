@@ -732,8 +732,15 @@ export function AdminMenuEditor({
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/50 to-black/20 z-[1]" />
 
-        {/* Mobile: single hamburger button */}
-        <div className="sm:hidden absolute top-3 end-3 z-20">
+        {/* Mobile: trial pill + hamburger button */}
+        <div className="sm:hidden absolute top-3 end-3 z-20 flex items-center gap-2">
+          <TrialPill
+            subStatus={subStatus}
+            daysLeft={daysLeftInTrial}
+            hasStripeSubscription={hasStripeSubscription}
+            loading={checkoutLoading}
+            onSubscribe={startCheckout}
+          />
           <button
             data-tour="menu-button"
             type="button"
@@ -749,6 +756,13 @@ export function AdminMenuEditor({
 
         {/* Desktop action row */}
         <div className="hidden sm:flex absolute top-4 end-4 items-center gap-2 z-20">
+          <TrialPill
+            subStatus={subStatus}
+            daysLeft={daysLeftInTrial}
+            hasStripeSubscription={hasStripeSubscription}
+            loading={checkoutLoading}
+            onSubscribe={startCheckout}
+          />
           <AdminMenuPanel
             onOpenTheme={() => setThemeOpen(true)}
             onReplayTour={() => setTourKey((k) => k + 1)}
@@ -1829,6 +1843,58 @@ function TrialBanner({
         </div>
       </div>
     </div>
+  );
+}
+
+// Compact trial-countdown pill for the admin header. DineLinks gold is
+// intentionally hardcoded here — the trial is a DineLinks billing concept, the
+// one documented exception to the "admin uses restaurant theme colors" rule.
+// Subscribed-state logic mirrors the Billing section: a 'trialing' row that
+// already carries a stripe_subscription_id means the owner subscribed mid-trial,
+// so we must NEVER show them a "Subscribe" prompt.
+function TrialPill({
+  subStatus,
+  daysLeft,
+  hasStripeSubscription,
+  loading,
+  onSubscribe,
+}: {
+  subStatus: string;
+  daysLeft: number | null;
+  hasStripeSubscription: boolean;
+  loading: boolean;
+  onSubscribe: () => void | Promise<void>;
+}) {
+  // No pill while we don't yet know, or for fully active subscribers.
+  if (subStatus === "loading" || subStatus === "active") return null;
+
+  const pillButton =
+    "inline-flex items-center justify-center rounded-full bg-[#8b6914] hover:bg-[#6f5310] border border-[#a07d1a] px-3 h-9 text-xs font-semibold text-white shadow-sm transition-colors disabled:opacity-60 disabled:cursor-wait whitespace-nowrap";
+
+  // Already subscribed mid-trial → subtle, non-button indicator. Never "Subscribe".
+  if (subStatus === "trialing" && hasStripeSubscription) {
+    if (daysLeft === null) return null;
+    return (
+      <span className="inline-flex items-center justify-center rounded-full bg-white/15 border border-white/25 px-3 h-9 text-xs font-semibold text-white whitespace-nowrap">
+        Trial · {daysLeft}d left
+      </span>
+    );
+  }
+
+  // Genuine free trial, not yet subscribed → "Xd left — Subscribe" → checkout.
+  if (subStatus === "trialing" && !hasStripeSubscription) {
+    return (
+      <button type="button" onClick={onSubscribe} disabled={loading} className={pillButton}>
+        {loading ? "Redirecting…" : daysLeft !== null ? `${daysLeft}d left — Subscribe` : "Subscribe"}
+      </button>
+    );
+  }
+
+  // canceled / past_due / none → prompt to (re)subscribe.
+  return (
+    <button type="button" onClick={onSubscribe} disabled={loading} className={pillButton}>
+      {loading ? "Redirecting…" : "Subscribe to continue"}
+    </button>
   );
 }
 
