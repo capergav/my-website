@@ -486,11 +486,6 @@ export function OnboardingTour({
   // the dark fill) on target-less steps before the first real measurement.
   const rect = spotlightRect ?? { top: 0, left: 0, width: 0, height: 0, borderRadius: 0 };
   const dimAlpha = 0.6 * overlayOpacity;
-  // Bouncy spring, same overshoot feel as before, expressed as a CSS easing so
-  // the cutout's top/left/width/height actually interpolate (SVG rect attrs did
-  // not tween reliably inside a <mask>, which is what made the hole teleport).
-  const SPRING = `cubic-bezier(${SPOTLIGHT_EASE.join(", ")})`;
-  const geoDur = geoAnimate ? "380ms" : "0ms";
 
   return (
     <>
@@ -508,32 +503,44 @@ export function OnboardingTour({
         aria-hidden="true"
       />
 
-      {/* Continuous dark dim + spotlight cutout as ONE always-mounted <div>.
-          The dark surround is this div's huge box-shadow spread and the accent
-          ring is this SAME div's border — so the hole edge and the ring are
-          literally the same box and can NEVER lead, lag, or desync. Geometry is
-          animated with a CSS transition on top/left/width/height, which
-          interpolate reliably on a normal HTML element (SVG rect x/y/width/
-          height inside a <mask> did NOT tween via CSS/transform and made the
-          cutout teleport — that was the real bug). The div is never unmounted
-          or re-keyed, so the dark can never vanish for a frame → no menu-step
-          flash. On the first open geoAnimate is false, so the box jumps to the
-          target (no corner sweep); once open, every later step morphs. */}
-      <div
+      {/* Continuous dark dim + spotlight cutout as ONE always-mounted div. The
+          dark surround is this div's huge box-shadow spread, the bright hole is
+          the div's own rectangle, and the accent ring is this SAME div's border
+          — one element, so the hole, the dark, and the border are physically
+          unified and can NEVER lead, lag, or desync. The geometry
+          (top/left/width/height) is animated by `motion` — JS-interpolated
+          every frame — instead of a CSS transition. That matters: a CSS
+          transition does NOT start when its duration is enabled in the same
+          style commit as the value change (which is exactly what happened when
+          the first morph flipped the geometry transition 0ms→380ms), so the box
+          teleported. `motion` reads the new target + new transition together
+          each render, so every step slides. The div is never unmounted or
+          re-keyed, so the dark never vanishes for a frame → no menu-step flash.
+          The first open uses duration 0 (jump to the target, no corner sweep);
+          every later step uses the bouncy spring, carrying the hole and border
+          in perfect unison. */}
+      <motion.div
         aria-hidden="true"
-        style={{
-          position: "fixed",
-          zIndex: overlayZ,
+        initial={false}
+        animate={{
           top: rect.top,
           left: rect.left,
           width: rect.width,
           height: rect.height,
           borderRadius: rect.borderRadius,
+        }}
+        transition={
+          geoAnimate ? { duration: 0.42, ease: SPOTLIGHT_EASE } : { duration: 0 }
+        }
+        style={{
+          position: "fixed",
+          zIndex: overlayZ,
           border: `2.5px solid ${holeOpen ? "var(--accent, #8b6914)" : "transparent"}`,
           backgroundColor: holeOpen ? "transparent" : `rgba(0,0,0,${dimAlpha})`,
           boxShadow: `0 0 0 9999px rgba(0,0,0,${dimAlpha})`,
           pointerEvents: "none",
-          transition: `top ${geoDur} ${SPRING}, left ${geoDur} ${SPRING}, width ${geoDur} ${SPRING}, height ${geoDur} ${SPRING}, border-radius ${geoDur} ${SPRING}, background-color 300ms ease, box-shadow 300ms ease, border-color 300ms ease`,
+          transition:
+            "background-color 300ms ease, box-shadow 300ms ease, border-color 300ms ease",
         }}
       />
 
