@@ -485,55 +485,90 @@ export function OnboardingTour({
         aria-hidden="true"
       />
 
-      {/* Plain dark dim — shown on welcome / final steps, and as the base layer
-          a cutout fades in over. Fades out (holeOpen) as the spotlight takes
-          over, so the first cutout appears as a clean reveal, not a pop. */}
-      <div
-        className="fixed inset-0"
-        style={{
-          zIndex: overlayZ,
-          background: "rgba(0,0,0,0.6)",
-          opacity: holeOpen ? 0 : overlayOpacity,
-          transition: "opacity 300ms ease",
-          pointerEvents: "none",
-        }}
+      {/* Continuous dark overlay + animated spotlight cutout, as ONE SVG that
+          is NEVER unmounted or re-keyed between steps. Because the dark dim is
+          a full-screen <rect> that is always mounted at full strength (only
+          MASKED by the moving hole), the dark can never vanish for a frame —
+          so opening/closing the menu on steps 8/9/10 produces no brightness
+          flash. The mask hole and the accent ring are two <motion.rect>s fed
+          the SAME `spotlightRect` geometry with identical transitions, so the
+          cutout and its border are literally the same shape in motion — they
+          cannot lead, lag, or snap independently. Geometry lives only in
+          `animate` (never `initial`), so the first cutout appears AT its target
+          and just fades opacity in (no sweep from the corner); every later
+          step morphs the same mounted rects (bouncy spring), so nothing ever
+          teleports. */}
+      <svg
         aria-hidden="true"
-      />
+        width="100%"
+        height="100%"
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: overlayZ,
+          pointerEvents: "none",
+          opacity: overlayOpacity,
+          transition: "opacity 300ms ease",
+        }}
+      >
+        <defs>
+          <mask id="dl-spotlight-mask">
+            {/* white = keep the dark; the hole punches it out */}
+            <rect x="0" y="0" width="100%" height="100%" fill="#fff" />
+            {spotlightRect && (
+              <motion.rect
+                initial={{ opacity: 0 }}
+                animate={{
+                  x: spotlightRect.left,
+                  y: spotlightRect.top,
+                  width: spotlightRect.width,
+                  height: spotlightRect.height,
+                  rx: spotlightRect.borderRadius,
+                  opacity: holeOpen ? 1 : 0,
+                }}
+                transition={{
+                  opacity: { duration: 0.3, ease: "easeOut" },
+                  default: { duration: 0.35, ease: SPOTLIGHT_EASE },
+                }}
+                fill="#000"
+              />
+            )}
+          </mask>
+        </defs>
 
-      {/* Spotlight cutout + accent border as ONE element. The dark surround is
-          this element's box-shadow and the ring is this element's border, so
-          the hole edge and the border are literally the same box driven by one
-          animated geometry — they can never lead or lag each other. Geometry
-          lives only in `animate` (never `initial`), so on first appearance it
-          mounts AT the target and just fades opacity in — no sweep from zero.
-          Keyed per menu step so steps 8/9 fade in fresh instead of morphing
-          across the screen from the previous element. */}
-      {spotlightRect && (
-        <motion.div
-          key={isMenuStep ? `spot-${currentStep}` : "spot-base"}
-          aria-hidden="true"
-          initial={{ opacity: 0 }}
-          animate={{
-            opacity: holeOpen ? overlayOpacity : 0,
-            top: spotlightRect.top,
-            left: spotlightRect.left,
-            width: spotlightRect.width,
-            height: spotlightRect.height,
-          }}
-          transition={{
-            opacity: { duration: 0.3, ease: "easeOut" },
-            default: { duration: 0.35, ease: SPOTLIGHT_EASE },
-          }}
-          style={{
-            position: "fixed",
-            zIndex: overlayZ,
-            borderRadius: spotlightRect.borderRadius,
-            border: "2.5px solid var(--accent, #8b6914)",
-            boxShadow: "0 0 0 9999px rgba(0,0,0,0.6)",
-            pointerEvents: "none",
-          }}
+        {/* Dark dim — always full strength, only revealed/hidden by the mask */}
+        <rect
+          x="0"
+          y="0"
+          width="100%"
+          height="100%"
+          fill="#000"
+          fillOpacity={0.6}
+          mask="url(#dl-spotlight-mask)"
         />
-      )}
+
+        {/* Accent ring — SAME animated geometry as the mask hole above */}
+        {spotlightRect && (
+          <motion.rect
+            initial={{ opacity: 0 }}
+            animate={{
+              x: spotlightRect.left,
+              y: spotlightRect.top,
+              width: spotlightRect.width,
+              height: spotlightRect.height,
+              rx: spotlightRect.borderRadius,
+              opacity: holeOpen ? 1 : 0,
+            }}
+            transition={{
+              opacity: { duration: 0.3, ease: "easeOut" },
+              default: { duration: 0.35, ease: SPOTLIGHT_EASE },
+            }}
+            fill="none"
+            stroke="var(--accent, #8b6914)"
+            strokeWidth={2.5}
+          />
+        )}
+      </svg>
 
       {/* Tour card — must sit above the menu-step overlay (z-101) so the
           "Next" button stays visible and clickable on steps 8/9. */}
