@@ -125,8 +125,15 @@ const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
 };
 
 // Bouncy spring curve shared by the spotlight morph (geometry) so every
-// step-to-step move keeps the same overshoot feel.
+// step-to-step move keeps the same overshoot feel. ONE duration + ONE easing
+// curve drive both the motion geometry (top/left/width/height) AND the inline
+// CSS fade (border-color/box-shadow/background-color) so the hole, the dark
+// surround, and the accent ring move and fade on a single clock — never on
+// mismatched timers (previously 0.42s bouncy vs 0.30s linear).
+const SPOTLIGHT_DURATION = 0.42;
 const SPOTLIGHT_EASE = [0.34, 1.56, 0.64, 1] as const;
+// Same curve, expressed for CSS. Must stay identical to SPOTLIGHT_EASE.
+const SPOTLIGHT_EASE_CSS = "cubic-bezier(0.34, 1.56, 0.64, 1)";
 
 export function OnboardingTour({
   tourKey,
@@ -542,7 +549,9 @@ export function OnboardingTour({
           borderRadius: rect.borderRadius,
         }}
         transition={
-          geoAnimate ? { duration: 0.42, ease: SPOTLIGHT_EASE } : { duration: 0 }
+          geoAnimate
+            ? { duration: SPOTLIGHT_DURATION, ease: SPOTLIGHT_EASE }
+            : { duration: 0 }
         }
         style={{
           position: "fixed",
@@ -551,8 +560,7 @@ export function OnboardingTour({
           backgroundColor: holeOpen ? "transparent" : `rgba(0,0,0,${dimAlpha})`,
           boxShadow: `0 0 0 9999px rgba(0,0,0,${dimAlpha})`,
           pointerEvents: "none",
-          transition:
-            "background-color 300ms ease, box-shadow 300ms ease, border-color 300ms ease",
+          transition: `background-color ${SPOTLIGHT_DURATION}s ${SPOTLIGHT_EASE_CSS}, box-shadow ${SPOTLIGHT_DURATION}s ${SPOTLIGHT_EASE_CSS}, border-color ${SPOTLIGHT_DURATION}s ${SPOTLIGHT_EASE_CSS}`,
         }}
       />
 
