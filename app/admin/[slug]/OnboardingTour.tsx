@@ -146,6 +146,10 @@ export function OnboardingTour({
   // Whether the cutout hole is open (true) or the screen is plainly dimmed
   // with no hole (false — welcome / final steps, and while a cutout fades in).
   const [holeOpen, setHoleOpen] = useState(false);
+  // Whether to CSS-transition the cutout geometry on this render. False on the
+  // very first open (jump straight to the target so it doesn't sweep in from
+  // the corner); true once a hole is already open so later steps morph.
+  const [geoAnimate, setGeoAnimate] = useState(false);
 
   // Refs that don't need to trigger re-renders
   const currentHighlightedElRef = useRef<HTMLElement | null>(null);
@@ -155,6 +159,7 @@ export function OnboardingTour({
   const prevTourKeyRef = useRef(tourKey); // Track previous tourKey to detect actual changes
   const menuOpenedByTourRef = useRef(false); // Track if we opened the menu
   const desktopMenuRef = useRef(false); // Track whether we opened the desktop dropdown (vs mobile sheet)
+  const holeOpenRef = useRef(false); // Mirrors holeOpen for use inside stable callbacks
 
   // ── Click simulation helpers ───────────────────────────────────────────────
 
@@ -233,6 +238,8 @@ export function OnboardingTour({
       overlayActiveRef.current = false;
       setOverlayOpacity(0);
       setHoleOpen(false);
+      holeOpenRef.current = false;
+      setGeoAnimate(false);
       setSpotlightRect(null);
       if (currentHighlightedElRef.current) {
         currentHighlightedElRef.current.style.position = "";
@@ -257,6 +264,7 @@ export function OnboardingTour({
       // fade out gracefully; it's re-driven the moment a target step runs.
       overlayActiveRef.current = true;
       setHoleOpen(false);
+      holeOpenRef.current = false;
       setOverlayOpacity(1);
     }
   }, [visible, currentStep]);
@@ -274,6 +282,7 @@ export function OnboardingTour({
     }
     overlayActiveRef.current = true;
     setHoleOpen(false);
+    holeOpenRef.current = false;
     setOverlayOpacity(1);
   }, []);
 
@@ -299,13 +308,15 @@ export function OnboardingTour({
 
       const finalRect = fromRect(rect, 12);
 
-      // Single geometry source. If the cutout is already open this morphs it
-      // (bouncy spring); if it's the first cutout it mounts AT this position
-      // and fades in (motion animates opacity only, never geometry-from-zero),
-      // so there's no sweep from the corner.
+      // Single geometry source. If a hole is already open, CSS-transition the
+      // box to the new geometry (bouncy spring). If this is the first cutout,
+      // jump straight to the target (no transition) so it doesn't sweep in from
+      // the corner — the hole then opens by fading its fill/border.
       overlayActiveRef.current = true;
+      setGeoAnimate(holeOpenRef.current);
       setSpotlightRect(finalRect);
       setHoleOpen(true);
+      holeOpenRef.current = true;
       setOverlayOpacity(1);
     });
   }, []);
@@ -397,6 +408,8 @@ export function OnboardingTour({
     overlayActiveRef.current = false;
     setOverlayOpacity(0);
     setHoleOpen(false);
+    holeOpenRef.current = false;
+    setGeoAnimate(false);
     setSpotlightRect(null);
     if (currentHighlightedElRef.current) {
       currentHighlightedElRef.current.style.position = "";
@@ -469,6 +482,16 @@ export function OnboardingTour({
   const isMenuStep = STEPS[currentStep].menuOpen;
   const overlayZ = isMenuStep ? 101 : 40;
 
+  // Geometry for the one cutout div. Falls back to a zero box (fully covered by
+  // the dark fill) on target-less steps before the first real measurement.
+  const rect = spotlightRect ?? { top: 0, left: 0, width: 0, height: 0, borderRadius: 0 };
+  const dimAlpha = 0.6 * overlayOpacity;
+  // Bouncy spring, same overshoot feel as before, expressed as a CSS easing so
+  // the cutout's top/left/width/height actually interpolate (SVG rect attrs did
+  // not tween reliably inside a <mask>, which is what made the hole teleport).
+  const SPRING = `cubic-bezier(${SPOTLIGHT_EASE.join(", ")})`;
+  const geoDur = geoAnimate ? "380ms" : "0ms";
+
   return (
     <>
       {/* Transparent click-blocker — z-39, beneath the overlay. Swallows every
@@ -485,90 +508,34 @@ export function OnboardingTour({
         aria-hidden="true"
       />
 
-      {/* Continuous dark overlay + animated spotlight cutout, as ONE SVG that
-          is NEVER unmounted or re-keyed between steps. Because the dark dim is
-          a full-screen <rect> that is always mounted at full strength (only
-          MASKED by the moving hole), the dark can never vanish for a frame —
-          so opening/closing the menu on steps 8/9/10 produces no brightness
-          flash. The mask hole and the accent ring are two <motion.rect>s fed
-          the SAME `spotlightRect` geometry with identical transitions, so the
-          cutout and its border are literally the same shape in motion — they
-          cannot lead, lag, or snap independently. Geometry lives only in
-          `animate` (never `initial`), so the first cutout appears AT its target
-          and just fades opacity in (no sweep from the corner); every later
-          step morphs the same mounted rects (bouncy spring), so nothing ever
-          teleports. */}
-      <svg
+      {/* Continuous dark dim + spotlight cutout as ONE always-mounted <div>.
+          The dark surround is this div's huge box-shadow spread and the accent
+          ring is this SAME div's border — so the hole edge and the ring are
+          literally the same box and can NEVER lead, lag, or desync. Geometry is
+          animated with a CSS transition on top/left/width/height, which
+          interpolate reliably on a normal HTML element (SVG rect x/y/width/
+          height inside a <mask> did NOT tween via CSS/transform and made the
+          cutout teleport — that was the real bug). The div is never unmounted
+          or re-keyed, so the dark can never vanish for a frame → no menu-step
+          flash. On the first open geoAnimate is false, so the box jumps to the
+          target (no corner sweep); once open, every later step morphs. */}
+      <div
         aria-hidden="true"
-        width="100%"
-        height="100%"
         style={{
           position: "fixed",
-          inset: 0,
           zIndex: overlayZ,
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+          borderRadius: rect.borderRadius,
+          border: `2.5px solid ${holeOpen ? "var(--accent, #8b6914)" : "transparent"}`,
+          backgroundColor: holeOpen ? "transparent" : `rgba(0,0,0,${dimAlpha})`,
+          boxShadow: `0 0 0 9999px rgba(0,0,0,${dimAlpha})`,
           pointerEvents: "none",
-          opacity: overlayOpacity,
-          transition: "opacity 300ms ease",
+          transition: `top ${geoDur} ${SPRING}, left ${geoDur} ${SPRING}, width ${geoDur} ${SPRING}, height ${geoDur} ${SPRING}, border-radius ${geoDur} ${SPRING}, background-color 300ms ease, box-shadow 300ms ease, border-color 300ms ease`,
         }}
-      >
-        <defs>
-          <mask id="dl-spotlight-mask">
-            {/* white = keep the dark; the hole punches it out */}
-            <rect x="0" y="0" width="100%" height="100%" fill="#fff" />
-            {spotlightRect && (
-              <motion.rect
-                initial={{ opacity: 0 }}
-                animate={{
-                  x: spotlightRect.left,
-                  y: spotlightRect.top,
-                  width: spotlightRect.width,
-                  height: spotlightRect.height,
-                  rx: spotlightRect.borderRadius,
-                  opacity: holeOpen ? 1 : 0,
-                }}
-                transition={{
-                  opacity: { duration: 0.3, ease: "easeOut" },
-                  default: { duration: 0.35, ease: SPOTLIGHT_EASE },
-                }}
-                fill="#000"
-              />
-            )}
-          </mask>
-        </defs>
-
-        {/* Dark dim — always full strength, only revealed/hidden by the mask */}
-        <rect
-          x="0"
-          y="0"
-          width="100%"
-          height="100%"
-          fill="#000"
-          fillOpacity={0.6}
-          mask="url(#dl-spotlight-mask)"
-        />
-
-        {/* Accent ring — SAME animated geometry as the mask hole above */}
-        {spotlightRect && (
-          <motion.rect
-            initial={{ opacity: 0 }}
-            animate={{
-              x: spotlightRect.left,
-              y: spotlightRect.top,
-              width: spotlightRect.width,
-              height: spotlightRect.height,
-              rx: spotlightRect.borderRadius,
-              opacity: holeOpen ? 1 : 0,
-            }}
-            transition={{
-              opacity: { duration: 0.3, ease: "easeOut" },
-              default: { duration: 0.35, ease: SPOTLIGHT_EASE },
-            }}
-            fill="none"
-            stroke="var(--accent, #8b6914)"
-            strokeWidth={2.5}
-          />
-        )}
-      </svg>
+      />
 
       {/* Tour card — must sit above the menu-step overlay (z-101) so the
           "Next" button stays visible and clickable on steps 8/9. */}
