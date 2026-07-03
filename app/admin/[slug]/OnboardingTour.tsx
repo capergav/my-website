@@ -160,6 +160,13 @@ export function OnboardingTour({
   const menuOpenedByTourRef = useRef(false); // Track if we opened the menu
   const desktopMenuRef = useRef(false); // Track whether we opened the desktop dropdown (vs mobile sheet)
   const holeOpenRef = useRef(false); // Mirrors holeOpen for use inside stable callbacks
+  // True once the FIRST spotlight has been shown in this tour run. Drives
+  // geoAnimate: false only for the very first appearance-from-nothing (jump
+  // straight to the target, no corner sweep), true for every step-to-step
+  // move thereafter so the geometry always morphs. Unlike holeOpenRef this is
+  // never toggled by the async scroll callback or target-less steps, so it can't
+  // race — it resets only on replay/finish.
+  const firstSpotlightShownRef = useRef(false);
 
   // ── Click simulation helpers ───────────────────────────────────────────────
 
@@ -240,6 +247,7 @@ export function OnboardingTour({
       setHoleOpen(false);
       holeOpenRef.current = false;
       setGeoAnimate(false);
+      firstSpotlightShownRef.current = false;
       setSpotlightRect(null);
       if (currentHighlightedElRef.current) {
         currentHighlightedElRef.current.style.position = "";
@@ -313,7 +321,10 @@ export function OnboardingTour({
       // jump straight to the target (no transition) so it doesn't sweep in from
       // the corner — the hole then opens by fading its fill/border.
       overlayActiveRef.current = true;
-      setGeoAnimate(holeOpenRef.current);
+      // Animate the morph on every step-to-step move; jump only the very first
+      // time a spotlight appears (from the plain dimmed welcome screen).
+      setGeoAnimate(firstSpotlightShownRef.current);
+      firstSpotlightShownRef.current = true;
       setSpotlightRect(finalRect);
       setHoleOpen(true);
       holeOpenRef.current = true;
@@ -410,6 +421,7 @@ export function OnboardingTour({
     setHoleOpen(false);
     holeOpenRef.current = false;
     setGeoAnimate(false);
+    firstSpotlightShownRef.current = false;
     setSpotlightRect(null);
     if (currentHighlightedElRef.current) {
       currentHighlightedElRef.current.style.position = "";
