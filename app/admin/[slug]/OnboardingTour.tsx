@@ -13,7 +13,7 @@ type StepConfig = {
 
 const STEPS: StepConfig[] = [
   {
-    title: "Welcome to DineLinks",
+    title: "TESTMARKER 12345",
     body: "This quick tour shows you everything you need to know. Your menu is already live — let's walk through how to manage it.",
     targetSelector: null,
     menuOpen: false,
@@ -555,7 +555,7 @@ export function OnboardingTour({
         style={{
           position: "fixed",
           zIndex: overlayZ,
-          border: `2.5px solid ${holeOpen ? "var(--accent, #8b6914)" : "transparent"}`,
+          border: `8px solid red`,
           backgroundColor: holeOpen ? "transparent" : `rgba(0,0,0,${dimAlpha})`,
           boxShadow: `0 0 0 9999px rgba(0,0,0,${dimAlpha})`,
           pointerEvents: "none",
