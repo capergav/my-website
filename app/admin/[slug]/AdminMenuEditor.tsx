@@ -1021,7 +1021,18 @@ export function AdminMenuEditor({
                       </p>
                     </div>
                   )}
-                  {items.map((item, idx) => (
+                  {items.map((item, idx) => {
+                    // Dim greyed-out cards, but let the RELEVANT reversal control
+                    // punch through at full opacity so it stays obvious/clickable.
+                    // CSS opacity can't be overridden on a child of a dimmed
+                    // parent, so the dim is applied per-element — never on the
+                    // whole card container. availDim clears when the item is
+                    // unavailable (its toggle is the fix); visDim clears when the
+                    // item is hidden.
+                    const cardDim = item.hidden === true ? "opacity-40" : item.available === false ? "opacity-50" : "";
+                    const availDim = item.available === false ? "" : cardDim;
+                    const visDim = item.hidden === true ? "" : cardDim;
+                    return (
                     <SortableMenuItem key={item.id} item={item} isFirst={idx === 0}>
                       {/* Item image — card overflow-hidden clips corners */}
                       {item.image_url && (
@@ -1033,8 +1044,8 @@ export function AdminMenuEditor({
                         />
                       )}
                       {/* Details */}
-                      <div className={`p-3 sm:p-4 flex-1 min-w-0 ${item.hidden === true ? "opacity-40" : item.available === false ? "opacity-50" : ""}`}>
-                        <div className="flex justify-between gap-2 items-start flex-wrap">
+                      <div className="p-3 sm:p-4 flex-1 min-w-0">
+                        <div className={`flex justify-between gap-2 items-start flex-wrap ${cardDim}`}>
                           <div className="min-w-0">
                             <h3 className="font-serif text-base font-semibold leading-snug text-wrap-balance">{item.name}</h3>
                             {(item.hidden === true || item.available === false) && (
@@ -1057,12 +1068,12 @@ export function AdminMenuEditor({
                           </span>
                         </div>
                         {item.description && (
-                          <p className="text-[var(--muted)] text-xs sm:text-sm mt-1 line-clamp-2 text-wrap-force">
+                          <p className={`text-[var(--muted)] text-xs sm:text-sm mt-1 line-clamp-2 text-wrap-force ${cardDim}`}>
                             {item.description}
                           </p>
                         )}
                         <div className="flex flex-wrap gap-1.5 mt-2 items-center">
-                          <span data-tour={idx === 0 ? "first-item-available" : undefined}>
+                          <span data-tour={idx === 0 ? "first-item-available" : undefined} className={availDim}>
                           <AvailabilityToggle
                             available={item.available !== false}
                             onChange={async (next) => {
@@ -1075,7 +1086,8 @@ export function AdminMenuEditor({
                             }}
                           />
                           </span>
-                          <span aria-hidden className="text-[var(--card-border)] select-none px-0.5">|</span>
+                          <span aria-hidden className={`text-[var(--card-border)] select-none px-0.5 ${cardDim}`}>|</span>
+                          <span className={visDim}>
                           <VisibilityToggle
                             hidden={item.hidden === true}
                             onChange={async (next) => {
@@ -1087,10 +1099,11 @@ export function AdminMenuEditor({
                               setSaving(false);
                             }}
                           />
+                          </span>
                           <motion.button type="button"
                             data-tour={idx === 0 ? "first-item-edit" : undefined}
                             onClick={() => { setEditingItem(item); setAddingNew(false); }}
-                            className="px-3 py-1.5 rounded-lg border border-[var(--accent)] text-[var(--accent)] text-xs font-semibold font-sans hover:bg-[var(--accent)] hover:text-white transition-all"
+                            className={`px-3 py-1.5 rounded-lg border border-[var(--accent)] text-[var(--accent)] text-xs font-semibold font-sans hover:bg-[var(--accent)] hover:text-white transition-all ${cardDim}`}
                             whileTap={{ scale: 0.95 }}
                             transition={{ duration: 0.08 }}
                           >
@@ -1099,7 +1112,7 @@ export function AdminMenuEditor({
                           <motion.button type="button"
                             onClick={() => handleDelete(item.id, item.image_url)}
                             disabled={saving}
-                            className="px-2 py-1.5 text-[var(--muted)] hover:text-red-600 text-xs font-sans disabled:opacity-50 transition-colors"
+                            className={`px-2 py-1.5 text-[var(--muted)] hover:text-red-600 text-xs font-sans disabled:opacity-50 transition-colors ${cardDim}`}
                             whileTap={{ scale: 0.95 }}
                             transition={{ duration: 0.08 }}
                           >
@@ -1108,7 +1121,8 @@ export function AdminMenuEditor({
                         </div>
                       </div>
                     </SortableMenuItem>
-                  ))}
+                    );
+                  })}
                 </div>
               </SortableContext>
             </DndContext>
