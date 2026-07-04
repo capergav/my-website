@@ -62,7 +62,7 @@ const STEPS: StepConfig[] = [
   },
   {
     title: "Your QR code is ready",
-    body: "Download QR Code gives you your table sticker. Customers scan it and land on your menu — translated into their language automatically.",
+    body: "Download QR Code gives you a code you can print for tables, walls, counters and more. Customers scan it and land on your menu — translated into their language automatically.",
     targetSelector: "[data-tour='qr-option']",
     menuOpen: true,
   },
@@ -139,7 +139,6 @@ export function OnboardingTour({
   tourKey,
   hasCompletedTour,
   userId,
-  slug,
 }: {
   tourKey: number;
   hasCompletedTour?: boolean;
@@ -488,7 +487,7 @@ export function OnboardingTour({
   const isLast = currentStep === TOTAL_STEPS - 1;
 
   const stepBody = isLast
-    ? `Your menu is live at dinelinks.com/menu/${slug}. Add your real dishes, set your theme, and you're ready for your first customer.`
+    ? "Your menu is live. Add your real dishes and set your theme whenever you're ready."
     : STEPS[currentStep].body;
 
   const progressPercent = ((currentStep + 1) / TOTAL_STEPS) * 100;

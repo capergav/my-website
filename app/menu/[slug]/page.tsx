@@ -121,7 +121,10 @@ export default async function PublicMenuPage({ params }: Props) {
     if (row.note?.trim()) categoryNotes[row.category] = row.note.trim();
   }
 
+  // Hidden items are excluded from the customer menu entirely — they never
+  // reach the browser. (Unavailable items still render, greyed out, in MenuTabs.)
   const grouped = (menuItems ?? []).reduce<Record<string, MenuItemRow[]>>((acc, item) => {
+    if ((item as MenuItemRow).hidden === true) return acc;
     const cat = (item as MenuItemRow).category || "Other";
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(item as MenuItemRow);

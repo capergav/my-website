@@ -11,7 +11,7 @@ import type { Restaurant } from "@/app/lib/supabase";
 import { ImageUploader } from "./ImageUploader";
 import { OnboardingTour } from "./OnboardingTour";
 import { useSubscription, type SubStatus } from "@/lib/useSubscription";
-import { AlertTriangle, AlertCircle, Plus, GripVertical, UtensilsCrossed, ChevronLeft, ChevronRight } from "lucide-react";
+import { AlertTriangle, AlertCircle, Plus, GripVertical, UtensilsCrossed, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { AccountDangerZone } from "./AccountDangerZone";
 import {
   DndContext, closestCenter, KeyboardSensor, PointerSensor, TouchSensor,
@@ -1033,14 +1033,23 @@ export function AdminMenuEditor({
                         />
                       )}
                       {/* Details */}
-                      <div className={`p-3 sm:p-4 flex-1 min-w-0 ${item.available === false ? "opacity-50" : ""}`}>
+                      <div className={`p-3 sm:p-4 flex-1 min-w-0 ${item.hidden === true ? "opacity-40" : item.available === false ? "opacity-50" : ""}`}>
                         <div className="flex justify-between gap-2 items-start flex-wrap">
                           <div className="min-w-0">
                             <h3 className="font-serif text-base font-semibold leading-snug text-wrap-balance">{item.name}</h3>
-                            {item.available === false && (
-                              <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 mt-0.5">
-                                Unavailable
-                              </span>
+                            {(item.hidden === true || item.available === false) && (
+                              <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                {item.hidden === true && (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700">
+                                    <EyeOff size={11} /> Hidden
+                                  </span>
+                                )}
+                                {item.available === false && (
+                                  <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                                    Unavailable
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </div>
                           <span className="font-semibold text-[var(--accent)] tabular-nums text-base flex-shrink-0">
@@ -1066,6 +1075,18 @@ export function AdminMenuEditor({
                             }}
                           />
                           </span>
+                          <span aria-hidden className="text-[var(--card-border)] select-none px-0.5">|</span>
+                          <VisibilityToggle
+                            hidden={item.hidden === true}
+                            onChange={async (next) => {
+                              setSaving(true);
+                              const { error } = await supabase.from("menu_items")
+                                .update({ hidden: next }).eq("id", item.id);
+                              if (error) showMsg("err", error.message);
+                              else { showMsg("ok", next ? "Hidden from menu." : "Shown on menu."); await refreshMenu(); }
+                              setSaving(false);
+                            }}
+                          />
                           <motion.button type="button"
                             data-tour={idx === 0 ? "first-item-edit" : undefined}
                             onClick={() => { setEditingItem(item); setAddingNew(false); }}
@@ -1192,6 +1213,26 @@ function AvailabilityToggle({ available, onChange }: { available: boolean; onCha
       }`}>
       <span className={`inline-block w-1.5 h-1.5 rounded-full ${available ? "bg-emerald-500" : "bg-gray-400"}`} />
       {available ? "Available" : "Unavailable"}
+    </button>
+  );
+}
+
+// Controls whether the item appears on the live customer menu at all. This is
+// deliberately distinct from AvailabilityToggle (stock status): hidden items
+// vanish from the menu entirely, whereas unavailable items still show, greyed
+// out. Different visual language — eye icon + sky/slate — so the two toggles
+// are never confused.
+function VisibilityToggle({ hidden, onChange }: { hidden: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button type="button" onClick={() => onChange(!hidden)}
+      title={hidden ? "Hidden from your live menu — click to show" : "Shown on your live menu — click to hide"}
+      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+        hidden
+          ? "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"
+          : "bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100"
+      }`}>
+      {hidden ? <EyeOff size={13} /> : <Eye size={13} />}
+      {hidden ? "Hidden" : "Shown"}
     </button>
   );
 }
