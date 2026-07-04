@@ -13,7 +13,7 @@ type StepConfig = {
 
 const STEPS: StepConfig[] = [
   {
-    title: "TESTMARKER 12345",
+    title: "Welcome to DineLinks",
     body: "This quick tour shows you everything you need to know. Your menu is already live — let's walk through how to manage it.",
     targetSelector: null,
     menuOpen: false,
@@ -43,9 +43,15 @@ const STEPS: StepConfig[] = [
     menuOpen: false,
   },
   {
-    title: "The Available button",
-    body: "Green dot means the item is live on your menu. Click it to mark something as unavailable mid-service — it stays on the menu but shows as 'Currently unavailable' to customers.",
+    title: "Available vs. Unavailable",
+    body: "A green dot means the item is live. Tap to mark it Unavailable when you run out mid-service — it stays on the menu but shows as 'Currently unavailable', greyed out for customers.",
     targetSelector: "[data-tour='first-item-available']",
+    menuOpen: false,
+  },
+  {
+    title: "Shown vs. Hidden",
+    body: "This is different from Unavailable. Hiding an item removes it from the customer menu completely — perfect for seasonal dishes or drafts. Unavailable = still shown, marked out of stock. Hidden = gone from view, but kept here in your admin.",
+    targetSelector: "[data-tour='first-item-visibility']",
     menuOpen: false,
   },
   {
@@ -555,7 +561,7 @@ export function OnboardingTour({
         style={{
           position: "fixed",
           zIndex: overlayZ,
-          border: `8px solid red`,
+          border: `2.5px solid ${holeOpen ? "var(--accent, #8b6914)" : "transparent"}`,
           backgroundColor: holeOpen ? "transparent" : `rgba(0,0,0,${dimAlpha})`,
           boxShadow: `0 0 0 9999px rgba(0,0,0,${dimAlpha})`,
           pointerEvents: "none",

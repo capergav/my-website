@@ -1087,7 +1087,7 @@ export function AdminMenuEditor({
                           />
                           </span>
                           <span aria-hidden className={`text-[var(--card-border)] select-none px-0.5 ${cardDim}`}>|</span>
-                          <span className={visDim}>
+                          <span data-tour={idx === 0 ? "first-item-visibility" : undefined} className={visDim}>
                           <VisibilityToggle
                             hidden={item.hidden === true}
                             onChange={async (next) => {
