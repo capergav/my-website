@@ -1223,9 +1223,9 @@ function AvailabilityToggle({ available, onChange }: { available: boolean; onCha
       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
         available
           ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-          : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+          : "bg-red-100 text-red-700 border-red-300 hover:bg-red-200"
       }`}>
-      <span className={`inline-block w-1.5 h-1.5 rounded-full ${available ? "bg-emerald-500" : "bg-gray-400"}`} />
+      <span className={`inline-block w-1.5 h-1.5 rounded-full ${available ? "bg-emerald-500" : "bg-red-500"}`} />
       {available ? "Available" : "Unavailable"}
     </button>
   );
@@ -1242,7 +1242,7 @@ function VisibilityToggle({ hidden, onChange }: { hidden: boolean; onChange: (v:
       title={hidden ? "Hidden from your live menu — click to show" : "Shown on your live menu — click to hide"}
       className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
         hidden
-          ? "bg-slate-100 text-slate-600 border-slate-300 hover:bg-slate-200"
+          ? "bg-red-50 text-red-700 border-red-300 hover:bg-red-100"
           : "bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100"
       }`}>
       {hidden ? <EyeOff size={13} /> : <Eye size={13} />}
