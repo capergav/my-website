@@ -47,14 +47,20 @@ export default async function PublicMenuPage({ params }: Props) {
   // Check subscription status using service role (bypasses RLS — anonymous visitors can't read subscriptions)
   const { data: sub } = await supabaseAdmin
     .from("subscriptions")
-    .select("status, trial_end")
+    .select("status, trial_end, stripe_subscription_id")
     .eq("user_id", (restaurant as { owner_id?: string }).owner_id ?? "")
     .maybeSingle();
 
+  // A trialing row WITH a stripe_subscription_id means the user subscribed
+  // mid-trial (card on file, converting to paid). Stripe keeps them status
+  // 'trialing' until the webhook flips them to 'active' at trial end, so we
+  // must NOT pause them during that window — otherwise a paying customer's
+  // menu goes dark. Only pause genuine free trials (no subscription).
   const isPaused =
     !sub ||
     sub.status === "canceled" ||
-    (sub.status === "trialing" && sub.trial_end && new Date(sub.trial_end) < new Date()) ||
+    (sub.status === "trialing" && !sub.stripe_subscription_id &&
+       sub.trial_end && new Date(sub.trial_end) < new Date()) ||
     sub.status === "past_due";
 
   const pausedFontColor = restaurant.font_color ?? "#2c2a26";
