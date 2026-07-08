@@ -638,7 +638,9 @@ export function AdminMenuEditor({
   // Show "start trial" blocker ONLY when the trial has fully expired (daysLeftInTrial === 0).
   // Never show during an active trial, loading, or on navigation (avoids flash when userId
   // is briefly undefined and subStatus transiently reads 'none').
-  const trialFullyExpired = daysLeftInTrial !== null && daysLeftInTrial <= 0;
+  // A user who subscribed mid-trial stays status='trialing' with a stripe_subscription_id
+  // until Stripe's webhook flips them to 'active' at trial end — never lock them out.
+  const trialFullyExpired = daysLeftInTrial !== null && daysLeftInTrial <= 0 && !hasStripeSubscription;
   if (user !== null && subStatus !== 'loading' && trialFullyExpired && hasCompletedTour !== false) {
     return (
       <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-md flex items-center justify-center p-4">
@@ -668,7 +670,9 @@ export function AdminMenuEditor({
     );
   }
 
-  const showTrialExpiredOverlay = subStatus !== 'loading' && (isTrialExpired || subStatus === 'canceled');
+  // Subscribed mid-trial users (trialing + stripe_subscription_id) must never see the
+  // "trial has ended" wall during the pre-webhook window — they're already paying.
+  const showTrialExpiredOverlay = subStatus !== 'loading' && ((isTrialExpired && !hasStripeSubscription) || subStatus === 'canceled');
 
   return (
     <main dir="ltr" className={`min-h-screen bg-[var(--background)] text-[var(--foreground)] ${showTrialExpiredOverlay ? 'pointer-events-none grayscale opacity-60' : ''}`}>
