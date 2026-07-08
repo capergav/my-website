@@ -139,16 +139,16 @@ const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
   }, 50);
 };
 
-// Bouncy spring curve shared by the spotlight morph (geometry) so every
-// step-to-step move keeps the same overshoot feel. ONE duration + ONE easing
-// curve drive both the motion geometry (top/left/width/height) AND the inline
-// CSS fade (border-color/box-shadow/background-color) so the hole, the dark
-// surround, and the accent ring move and fade on a single clock — never on
-// mismatched timers (previously 0.42s bouncy vs 0.30s linear).
-const SPOTLIGHT_DURATION = 0.42;
-const SPOTLIGHT_EASE = [0.34, 1.56, 0.64, 1] as const;
-// Same curve, expressed for CSS. Must stay identical to SPOTLIGHT_EASE.
-const SPOTLIGHT_EASE_CSS = "cubic-bezier(0.34, 1.56, 0.64, 1)";
+// The spotlight NEVER slides between steps. On every step change it fades the
+// highlight out fast, jumps to the new element while invisible, then fades back
+// in with a small scale pop. Because the geometry only ever changes while the
+// hole is invisible (uniformly dark), the bright hole and the accent border can
+// never lead, lag, or desync — there's simply no interpolation to desync during.
+const FADE_OUT_MS = 120; // hole closes (goes dark) before the instant jump
+const FADE_IN_MS = 160; // hole re-opens at the new position
+const FADE_IN_S = FADE_IN_MS / 1000;
+// Gentle ease-out for the 0.96 → 1.0 scale pop on fade-in.
+const POP_EASE = [0.22, 1, 0.36, 1] as const;
 
 export function OnboardingTour({
   tourKey,
@@ -167,10 +167,13 @@ export function OnboardingTour({
   // Whether the cutout hole is open (true) or the screen is plainly dimmed
   // with no hole (false — welcome / final steps, and while a cutout fades in).
   const [holeOpen, setHoleOpen] = useState(false);
-  // Whether to CSS-transition the cutout geometry on this render. False on the
-  // very first open (jump straight to the target so it doesn't sweep in from
-  // the corner); true once a hole is already open so later steps morph.
-  const [geoAnimate, setGeoAnimate] = useState(false);
+  // Scale of the highlight box. Snaps to 0.96 (instant, while invisible) right
+  // before the fade-in, then pops to 1.0 as the hole re-opens.
+  const [popScale, setPopScale] = useState(1);
+  // When true, motion applies the geometry/scale change instantly (duration 0)
+  // — used for the invisible jump. When false, only the scale pop is animated;
+  // geometry is ALWAYS instant so the box never slides across the screen.
+  const [moveInstant, setMoveInstant] = useState(true);
 
   // Refs that don't need to trigger re-renders
   const currentHighlightedElRef = useRef<HTMLElement | null>(null);
@@ -181,13 +184,8 @@ export function OnboardingTour({
   const menuOpenedByTourRef = useRef(false); // Track if we opened the menu
   const desktopMenuRef = useRef(false); // Track whether we opened the desktop dropdown (vs mobile sheet)
   const holeOpenRef = useRef(false); // Mirrors holeOpen for use inside stable callbacks
-  // True once the FIRST spotlight has been shown in this tour run. Drives
-  // geoAnimate: false only for the very first appearance-from-nothing (jump
-  // straight to the target, no corner sweep), true for every step-to-step
-  // move thereafter so the geometry always morphs. Unlike holeOpenRef this is
-  // never toggled by the async scroll callback or target-less steps, so it can't
-  // race — it resets only on replay/finish.
-  const firstSpotlightShownRef = useRef(false);
+  // Pending fade-out → jump timer, so a rapid step change can cancel it.
+  const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Click simulation helpers ───────────────────────────────────────────────
 
@@ -262,13 +260,15 @@ export function OnboardingTour({
       // Kill any pending observer
       mutationObserverRef.current?.disconnect();
       mutationObserverRef.current = null;
+      if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+      fadeTimeoutRef.current = null;
       // Instantly clear spotlight
       overlayActiveRef.current = false;
       setOverlayOpacity(0);
       setHoleOpen(false);
       holeOpenRef.current = false;
-      setGeoAnimate(false);
-      firstSpotlightShownRef.current = false;
+      setMoveInstant(true);
+      setPopScale(1);
       setSpotlightRect(null);
       if (currentHighlightedElRef.current) {
         currentHighlightedElRef.current.style.position = "";
@@ -336,20 +336,39 @@ export function OnboardingTour({
       if (!rect.width && !rect.height) return;
 
       const finalRect = fromRect(rect, 12);
-
-      // Single geometry source. If a hole is already open, CSS-transition the
-      // box to the new geometry (bouncy spring). If this is the first cutout,
-      // jump straight to the target (no transition) so it doesn't sweep in from
-      // the corner — the hole then opens by fading its fill/border.
       overlayActiveRef.current = true;
-      // Animate the morph on every step-to-step move; jump only the very first
-      // time a spotlight appears (from the plain dimmed welcome screen).
-      setGeoAnimate(firstSpotlightShownRef.current);
-      firstSpotlightShownRef.current = true;
-      setSpotlightRect(finalRect);
-      setHoleOpen(true);
-      holeOpenRef.current = true;
       setOverlayOpacity(1);
+
+      // Fade-and-pop, never slide:
+      //  1. While the screen is uniformly dark (hole closed), jump the box to
+      //     the new geometry and shrink it to 0.96 — instant, invisible.
+      //  2. Next frame, re-open the hole (fill + border fade in) and pop the
+      //     scale up to 1.0. No geometry change here, so nothing can slide.
+      const jumpAndPop = () => {
+        setMoveInstant(true);
+        setSpotlightRect(finalRect);
+        setPopScale(0.96);
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            setMoveInstant(false);
+            setHoleOpen(true);
+            holeOpenRef.current = true;
+            setPopScale(1);
+          })
+        );
+      };
+
+      if (holeOpenRef.current) {
+        // A hole is already open → fade it out (close the hole so the screen
+        // goes uniformly dark) BEFORE jumping, so the move is invisible.
+        setHoleOpen(false);
+        holeOpenRef.current = false;
+        if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+        fadeTimeoutRef.current = setTimeout(jumpAndPop, FADE_OUT_MS);
+      } else {
+        // First appearance (from the dark welcome screen) — no fade-out needed.
+        jumpAndPop();
+      }
     });
   }, []);
 
@@ -437,12 +456,14 @@ export function OnboardingTour({
   const finish = useCallback(() => {
     mutationObserverRef.current?.disconnect();
     mutationObserverRef.current = null;
+    if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+    fadeTimeoutRef.current = null;
     overlayActiveRef.current = false;
     setOverlayOpacity(0);
     setHoleOpen(false);
     holeOpenRef.current = false;
-    setGeoAnimate(false);
-    firstSpotlightShownRef.current = false;
+    setMoveInstant(true);
+    setPopScale(1);
     setSpotlightRect(null);
     if (currentHighlightedElRef.current) {
       currentHighlightedElRef.current.style.position = "";
@@ -489,6 +510,7 @@ export function OnboardingTour({
   useEffect(() => {
     return () => {
       mutationObserverRef.current?.disconnect();
+      if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
       if (currentHighlightedElRef.current) {
         currentHighlightedElRef.current.style.position = "";
         currentHighlightedElRef.current.style.zIndex = "";
@@ -540,18 +562,16 @@ export function OnboardingTour({
           dark surround is this div's huge box-shadow spread, the bright hole is
           the div's own rectangle, and the accent ring is this SAME div's border
           — one element, so the hole, the dark, and the border are physically
-          unified and can NEVER lead, lag, or desync. The geometry
-          (top/left/width/height) is animated by `motion` — JS-interpolated
-          every frame — instead of a CSS transition. That matters: a CSS
-          transition does NOT start when its duration is enabled in the same
-          style commit as the value change (which is exactly what happened when
-          the first morph flipped the geometry transition 0ms→380ms), so the box
-          teleported. `motion` reads the new target + new transition together
-          each render, so every step slides. The div is never unmounted or
-          re-keyed, so the dark never vanishes for a frame → no menu-step flash.
-          The first open uses duration 0 (jump to the target, no corner sweep);
-          every later step uses the bouncy spring, carrying the hole and border
-          in perfect unison. */}
+          unified and can NEVER lead, lag, or desync. The box NEVER slides: its
+          geometry (top/left/width/height) is only ever changed instantly
+          (duration 0) while the hole is invisible (uniformly dark), so there is
+          no interpolation across the screen during which anything could desync.
+          On a step change the hole first fades out (fill → dark, border →
+          transparent over FADE_OUT_MS), the box jumps to the new element while
+          dark, then the hole fades back in (over FADE_IN_MS) with a small scale
+          pop (0.96 → 1.0). Only `scale` is ever motion-animated; geometry stays
+          instant. The div is never unmounted or re-keyed, so the dark never
+          vanishes for a frame → no menu-step flash. */}
       <motion.div
         aria-hidden="true"
         initial={false}
@@ -561,11 +581,19 @@ export function OnboardingTour({
           width: rect.width,
           height: rect.height,
           borderRadius: rect.borderRadius,
+          scale: popScale,
         }}
         transition={
-          geoAnimate
-            ? { duration: SPOTLIGHT_DURATION, ease: SPOTLIGHT_EASE }
-            : { duration: 0 }
+          moveInstant
+            ? { duration: 0 }
+            : {
+                top: { duration: 0 },
+                left: { duration: 0 },
+                width: { duration: 0 },
+                height: { duration: 0 },
+                borderRadius: { duration: 0 },
+                scale: { duration: FADE_IN_S, ease: POP_EASE },
+              }
         }
         style={{
           position: "fixed",
@@ -574,7 +602,9 @@ export function OnboardingTour({
           backgroundColor: holeOpen ? "transparent" : `rgba(0,0,0,${dimAlpha})`,
           boxShadow: `0 0 0 9999px rgba(0,0,0,${dimAlpha})`,
           pointerEvents: "none",
-          transition: `background-color ${SPOTLIGHT_DURATION}s ${SPOTLIGHT_EASE_CSS}, box-shadow ${SPOTLIGHT_DURATION}s ${SPOTLIGHT_EASE_CSS}, border-color ${SPOTLIGHT_DURATION}s ${SPOTLIGHT_EASE_CSS}`,
+          transition: `background-color ${
+            holeOpen ? FADE_IN_MS : FADE_OUT_MS
+          }ms ease, border-color ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ease`,
         }}
       />
 
