@@ -99,20 +99,28 @@ const fromRect = (rect: DOMRect, padding: number): SpotlightRect => ({
   borderRadius: 10,
 });
 
-// Wait for scroll to fully settle AND the target to be within the viewport
-// before calling callback. The viewport check is critical for horizontally
-// scrolling containers (e.g. the category tab bar): scrollIntoView may scroll
-// sideways while getBoundingClientRect still reports off-screen coords until
-// the element actually lands inside the visible area.
+// Wait for scroll to fully settle before measuring. We track the TARGET
+// ELEMENT'S OWN rect (top AND left) rather than window.scrollY, because scroll
+// can happen on any axis and in any container: scrollIntoView may scroll the
+// window vertically, but the category tab bar scrolls the element *horizontally*
+// inside its own container — window.scrollY never changes for that. Watching the
+// element's rect stability catches all of it (window scroll, ancestor container
+// scroll, horizontal or vertical), so we only measure once the element has truly
+// come to rest at its FINAL position. Otherwise the spotlight springs to a
+// transitional coord and lands offset.
 const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
-  let last = window.scrollY;
+  let lastTop = Infinity;
+  let lastLeft = Infinity;
   let stable = 0;
   let attempts = 0;
   const check = setInterval(() => {
     attempts++;
     const rect = el.getBoundingClientRect();
     const inView = rect.top > 0 && rect.top < window.innerHeight;
-    if (window.scrollY === last && inView) {
+    // Rest = top AND left unchanged (within 1px) since the previous frame.
+    const settled =
+      Math.abs(rect.top - lastTop) < 1 && Math.abs(rect.left - lastLeft) < 1;
+    if (settled && inView) {
       stable++;
       if (stable >= 3) {
         clearInterval(check);
@@ -120,8 +128,9 @@ const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
       }
     } else {
       stable = 0;
-      last = window.scrollY;
     }
+    lastTop = rect.top;
+    lastLeft = rect.left;
     // Safety: give up after ~2s and measure anyway so the tour never stalls
     if (attempts >= 40) {
       clearInterval(check);
