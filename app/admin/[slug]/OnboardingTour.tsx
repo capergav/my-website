@@ -146,9 +146,11 @@ const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
 // never lead, lag, or desync — there's simply no interpolation to desync during.
 const FADE_OUT_MS = 120; // hole closes (goes dark) before the instant jump
 const FADE_IN_MS = 160; // hole re-opens at the new position
-const FADE_IN_S = FADE_IN_MS / 1000;
-// Gentle ease-out for the 0.96 → 1.0 scale pop on fade-in.
+// Gentle ease-out for the fade-and-pop. EVERY fade-in property (fill, accent
+// border, box-shadow, and the 0.96 → 1.0 scale pop) shares this exact easing —
+// expressed as a CSS cubic-bezier below — so they animate as a single unit.
 const POP_EASE = [0.22, 1, 0.36, 1] as const;
+const SHARED_EASE = `cubic-bezier(${POP_EASE.join(", ")})`;
 
 export function OnboardingTour({
   tourKey,
@@ -581,30 +583,34 @@ export function OnboardingTour({
           width: rect.width,
           height: rect.height,
           borderRadius: rect.borderRadius,
-          scale: popScale,
         }}
-        transition={
-          moveInstant
-            ? { duration: 0 }
-            : {
-                top: { duration: 0 },
-                left: { duration: 0 },
-                width: { duration: 0 },
-                height: { duration: 0 },
-                borderRadius: { duration: 0 },
-                scale: { duration: FADE_IN_S, ease: POP_EASE },
-              }
-        }
+        // Geometry ALWAYS jumps instantly — the box never slides across the
+        // screen. Every visible fade property lives on the single CSS transition
+        // in `style` below (including the scale pop), so nothing can desync.
+        transition={{ duration: 0 }}
         style={{
           position: "fixed",
           zIndex: overlayZ,
           border: `2.5px solid ${holeOpen ? "var(--accent, #8b6914)" : "transparent"}`,
           backgroundColor: holeOpen ? "transparent" : `rgba(0,0,0,${dimAlpha})`,
           boxShadow: `0 0 0 9999px rgba(0,0,0,${dimAlpha})`,
+          transform: `scale(${popScale})`,
           pointerEvents: "none",
-          transition: `background-color ${
-            holeOpen ? FADE_IN_MS : FADE_OUT_MS
-          }ms ease, border-color ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ease`,
+          // ONE shared transition drives the whole fade-in as a single unit: the
+          // fill (background), the accent border, the box-shadow, and the scale
+          // pop all start at the same instant, run for the same duration, and use
+          // the same easing with zero delay — so the highlight fill and its
+          // border reach full opacity together, never one leading the other.
+          // Suppressed to `none` during the invisible geometry jump so nothing
+          // interpolates while the screen is uniformly dark.
+          transition: moveInstant
+            ? "none"
+            : [
+                `background-color ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
+                `border-color ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
+                `box-shadow ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
+                `transform ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
+              ].join(", "),
         }}
       />
 
