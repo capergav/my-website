@@ -585,8 +585,8 @@ export function OnboardingTour({
           borderRadius: rect.borderRadius,
         }}
         // Geometry ALWAYS jumps instantly — the box never slides across the
-        // screen. Every visible fade property lives on the single CSS transition
-        // in `style` below (including the scale pop), so nothing can desync.
+        // screen. Every visible fade property (fill, border, box-shadow, scale)
+        // lives on the CSS transition in `style` below, so nothing can desync.
         transition={{ duration: 0 }}
         style={{
           position: "fixed",
@@ -596,21 +596,29 @@ export function OnboardingTour({
           boxShadow: `0 0 0 9999px rgba(0,0,0,${dimAlpha})`,
           transform: `scale(${popScale})`,
           pointerEvents: "none",
-          // ONE shared transition drives the whole fade-in as a single unit: the
-          // fill (background), the accent border, the box-shadow, and the scale
-          // pop all start at the same instant, run for the same duration, and use
-          // the same easing with zero delay — so the highlight fill and its
-          // border reach full opacity together, never one leading the other.
-          // Suppressed to `none` during the invisible geometry jump so nothing
-          // interpolates while the screen is uniformly dark.
-          transition: moveInstant
-            ? "none"
-            : [
-                `background-color ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
-                `border-color ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
-                `box-shadow ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
-                `transform ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
-              ].join(", "),
+          // The fill (background), the accent border, and the box-shadow ALWAYS
+          // ride this one transition, driven solely by `holeOpen` — they are
+          // NEVER swapped to `none`. Keeping them permanently armed is the whole
+          // fix: when `holeOpen` flips they start from their committed closed
+          // values on the SAME frame, so the fill and border can't lead or lag
+          // each other. Previously the entire string was swapped `none`→active
+          // on the fade-in frame; on scrolling steps that frame lands right
+          // after a heavy scroll + geometry-jump repaint, and re-arming a
+          // `none`→active transition on that paint-saturated frame let the thin
+          // border's first frames drop while the large fill painted — so the
+          // border started late. Menu steps don't scroll, so their fade-in frame
+          // was quiet and the re-arm succeeded, which is why they looked synced.
+          // Only the scale pop is gated by `moveInstant` (duration 0 during the
+          // invisible jump) so the 0.96 snap stays instant; it then animates on
+          // the same duration/easing as the fill and border, popping in unison.
+          transition: [
+            `background-color ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
+            `border-color ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
+            `box-shadow ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
+            moveInstant
+              ? "transform 0ms"
+              : `transform ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
+          ].join(", "),
         }}
       />
 
