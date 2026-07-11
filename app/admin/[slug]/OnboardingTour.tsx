@@ -139,18 +139,10 @@ const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
   }, 50);
 };
 
-// The spotlight NEVER slides between steps. On every step change it fades the
-// highlight out fast, jumps to the new element while invisible, then fades back
-// in with a small scale pop. Because the geometry only ever changes while the
-// hole is invisible (uniformly dark), the bright hole and the accent border can
-// never lead, lag, or desync — there's simply no interpolation to desync during.
-const FADE_OUT_MS = 120; // hole closes (goes dark) before the instant jump
-const FADE_IN_MS = 160; // hole re-opens at the new position
-// Gentle ease-out for the fade-and-pop. EVERY fade-in property (fill, accent
-// border, box-shadow, and the 0.96 → 1.0 scale pop) shares this exact easing —
-// expressed as a CSS cubic-bezier below — so they animate as a single unit.
-const POP_EASE = [0.22, 1, 0.36, 1] as const;
-const SHARED_EASE = `cubic-bezier(${POP_EASE.join(", ")})`;
+// The spotlight appears INSTANTLY at each step — no fade, no slide, no pop. The
+// box is hidden (screen uniformly dark) during the scroll, then snaps on at the
+// target's final position the instant the scroll settles. An instant, reliable
+// appearance beats a fade whose fill and border could ever desync.
 
 export function OnboardingTour({
   tourKey,
@@ -169,13 +161,6 @@ export function OnboardingTour({
   // Whether the cutout hole is open (true) or the screen is plainly dimmed
   // with no hole (false — welcome / final steps, and while a cutout fades in).
   const [holeOpen, setHoleOpen] = useState(false);
-  // Scale of the highlight box. Snaps to 0.96 (instant, while invisible) right
-  // before the fade-in, then pops to 1.0 as the hole re-opens.
-  const [popScale, setPopScale] = useState(1);
-  // When true, motion applies the geometry/scale change instantly (duration 0)
-  // — used for the invisible jump. When false, only the scale pop is animated;
-  // geometry is ALWAYS instant so the box never slides across the screen.
-  const [moveInstant, setMoveInstant] = useState(true);
 
   // Refs that don't need to trigger re-renders
   const currentHighlightedElRef = useRef<HTMLElement | null>(null);
@@ -269,8 +254,6 @@ export function OnboardingTour({
       setOverlayOpacity(0);
       setHoleOpen(false);
       holeOpenRef.current = false;
-      setMoveInstant(true);
-      setPopScale(1);
       setSpotlightRect(null);
       if (currentHighlightedElRef.current) {
         currentHighlightedElRef.current.style.position = "";
@@ -333,55 +316,28 @@ export function OnboardingTour({
     overlayActiveRef.current = true;
     setOverlayOpacity(1);
 
-    // Runs ONLY once the spotlight is already fully faded out (completely
-    // invisible — no fill, no border, no ring). It scrolls the target into
-    // view, waits for the scroll to fully settle on EVERY axis, then jumps the
-    // still-invisible box to the target's FINAL rect and fades the whole thing
-    // back in together with the scale pop. Because the scroll happens while the
-    // spotlight is invisible, nothing ever drags across the screen.
-    const scrollThenReveal = () => {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    // Hide the spotlight instantly (screen goes uniformly dark, no hole/border)
+    // so nothing is visible while we scroll — no border or fill can drag across
+    // the page during the scroll.
+    setHoleOpen(false);
+    holeOpenRef.current = false;
 
-      waitForScrollEnd(el, () => {
-        const rect = el.getBoundingClientRect();
-        if (!rect.width && !rect.height) return;
-
-        const finalRect = fromRect(rect, 12);
-        // 1. While invisible, jump the box to its final geometry and shrink to
-        //    0.96 — instant, so nothing slides.
-        setMoveInstant(true);
-        setSpotlightRect(finalRect);
-        setPopScale(0.96);
-        // 2. Next frame, fade the whole spotlight (fill + border + box-shadow)
-        //    back in together and pop the scale up to 1.0. Geometry is already
-        //    final, so only the fade + pop animate — no motion across screen.
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => {
-            setMoveInstant(false);
-            setHoleOpen(true);
-            holeOpenRef.current = true;
-            setPopScale(1);
-          })
-        );
-      });
-    };
-
-    // CORRECT ORDER: fade out BEFORE scrolling so the spotlight is fully hidden
-    // for the entire scroll, then reposition (hidden) and fade in at the final
-    // spot. Applies to every step identically.
-    if (holeOpenRef.current) {
-      // A hole is already open → fade the ENTIRE spotlight out first (fill goes
-      // dark, border + ring go transparent, all on one shared transition), so
-      // it's completely invisible, THEN scroll. Nothing drags across the page.
-      setHoleOpen(false);
-      holeOpenRef.current = false;
-      if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
-      fadeTimeoutRef.current = setTimeout(scrollThenReveal, FADE_OUT_MS);
-    } else {
-      // Already invisible (from the dark welcome / dimmed screen) — the
-      // spotlight is hidden, so we can scroll immediately.
-      scrollThenReveal();
-    }
+    // Bring the target into view. scrollIntoView also scrolls the ☰ drawer's
+    // OWN scroll container when the target lives inside it, so options like
+    // Theme & Branding / QR Code are always scrolled into view within the
+    // drawer. Wait for every axis to settle, then SNAP the spotlight on.
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    waitForScrollEnd(el, () => {
+      const rect = el.getBoundingClientRect();
+      if (!rect.width && !rect.height) return;
+      // Set geometry + reveal in the SAME commit → instant, clean snap. The box
+      // jumps to its final rect (motion duration 0) and the hole + accent border
+      // appear (CSS transition none) on the same frame, so fill and border can
+      // never lead, lag, or desync. No fade, no slide, no pop.
+      setSpotlightRect(fromRect(rect, 12));
+      setHoleOpen(true);
+      holeOpenRef.current = true;
+    });
   }, []);
 
   // ── Step navigation ────────────────────────────────────────────────────────
@@ -474,8 +430,6 @@ export function OnboardingTour({
     setOverlayOpacity(0);
     setHoleOpen(false);
     holeOpenRef.current = false;
-    setMoveInstant(true);
-    setPopScale(1);
     setSpotlightRect(null);
     if (currentHighlightedElRef.current) {
       currentHighlightedElRef.current.style.position = "";
@@ -556,13 +510,17 @@ export function OnboardingTour({
 
   return (
     <>
-      {/* Transparent click-blocker — z-39, beneath the overlay. Swallows every
-          tap/click on the dimmed page so the tour can't be interacted around.
-          The spotlit element (z-51), the open menu, and the tour card (z-60)
-          all sit above it and stay interactive. */}
+      {/* Transparent full-viewport click-blocker. Sits ABOVE everything the tour
+          touches — the dark overlay (z-40 / z-101), the raised spotlit element
+          (z-51), and the open ☰ drawer (z-100) — but BELOW the tour card
+          (z-120). During the tour NOTHING on the page is interactive, including
+          the highlighted element itself: the spotlight is illustrative only, not
+          a call to action. Only the tour card's own buttons sit above this and
+          stay clickable. The tour still opens/closes the drawer via programmatic
+          .click(), which pointer blocking never affects. */}
       <div
         className="fixed inset-0"
-        style={{ zIndex: 39, pointerEvents: "auto" }}
+        style={{ zIndex: 110, pointerEvents: "auto" }}
         onClickCapture={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -574,16 +532,13 @@ export function OnboardingTour({
           dark surround is this div's huge box-shadow spread, the bright hole is
           the div's own rectangle, and the accent ring is this SAME div's border
           — one element, so the hole, the dark, and the border are physically
-          unified and can NEVER lead, lag, or desync. The box NEVER slides: its
-          geometry (top/left/width/height) is only ever changed instantly
-          (duration 0) while the hole is invisible (uniformly dark), so there is
-          no interpolation across the screen during which anything could desync.
-          On a step change the hole first fades out (fill → dark, border →
-          transparent over FADE_OUT_MS), the box jumps to the new element while
-          dark, then the hole fades back in (over FADE_IN_MS) with a small scale
-          pop (0.96 → 1.0). Only `scale` is ever motion-animated; geometry stays
-          instant. The div is never unmounted or re-keyed, so the dark never
-          vanishes for a frame → no menu-step flash. */}
+          unified. The spotlight is INSTANT: geometry jumps (motion duration 0)
+          and the fill/border appear (CSS transition none) on the same frame, so
+          nothing slides, pops, or desyncs. While scrolling to a new target the
+          hole is closed (screen uniformly dark), so nothing drags across the
+          page; it snaps back open only once the target is at rest. The div is
+          never unmounted or re-keyed, so the dark never vanishes for a frame →
+          no menu-step flash. */}
       <motion.div
         aria-hidden="true"
         initial={false}
@@ -594,9 +549,7 @@ export function OnboardingTour({
           height: rect.height,
           borderRadius: rect.borderRadius,
         }}
-        // Geometry ALWAYS jumps instantly — the box never slides across the
-        // screen. Every visible fade property (fill, border, box-shadow, scale)
-        // lives on the CSS transition in `style` below, so nothing can desync.
+        // Geometry ALWAYS jumps instantly — the box never slides across the screen.
         transition={{ duration: 0 }}
         style={{
           position: "fixed",
@@ -604,31 +557,14 @@ export function OnboardingTour({
           border: `2.5px solid ${holeOpen ? "var(--accent, #8b6914)" : "transparent"}`,
           backgroundColor: holeOpen ? "transparent" : `rgba(0,0,0,${dimAlpha})`,
           boxShadow: `0 0 0 9999px rgba(0,0,0,${dimAlpha})`,
-          transform: `scale(${popScale})`,
           pointerEvents: "none",
-          // The fill (background), the accent border, and the box-shadow ALWAYS
-          // ride this one transition, driven solely by `holeOpen` — they are
-          // NEVER swapped to `none`. Keeping them permanently armed is the whole
-          // fix: when `holeOpen` flips they start from their committed closed
-          // values on the SAME frame, so the fill and border can't lead or lag
-          // each other. Previously the entire string was swapped `none`→active
-          // on the fade-in frame; on scrolling steps that frame lands right
-          // after a heavy scroll + geometry-jump repaint, and re-arming a
-          // `none`→active transition on that paint-saturated frame let the thin
-          // border's first frames drop while the large fill painted — so the
-          // border started late. Menu steps don't scroll, so their fade-in frame
-          // was quiet and the re-arm succeeded, which is why they looked synced.
-          // Only the scale pop is gated by `moveInstant` (duration 0 during the
-          // invisible jump) so the 0.96 snap stays instant; it then animates on
-          // the same duration/easing as the fill and border, popping in unison.
-          transition: [
-            `background-color ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
-            `border-color ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
-            `box-shadow ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
-            moveInstant
-              ? "transform 0ms"
-              : `transform ${holeOpen ? FADE_IN_MS : FADE_OUT_MS}ms ${SHARED_EASE}`,
-          ].join(", "),
+          // INSTANT snap: no CSS transition at all. When `holeOpen` flips, the
+          // fill (background), the accent border, and the box-shadow all change
+          // on the SAME frame with zero interpolation — so the fill and border
+          // can never lead or lag each other. The box is only ever shown once it
+          // already sits at the target's final geometry (set in the same commit
+          // as holeOpen), so there is no slide and no pop either.
+          transition: "none",
         }}
       />
 

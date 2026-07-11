@@ -1732,8 +1732,17 @@ function AdminMenuPanel({
       {open && dropPos && (
         <div
           ref={panelRef}
-          style={{ position: "fixed", top: dropPos.top, right: dropPos.right }}
-          className="w-64 rounded-xl bg-white border border-[#e8e4dd] shadow-2xl z-[100] max-h-[80vh] overflow-y-auto"
+          style={{
+            position: "fixed",
+            top: dropPos.top,
+            right: dropPos.right,
+            // Never let the panel extend past the viewport bottom, no matter
+            // how tall the item list is — cap it to the space below the button
+            // and scroll internally so every option (Theme & Branding, QR Code,
+            // …) stays reachable.
+            maxHeight: `calc(100vh - ${dropPos.top}px - 16px)`,
+          }}
+          className="w-64 rounded-xl bg-white border border-[#e8e4dd] shadow-2xl z-[100] overflow-y-auto"
         >
           <button
             data-tour="theme-branding-option"
