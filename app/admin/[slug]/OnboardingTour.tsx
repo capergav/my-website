@@ -330,10 +330,9 @@ export function OnboardingTour({
     waitForScrollEnd(el, () => {
       const rect = el.getBoundingClientRect();
       if (!rect.width && !rect.height) return;
-      // Set geometry + reveal in the SAME commit → instant, clean snap. The box
-      // jumps to its final rect (motion duration 0) and the hole + accent border
-      // appear (CSS transition none) on the same frame, so fill and border can
-      // never lead, lag, or desync. No fade, no slide, no pop.
+      // Set the final geometry and reveal in the SAME commit. The highlight box
+      // isn't rendered at all until this point, so its very first paint is
+      // already at the correct rect — no stale position, no flash, no animation.
       setSpotlightRect(fromRect(rect, 12));
       setHoleOpen(true);
       holeOpenRef.current = true;
@@ -503,10 +502,12 @@ export function OnboardingTour({
   const isMenuStep = STEPS[currentStep].menuOpen;
   const overlayZ = isMenuStep ? 101 : 40;
 
-  // Geometry for the one cutout div. Falls back to a zero box (fully covered by
-  // the dark fill) on target-less steps before the first real measurement.
-  const rect = spotlightRect ?? { top: 0, left: 0, width: 0, height: 0, borderRadius: 0 };
   const dimAlpha = 0.6 * overlayOpacity;
+  // The highlight box is rendered ONLY once a real target rect has been
+  // measured (after scroll settled). Until then — and while scrolling to a new
+  // target — the plain dark overlay is shown instead, so the highlight never
+  // appears at a stale position and there's no flash of the old spot.
+  const showHighlight = holeOpen && spotlightRect !== null;
 
   return (
     <>
@@ -528,45 +529,52 @@ export function OnboardingTour({
         aria-hidden="true"
       />
 
-      {/* Continuous dark dim + spotlight cutout as ONE always-mounted div. The
-          dark surround is this div's huge box-shadow spread, the bright hole is
-          the div's own rectangle, and the accent ring is this SAME div's border
-          — one element, so the hole, the dark, and the border are physically
-          unified. The spotlight is INSTANT: geometry jumps (motion duration 0)
-          and the fill/border appear (CSS transition none) on the same frame, so
-          nothing slides, pops, or desyncs. While scrolling to a new target the
-          hole is closed (screen uniformly dark), so nothing drags across the
-          page; it snaps back open only once the target is at rest. The div is
-          never unmounted or re-keyed, so the dark never vanishes for a frame →
-          no menu-step flash. */}
-      <motion.div
-        aria-hidden="true"
-        initial={false}
-        animate={{
-          top: rect.top,
-          left: rect.left,
-          width: rect.width,
-          height: rect.height,
-          borderRadius: rect.borderRadius,
-        }}
-        // Geometry ALWAYS jumps instantly — the box never slides across the screen.
-        transition={{ duration: 0 }}
-        style={{
-          position: "fixed",
-          zIndex: overlayZ,
-          border: `2.5px solid ${holeOpen ? "var(--accent, #8b6914)" : "transparent"}`,
-          backgroundColor: holeOpen ? "transparent" : `rgba(0,0,0,${dimAlpha})`,
-          boxShadow: `0 0 0 9999px rgba(0,0,0,${dimAlpha})`,
-          pointerEvents: "none",
-          // INSTANT snap: no CSS transition at all. When `holeOpen` flips, the
-          // fill (background), the accent border, and the box-shadow all change
-          // on the SAME frame with zero interpolation — so the fill and border
-          // can never lead or lag each other. The box is only ever shown once it
-          // already sits at the target's final geometry (set in the same commit
-          // as holeOpen), so there is no slide and no pop either.
-          transition: "none",
-        }}
-      />
+      {/* Base dark overlay — plain full-screen dim with NO hole. Rendered
+          whenever the highlight box is NOT (target-less welcome/final steps and
+          while scrolling to a new target). Because it's exactly as dark as the
+          highlight box's box-shadow, swapping between the two is seamless: the
+          dark never disappears for a frame, only the hole + border appear or
+          vanish. It is plain — no animation, no transition. */}
+      {!showHighlight && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: overlayZ,
+            backgroundColor: `rgba(0,0,0,${dimAlpha})`,
+            pointerEvents: "none",
+          }}
+        />
+      )}
+
+      {/* Spotlight highlight box — a plain <div>, rendered ONLY after the
+          target's final rect has been measured (scroll fully settled). ONE
+          element: the huge box-shadow is the surrounding dark, the rectangle is
+          the bright hole, the border is the accent ring — so fill and border are
+          physically the same element and CANNOT desync. There is ZERO animation:
+          no motion/react animate, no framer transition, no CSS transition (set
+          to "none" explicitly). It is never rendered at a stale position — it
+          simply IS at the correct place, fully formed, the instant it appears. */}
+      {showHighlight && spotlightRect && (
+        <div
+          aria-hidden="true"
+          style={{
+            position: "fixed",
+            top: spotlightRect.top,
+            left: spotlightRect.left,
+            width: spotlightRect.width,
+            height: spotlightRect.height,
+            borderRadius: spotlightRect.borderRadius,
+            zIndex: overlayZ,
+            border: "2.5px solid var(--accent, #8b6914)",
+            backgroundColor: "transparent",
+            boxShadow: `0 0 0 9999px rgba(0,0,0,${dimAlpha})`,
+            pointerEvents: "none",
+            transition: "none",
+          }}
+        />
+      )}
 
       {/* Tour card — must sit above the menu-step overlay (z-101) so the
           "Next" button stays visible and clickable on steps 8/9. */}
