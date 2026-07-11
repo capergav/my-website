@@ -322,7 +322,7 @@ export function OnboardingTour({
     const check = el.getBoundingClientRect();
     if (!check.width && !check.height) return;
 
-    // Clean up the previous highlighted element (before scroll)
+    // Clean up the previous highlighted element
     if (currentHighlightedElRef.current && currentHighlightedElRef.current !== el) {
       currentHighlightedElRef.current.style.position = "";
       currentHighlightedElRef.current.style.zIndex = "";
@@ -330,26 +330,31 @@ export function OnboardingTour({
     currentHighlightedElRef.current = el;
     el.style.position = "relative";
     el.style.zIndex = "51";
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    overlayActiveRef.current = true;
+    setOverlayOpacity(1);
 
-    // Wait for scroll to fully settle AND the element to be in view before measuring
-    waitForScrollEnd(el, () => {
-      const rect = el.getBoundingClientRect();
-      if (!rect.width && !rect.height) return;
+    // Runs ONLY once the spotlight is already fully faded out (completely
+    // invisible — no fill, no border, no ring). It scrolls the target into
+    // view, waits for the scroll to fully settle on EVERY axis, then jumps the
+    // still-invisible box to the target's FINAL rect and fades the whole thing
+    // back in together with the scale pop. Because the scroll happens while the
+    // spotlight is invisible, nothing ever drags across the screen.
+    const scrollThenReveal = () => {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
 
-      const finalRect = fromRect(rect, 12);
-      overlayActiveRef.current = true;
-      setOverlayOpacity(1);
+      waitForScrollEnd(el, () => {
+        const rect = el.getBoundingClientRect();
+        if (!rect.width && !rect.height) return;
 
-      // Fade-and-pop, never slide:
-      //  1. While the screen is uniformly dark (hole closed), jump the box to
-      //     the new geometry and shrink it to 0.96 — instant, invisible.
-      //  2. Next frame, re-open the hole (fill + border fade in) and pop the
-      //     scale up to 1.0. No geometry change here, so nothing can slide.
-      const jumpAndPop = () => {
+        const finalRect = fromRect(rect, 12);
+        // 1. While invisible, jump the box to its final geometry and shrink to
+        //    0.96 — instant, so nothing slides.
         setMoveInstant(true);
         setSpotlightRect(finalRect);
         setPopScale(0.96);
+        // 2. Next frame, fade the whole spotlight (fill + border + box-shadow)
+        //    back in together and pop the scale up to 1.0. Geometry is already
+        //    final, so only the fade + pop animate — no motion across screen.
         requestAnimationFrame(() =>
           requestAnimationFrame(() => {
             setMoveInstant(false);
@@ -358,20 +363,25 @@ export function OnboardingTour({
             setPopScale(1);
           })
         );
-      };
+      });
+    };
 
-      if (holeOpenRef.current) {
-        // A hole is already open → fade it out (close the hole so the screen
-        // goes uniformly dark) BEFORE jumping, so the move is invisible.
-        setHoleOpen(false);
-        holeOpenRef.current = false;
-        if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
-        fadeTimeoutRef.current = setTimeout(jumpAndPop, FADE_OUT_MS);
-      } else {
-        // First appearance (from the dark welcome screen) — no fade-out needed.
-        jumpAndPop();
-      }
-    });
+    // CORRECT ORDER: fade out BEFORE scrolling so the spotlight is fully hidden
+    // for the entire scroll, then reposition (hidden) and fade in at the final
+    // spot. Applies to every step identically.
+    if (holeOpenRef.current) {
+      // A hole is already open → fade the ENTIRE spotlight out first (fill goes
+      // dark, border + ring go transparent, all on one shared transition), so
+      // it's completely invisible, THEN scroll. Nothing drags across the page.
+      setHoleOpen(false);
+      holeOpenRef.current = false;
+      if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+      fadeTimeoutRef.current = setTimeout(scrollThenReveal, FADE_OUT_MS);
+    } else {
+      // Already invisible (from the dark welcome / dimmed screen) — the
+      // spotlight is hidden, so we can scroll immediately.
+      scrollThenReveal();
+    }
   }, []);
 
   // ── Step navigation ────────────────────────────────────────────────────────
