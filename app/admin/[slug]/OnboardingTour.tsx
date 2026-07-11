@@ -111,15 +111,23 @@ const fromRect = (rect: DOMRect, padding: number): SpotlightRect => ({
 const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
   let lastTop = Infinity;
   let lastLeft = Infinity;
+  let lastWidth = Infinity;
+  let lastHeight = Infinity;
   let stable = 0;
   let attempts = 0;
   const check = setInterval(() => {
     attempts++;
     const rect = el.getBoundingClientRect();
     const inView = rect.top > 0 && rect.top < window.innerHeight;
-    // Rest = top AND left unchanged (within 1px) since the previous frame.
+    // Rest = position (top AND left) AND size (width AND height) unchanged
+    // (within 1px) since the previous frame. Size stability matters because a
+    // drawer/target can finish moving while it's still EXPANDING — measuring
+    // then would capture an undersized rect and the hole would resize in place.
     const settled =
-      Math.abs(rect.top - lastTop) < 1 && Math.abs(rect.left - lastLeft) < 1;
+      Math.abs(rect.top - lastTop) < 1 &&
+      Math.abs(rect.left - lastLeft) < 1 &&
+      Math.abs(rect.width - lastWidth) < 1 &&
+      Math.abs(rect.height - lastHeight) < 1;
     if (settled && inView) {
       stable++;
       if (stable >= 3) {
@@ -131,6 +139,8 @@ const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
     }
     lastTop = rect.top;
     lastLeft = rect.left;
+    lastWidth = rect.width;
+    lastHeight = rect.height;
     // Safety: give up after ~2s and measure anyway so the tour never stalls
     if (attempts >= 40) {
       clearInterval(check);
@@ -176,6 +186,13 @@ export function OnboardingTour({
   const holeOpenRef = useRef(false); // Mirrors holeOpen for use inside stable callbacks
   // Pending fade-out → jump timer, so a rapid step change can cancel it.
   const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guards applySpotlight to run EXACTLY ONCE per step. On menu steps both the
+  // MutationObserver and the immediate setTimeout can fire — whichever wins
+  // flips this, and the loser is ignored. Reset to false on every step change.
+  const spotlightAppliedRef = useRef(false);
+  // Pending immediate-check timer on menu steps, so we can cancel it the moment
+  // the observer path wins (and vice versa).
+  const menuCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Click simulation helpers ───────────────────────────────────────────────
 
@@ -252,6 +269,9 @@ export function OnboardingTour({
       mutationObserverRef.current = null;
       if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
       fadeTimeoutRef.current = null;
+      if (menuCheckTimeoutRef.current) clearTimeout(menuCheckTimeoutRef.current);
+      menuCheckTimeoutRef.current = null;
+      spotlightAppliedRef.current = false;
       // Instantly clear spotlight
       overlayActiveRef.current = false;
       setOverlayOpacity(0);
@@ -304,9 +324,24 @@ export function OnboardingTour({
   }, []);
 
   const applySpotlight = useCallback((el: HTMLElement) => {
+    // Run exactly once per step. On menu steps the MutationObserver and the
+    // immediate setTimeout can both resolve; the first to reach here wins and
+    // any later call is dropped, so the rect is never measured (and the hole
+    // never resized) twice.
+    if (spotlightAppliedRef.current) return;
+
     // Ignore elements hidden by CSS (e.g. sm:hidden on desktop)
     const check = el.getBoundingClientRect();
     if (!check.width && !check.height) return;
+
+    spotlightAppliedRef.current = true;
+    // The other menu-step path (if still pending) is now redundant — cancel it.
+    if (menuCheckTimeoutRef.current) {
+      clearTimeout(menuCheckTimeoutRef.current);
+      menuCheckTimeoutRef.current = null;
+    }
+    mutationObserverRef.current?.disconnect();
+    mutationObserverRef.current = null;
 
     // Clean up the previous highlighted element
     if (currentHighlightedElRef.current && currentHighlightedElRef.current !== el) {
@@ -351,9 +386,15 @@ export function OnboardingTour({
 
       const prevStep = STEPS[currentStep];
 
-      // Kill any pending MutationObserver
+      // Kill any pending MutationObserver + immediate-check timer
       mutationObserverRef.current?.disconnect();
       mutationObserverRef.current = null;
+      if (menuCheckTimeoutRef.current) {
+        clearTimeout(menuCheckTimeoutRef.current);
+        menuCheckTimeoutRef.current = null;
+      }
+      // New step → allow applySpotlight to run once again.
+      spotlightAppliedRef.current = false;
 
       setCurrentStep(newStep);
 
@@ -384,8 +425,11 @@ export function OnboardingTour({
           observer.observe(document.body, { childList: true, subtree: true });
           mutationObserverRef.current = observer;
 
-          // Also check immediately in case the menu is already open
-          setTimeout(() => {
+          // Also check immediately in case the menu is already open. Stored in a
+          // ref so the observer path (or a step change) can cancel it — and
+          // applySpotlight's once-per-step guard drops it if it still fires.
+          menuCheckTimeoutRef.current = setTimeout(() => {
+            menuCheckTimeoutRef.current = null;
             const existing = document.querySelector(sel) as HTMLElement | null;
             if (existing) {
               observer.disconnect();
@@ -428,6 +472,9 @@ export function OnboardingTour({
     mutationObserverRef.current = null;
     if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
     fadeTimeoutRef.current = null;
+    if (menuCheckTimeoutRef.current) clearTimeout(menuCheckTimeoutRef.current);
+    menuCheckTimeoutRef.current = null;
+    spotlightAppliedRef.current = false;
     overlayActiveRef.current = false;
     setOverlayOpacity(0);
     setHoleOpen(false);
@@ -479,6 +526,7 @@ export function OnboardingTour({
     return () => {
       mutationObserverRef.current?.disconnect();
       if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
+      if (menuCheckTimeoutRef.current) clearTimeout(menuCheckTimeoutRef.current);
       if (currentHighlightedElRef.current) {
         currentHighlightedElRef.current.style.position = "";
         currentHighlightedElRef.current.style.zIndex = "";
