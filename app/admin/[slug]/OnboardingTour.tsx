@@ -141,9 +141,11 @@ const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
 
 // The spotlight is a SINGLE bright cutout in the dark overlay — no border, no
 // ring. It stays hidden (screen uniformly dark) during the scroll, then once
-// the target's final position is measured it fades in (~150ms) with a small
-// scale pop. Only the hole itself animates, so there is nothing it can desync
-// with — the border that used to cause timing artifacts is gone entirely.
+// the target's final position is measured it fades in (~150ms) on opacity only,
+// at its full, correct size — no scale, no size animation, so it can never flash
+// at a smaller intermediate size. Only the hole's opacity animates, so there is
+// nothing it can desync with — the border that used to cause timing artifacts is
+// gone entirely.
 
 export function OnboardingTour({
   tourKey,
@@ -555,16 +557,17 @@ export function OnboardingTour({
           stale position and never drags during scroll. ONE element: the huge
           box-shadow is the surrounding dark and is held CONSTANT (0.6) so it
           never flickers; the element's own background fades from that same dark
-          → transparent to "open" the hole, together with a small 0.96 → 1.0
-          scale pop. Only the hole animates — there is nothing for it to fall out
-          of sync with. It re-mounts each step (unmounted during the scroll), so
-          the fade-and-pop replays cleanly every time. Rounded corners keep the
-          cutout looking intentional. */}
+          → transparent to "open" the hole. The box always renders at its full,
+          correct size (top/left/width/height are static style props, never
+          animated) so it can never appear at a smaller intermediate size — only
+          the opacity of the hole fades in. It re-mounts each step (unmounted
+          during the scroll), so the fade-in replays cleanly every time. Rounded
+          corners keep the cutout looking intentional. */}
       {showHighlight && spotlightRect && (
         <motion.div
           aria-hidden="true"
-          initial={{ scale: 0.96, backgroundColor: `rgba(0,0,0,${dimAlpha})` }}
-          animate={{ scale: 1, backgroundColor: "rgba(0,0,0,0)" }}
+          initial={{ backgroundColor: `rgba(0,0,0,${dimAlpha})` }}
+          animate={{ backgroundColor: "rgba(0,0,0,0)" }}
           transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
           style={{
             position: "fixed",
