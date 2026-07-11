@@ -82,6 +82,11 @@ const STEPS: StepConfig[] = [
 
 const TOTAL_STEPS = STEPS.length;
 
+// How long the measured rect must be quiet (no new setSpotlightRect) before the
+// hole is revealed. Any double/undersized measurement lands within this window
+// while the hole is still hidden, so the user only ever sees the final size.
+const SETTLE_DELAY = 350;
+
 type SpotlightRect = {
   top: number;
   left: number;
@@ -150,12 +155,13 @@ const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
 };
 
 // The spotlight is a SINGLE bright cutout in the dark overlay — no border, no
-// ring. It stays hidden (screen uniformly dark) during the scroll, then once
-// the target's final position is measured it fades in (~150ms) on opacity only,
-// at its full, correct size — no scale, no size animation, so it can never flash
-// at a smaller intermediate size. Only the hole's opacity animates, so there is
-// nothing it can desync with — the border that used to cause timing artifacts is
-// gone entirely.
+// ring. It stays hidden (screen uniformly dark) during the scroll AND while the
+// target's size settles: each measurement is recorded via commitRect, which
+// debounces the reveal by SETTLE_DELAY. Only once no fresh rect has landed for
+// that window does the hole fade in (~200ms) on opacity only, at the FINAL size.
+// Any intermediate/undersized measurement therefore happens entirely off-screen,
+// so the user never sees the hole resize — no scale, no size animation, no
+// border. Only the hole's opacity animates.
 
 export function OnboardingTour({
   tourKey,
@@ -193,6 +199,11 @@ export function OnboardingTour({
   // Pending immediate-check timer on menu steps, so we can cancel it the moment
   // the observer path wins (and vice versa).
   const menuCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Debounced reveal timer. The hole stays INVISIBLE while measurements land;
+  // every new setSpotlightRect resets this timer. Only once no fresh rect has
+  // arrived for SETTLE_DELAY ms do we reveal (fade in) at the final size — so
+  // any intermediate/undersized measurement happens entirely off-screen.
+  const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Click simulation helpers ───────────────────────────────────────────────
 
@@ -271,6 +282,8 @@ export function OnboardingTour({
       fadeTimeoutRef.current = null;
       if (menuCheckTimeoutRef.current) clearTimeout(menuCheckTimeoutRef.current);
       menuCheckTimeoutRef.current = null;
+      if (revealTimeoutRef.current) clearTimeout(revealTimeoutRef.current);
+      revealTimeoutRef.current = null;
       spotlightAppliedRef.current = false;
       // Instantly clear spotlight
       overlayActiveRef.current = false;
@@ -323,6 +336,20 @@ export function OnboardingTour({
     setOverlayOpacity(1);
   }, []);
 
+  // Record a fresh measurement WITHOUT revealing. Updates the rect (so the
+  // hole, once shown, is at the latest size) and (re)arms the debounced reveal:
+  // if another measurement lands before SETTLE_DELAY elapses, the timer resets
+  // and the hole stays hidden until things go quiet.
+  const commitRect = useCallback((rect: SpotlightRect) => {
+    setSpotlightRect(rect);
+    if (revealTimeoutRef.current) clearTimeout(revealTimeoutRef.current);
+    revealTimeoutRef.current = setTimeout(() => {
+      revealTimeoutRef.current = null;
+      setHoleOpen(true);
+      holeOpenRef.current = true;
+    }, SETTLE_DELAY);
+  }, []);
+
   const applySpotlight = useCallback((el: HTMLElement) => {
     // Run exactly once per step. On menu steps the MutationObserver and the
     // immediate setTimeout can both resolve; the first to reach here wins and
@@ -368,14 +395,13 @@ export function OnboardingTour({
     waitForScrollEnd(el, () => {
       const rect = el.getBoundingClientRect();
       if (!rect.width && !rect.height) return;
-      // Set the final geometry and reveal in the SAME commit. The highlight box
-      // isn't rendered at all until this point, so its very first paint is
-      // already at the correct rect — no stale position, no flash, no animation.
-      setSpotlightRect(fromRect(rect, 12));
-      setHoleOpen(true);
-      holeOpenRef.current = true;
+      // Record the geometry but DON'T reveal yet — commitRect debounces the
+      // reveal by SETTLE_DELAY. If a second (corrected) measurement lands, it
+      // resets the timer, so the hole only ever fades in once the size is
+      // quiet. All intermediate measuring happens while the hole is hidden.
+      commitRect(fromRect(rect, 12));
     });
-  }, []);
+  }, [commitRect]);
 
   // ── Step navigation ────────────────────────────────────────────────────────
 
@@ -393,6 +419,14 @@ export function OnboardingTour({
         clearTimeout(menuCheckTimeoutRef.current);
         menuCheckTimeoutRef.current = null;
       }
+      // Cancel any pending reveal from the previous step and hide the hole
+      // immediately, so nothing is visible while the new target is measured.
+      if (revealTimeoutRef.current) {
+        clearTimeout(revealTimeoutRef.current);
+        revealTimeoutRef.current = null;
+      }
+      setHoleOpen(false);
+      holeOpenRef.current = false;
       // New step → allow applySpotlight to run once again.
       spotlightAppliedRef.current = false;
 
@@ -474,6 +508,8 @@ export function OnboardingTour({
     fadeTimeoutRef.current = null;
     if (menuCheckTimeoutRef.current) clearTimeout(menuCheckTimeoutRef.current);
     menuCheckTimeoutRef.current = null;
+    if (revealTimeoutRef.current) clearTimeout(revealTimeoutRef.current);
+    revealTimeoutRef.current = null;
     spotlightAppliedRef.current = false;
     overlayActiveRef.current = false;
     setOverlayOpacity(0);
@@ -527,6 +563,7 @@ export function OnboardingTour({
       mutationObserverRef.current?.disconnect();
       if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
       if (menuCheckTimeoutRef.current) clearTimeout(menuCheckTimeoutRef.current);
+      if (revealTimeoutRef.current) clearTimeout(revealTimeoutRef.current);
       if (currentHighlightedElRef.current) {
         currentHighlightedElRef.current.style.position = "";
         currentHighlightedElRef.current.style.zIndex = "";
@@ -616,7 +653,7 @@ export function OnboardingTour({
           aria-hidden="true"
           initial={{ backgroundColor: `rgba(0,0,0,${dimAlpha})` }}
           animate={{ backgroundColor: "rgba(0,0,0,0)" }}
-          transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
           style={{
             position: "fixed",
             top: spotlightRect.top,
