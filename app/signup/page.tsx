@@ -75,7 +75,12 @@ export default function SignupPage() {
       options: { data: { restaurant_name: restaurantName.trim(), restaurant_slug: slug } },
     });
     if (error) { setError(error.message); setLoading(false); }
-    else { router.push("/admin"); router.refresh(); }
+    else {
+      // Founder business alert — fire-and-forget. Must never block or break
+      // the signup flow, so failures are swallowed.
+      fetch("/api/notify-signup", { method: "POST" }).catch(() => {});
+      router.push("/admin"); router.refresh();
+    }
   };
 
   const passwordError = password ? validatePassword(password) : null;
