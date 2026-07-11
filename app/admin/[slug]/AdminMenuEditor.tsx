@@ -311,6 +311,7 @@ export function AdminMenuEditor({
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [portalLoading, setPortalLoading] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const tabScrollRef = useRef<HTMLDivElement>(null);
   const [adminCanScrollLeft, setAdminCanScrollLeft] = useState(false);
@@ -773,6 +774,7 @@ export function AdminMenuEditor({
             onSignOut={handleSignOut}
             onOpenQR={() => setShowQR(true)}
             onOpenSettings={() => setSettingsOpen(true)}
+            onOpenFeedback={() => setFeedbackOpen(true)}
             restaurantSlug={restaurantSlug}
           />
         </div>
@@ -875,6 +877,15 @@ export function AdminMenuEditor({
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
               Account settings
+            </button>
+            <button type="button"
+              onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; setFeedbackOpen(true); }}
+              className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-gray-50 text-gray-800 text-sm font-medium">
+              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              Send feedback
             </button>
             <button type="button" data-tour="sheet-close" onClick={() => { setMobileOpen(false); document.body.dataset.mobileSheetOpen = "false"; }}
               className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-500 text-sm font-medium">
@@ -1177,6 +1188,11 @@ export function AdminMenuEditor({
         />
       )}
 
+      {/* Owner → DineLinks Feedback Modal */}
+      {feedbackOpen && (
+        <FeedbackModal onClose={() => setFeedbackOpen(false)} />
+      )}
+
       {/* Add Category Modal */}
       {showCategoryModal && (
         <AddCategoryModal
@@ -1273,6 +1289,144 @@ function CategoryNoteEditor({
         className="font-sans mt-2 px-4 py-1.5 rounded-lg bg-[var(--accent)] text-white text-sm font-medium disabled:opacity-50 hover:opacity-90 transition-opacity">
         {saving ? "Saving…" : "Save note"}
       </button>
+    </div>
+  );
+}
+
+// ── Owner → DineLinks feedback modal ──────────────────────────────────────────
+// This is the owner talking to *us* (DineLinks) — bug reports, feature requests,
+// general thoughts. Distinct from guest feedback (diner → restaurant). Styled
+// per convention: white bg + dark text, var(--accent) on the primary button.
+
+const FEEDBACK_TYPES = [
+  { value: "bug", label: "Bug report" },
+  { value: "feature", label: "Feature request" },
+  { value: "general", label: "General feedback" },
+] as const;
+
+const MESSAGE_MAX = 2000;
+
+function FeedbackModal({ onClose }: { onClose: () => void }) {
+  const [type, setType] = useState<"bug" | "feature" | "general">("general");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+  useBodyScrollLock(true);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim() || submitting) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      const res = await fetch("/api/owner-feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, message: message.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Something went wrong. Please try again.");
+      }
+      setDone(true);
+      setTimeout(onClose, 2200);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60"
+      style={{ animation: "fadeIn 0.15s ease-out" }} onClick={onClose}>
+      <div className="bg-white text-gray-900 border border-gray-200 rounded-2xl shadow-2xl w-full max-w-md p-6"
+        style={{ animation: "modalIn 0.15s ease-out" }} onClick={(e) => e.stopPropagation()}>
+        {done ? (
+          <div className="py-8 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full"
+              style={{ background: "var(--accent)" }}>
+              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="font-serif text-lg font-semibold text-gray-900">Thank you!</h3>
+            <p className="mt-1.5 text-sm text-gray-600">
+              We read every message and really appreciate you taking the time.
+            </p>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="space-y-4">
+            <div>
+              <h3 className="font-serif text-lg font-semibold text-gray-900">Send feedback</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Found a bug? Want a feature? Tell us what you think — a real person reads every note.
+              </p>
+            </div>
+
+            {/* Type selector */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1.5">
+                What&apos;s this about?
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {FEEDBACK_TYPES.map((t) => {
+                  const active = type === t.value;
+                  return (
+                    <button
+                      key={t.value}
+                      type="button"
+                      onClick={() => setType(t.value)}
+                      className={`px-2 py-2.5 rounded-xl text-xs font-medium border transition-colors ${
+                        active
+                          ? "text-white border-transparent"
+                          : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                      }`}
+                      style={active ? { background: "var(--accent)" } : undefined}
+                    >
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Message */}
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-widest text-gray-500 mb-1.5">
+                Your message
+              </label>
+              <textarea
+                value={message}
+                onChange={(e) => { setMessage(e.target.value.slice(0, MESSAGE_MAX)); setError(""); }}
+                placeholder="Tell us what's on your mind…"
+                rows={5}
+                autoFocus
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-900 text-sm resize-y focus:outline-none focus:ring-2"
+                style={{ ["--tw-ring-color" as string]: "var(--accent)" }}
+              />
+              <div className="mt-1 flex justify-end">
+                <span className="text-[11px] text-gray-400">{message.length}/{MESSAGE_MAX}</span>
+              </div>
+            </div>
+
+            {error && <p className="text-xs text-red-600">{error}</p>}
+
+            <div className="flex gap-3 pt-1">
+              <button type="button" onClick={onClose}
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors">
+                Cancel
+              </button>
+              <button type="submit" disabled={submitting || !message.trim()}
+                className="flex-1 py-2.5 rounded-xl text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity"
+                style={{ background: "var(--accent)" }}>
+                {submitting ? "Sending…" : "Send feedback"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
@@ -1674,6 +1828,7 @@ function AdminMenuPanel({
   onSignOut,
   onOpenQR,
   onOpenSettings,
+  onOpenFeedback,
   restaurantSlug,
 }: {
   onOpenTheme: () => void;
@@ -1681,6 +1836,7 @@ function AdminMenuPanel({
   onSignOut: () => void;
   onOpenQR: () => void;
   onOpenSettings: () => void;
+  onOpenFeedback: () => void;
   restaurantSlug: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -1802,6 +1958,17 @@ function AdminMenuPanel({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
             Account settings
+          </button>
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onOpenFeedback(); }}
+            className="w-full text-left px-4 py-3 text-sm text-gray-900 hover:bg-gray-50 flex items-center gap-3 border-t border-[#e8e4dd] transition-colors"
+          >
+            <svg className="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            Send feedback
           </button>
           <button
             type="button"
