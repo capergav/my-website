@@ -139,10 +139,11 @@ const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
   }, 50);
 };
 
-// The spotlight appears INSTANTLY at each step — no fade, no slide, no pop. The
-// box is hidden (screen uniformly dark) during the scroll, then snaps on at the
-// target's final position the instant the scroll settles. An instant, reliable
-// appearance beats a fade whose fill and border could ever desync.
+// The spotlight is a SINGLE bright cutout in the dark overlay — no border, no
+// ring. It stays hidden (screen uniformly dark) during the scroll, then once
+// the target's final position is measured it fades in (~150ms) with a small
+// scale pop. Only the hole itself animates, so there is nothing it can desync
+// with — the border that used to cause timing artifacts is gone entirely.
 
 export function OnboardingTour({
   tourKey,
@@ -533,8 +534,8 @@ export function OnboardingTour({
           whenever the highlight box is NOT (target-less welcome/final steps and
           while scrolling to a new target). Because it's exactly as dark as the
           highlight box's box-shadow, swapping between the two is seamless: the
-          dark never disappears for a frame, only the hole + border appear or
-          vanish. It is plain — no animation, no transition. */}
+          surrounding dark never disappears for a frame — only the bright hole
+          fades in or out. It is plain — no animation, no transition. */}
       {!showHighlight && (
         <div
           aria-hidden="true"
@@ -548,17 +549,23 @@ export function OnboardingTour({
         />
       )}
 
-      {/* Spotlight highlight box — a plain <div>, rendered ONLY after the
-          target's final rect has been measured (scroll fully settled). ONE
-          element: the huge box-shadow is the surrounding dark, the rectangle is
-          the bright hole, the border is the accent ring — so fill and border are
-          physically the same element and CANNOT desync. There is ZERO animation:
-          no motion/react animate, no framer transition, no CSS transition (set
-          to "none" explicitly). It is never rendered at a stale position — it
-          simply IS at the correct place, fully formed, the instant it appears. */}
+      {/* Spotlight highlight — a single bright cutout in the dark overlay, with
+          NO border/ring of any kind. Rendered ONLY after the target's final rect
+          has been measured (scroll fully settled), so it never appears at a
+          stale position and never drags during scroll. ONE element: the huge
+          box-shadow is the surrounding dark and is held CONSTANT (0.6) so it
+          never flickers; the element's own background fades from that same dark
+          → transparent to "open" the hole, together with a small 0.96 → 1.0
+          scale pop. Only the hole animates — there is nothing for it to fall out
+          of sync with. It re-mounts each step (unmounted during the scroll), so
+          the fade-and-pop replays cleanly every time. Rounded corners keep the
+          cutout looking intentional. */}
       {showHighlight && spotlightRect && (
-        <div
+        <motion.div
           aria-hidden="true"
+          initial={{ scale: 0.96, backgroundColor: `rgba(0,0,0,${dimAlpha})` }}
+          animate={{ scale: 1, backgroundColor: "rgba(0,0,0,0)" }}
+          transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
           style={{
             position: "fixed",
             top: spotlightRect.top,
@@ -567,11 +574,8 @@ export function OnboardingTour({
             height: spotlightRect.height,
             borderRadius: spotlightRect.borderRadius,
             zIndex: overlayZ,
-            border: "2.5px solid var(--accent, #8b6914)",
-            backgroundColor: "transparent",
             boxShadow: `0 0 0 9999px rgba(0,0,0,${dimAlpha})`,
             pointerEvents: "none",
-            transition: "none",
           }}
         />
       )}
