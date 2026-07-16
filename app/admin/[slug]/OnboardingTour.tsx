@@ -82,11 +82,6 @@ const STEPS: StepConfig[] = [
 
 const TOTAL_STEPS = STEPS.length;
 
-// How long the measured rect must be quiet (no new setSpotlightRect) before the
-// hole is revealed. Any double/undersized measurement lands within this window
-// while the hole is still hidden, so the user only ever sees the final size.
-const SETTLE_DELAY = 350;
-
 type SpotlightRect = {
   top: number;
   left: number;
@@ -104,64 +99,84 @@ const fromRect = (rect: DOMRect, padding: number): SpotlightRect => ({
   borderRadius: 10,
 });
 
-// Wait for scroll to fully settle before measuring. We track the TARGET
-// ELEMENT'S OWN rect (top AND left) rather than window.scrollY, because scroll
-// can happen on any axis and in any container: scrollIntoView may scroll the
-// window vertically, but the category tab bar scrolls the element *horizontally*
-// inside its own container — window.scrollY never changes for that. Watching the
-// element's rect stability catches all of it (window scroll, ancestor container
-// scroll, horizontal or vertical), so we only measure once the element has truly
-// come to rest at its FINAL position. Otherwise the spotlight springs to a
-// transitional coord and lands offset.
-const waitForScrollEnd = (el: HTMLElement, callback: () => void) => {
+// ── Async pipeline primitives ────────────────────────────────────────────────
+// Each accepts an `isStale` predicate so a newer step change can abort mid-flight
+// (see the generation token in OnboardingTour). They never touch React state —
+// the caller decides whether to commit based on the same staleness check.
+
+const nextFrame = (): Promise<void> =>
+  new Promise((resolve) => requestAnimationFrame(() => resolve()));
+
+const sleep = (ms: number): Promise<void> =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+// Poll (every 50ms, up to 2.5s) until the selector resolves to an element with a
+// non-zero box. Used for menu steps where the target only mounts after the drawer
+// opens, and for ordinary steps where the target is already present (returns on
+// the first poll). Resolves null on timeout or if the run goes stale.
+const waitForElement = async (
+  sel: string,
+  isStale: () => boolean
+): Promise<HTMLElement | null> => {
+  const deadline = performance.now() + 2500;
+  while (performance.now() < deadline) {
+    if (isStale()) return null;
+    const el = document.querySelector(sel) as HTMLElement | null;
+    if (el) {
+      const r = el.getBoundingClientRect();
+      if (r.width || r.height) return el;
+    }
+    await sleep(50);
+  }
+  return null;
+};
+
+// Resolve once the element's rect (top, left, width AND height) has held steady
+// within 1px for 5 consecutive animation frames. Watching all four values catches
+// scroll on ANY axis (window, ancestor container, the drawer's own scroller) AND
+// mid-expansion layout — a still-growing element never passes, so it can never be
+// measured undersized. Returns false only if the run goes stale; a ~4s safety cap
+// resolves true so the tour can never stall.
+const waitForStable = async (
+  el: HTMLElement,
+  isStale: () => boolean
+): Promise<boolean> => {
   let lastTop = Infinity;
   let lastLeft = Infinity;
   let lastWidth = Infinity;
   let lastHeight = Infinity;
   let stable = 0;
-  let attempts = 0;
-  const check = setInterval(() => {
-    attempts++;
-    const rect = el.getBoundingClientRect();
-    const inView = rect.top > 0 && rect.top < window.innerHeight;
-    // Rest = position (top AND left) AND size (width AND height) unchanged
-    // (within 1px) since the previous frame. Size stability matters because a
-    // drawer/target can finish moving while it's still EXPANDING — measuring
-    // then would capture an undersized rect and the hole would resize in place.
+  let frames = 0;
+  while (frames < 240) {
+    frames++;
+    await nextFrame();
+    if (isStale()) return false;
+    const r = el.getBoundingClientRect();
     const settled =
-      Math.abs(rect.top - lastTop) < 1 &&
-      Math.abs(rect.left - lastLeft) < 1 &&
-      Math.abs(rect.width - lastWidth) < 1 &&
-      Math.abs(rect.height - lastHeight) < 1;
-    if (settled && inView) {
+      Math.abs(r.top - lastTop) < 1 &&
+      Math.abs(r.left - lastLeft) < 1 &&
+      Math.abs(r.width - lastWidth) < 1 &&
+      Math.abs(r.height - lastHeight) < 1;
+    if (settled) {
       stable++;
-      if (stable >= 3) {
-        clearInterval(check);
-        callback();
-      }
+      if (stable >= 5) return true;
     } else {
       stable = 0;
     }
-    lastTop = rect.top;
-    lastLeft = rect.left;
-    lastWidth = rect.width;
-    lastHeight = rect.height;
-    // Safety: give up after ~2s and measure anyway so the tour never stalls
-    if (attempts >= 40) {
-      clearInterval(check);
-      callback();
-    }
-  }, 50);
+    lastTop = r.top;
+    lastLeft = r.left;
+    lastWidth = r.width;
+    lastHeight = r.height;
+  }
+  return true;
 };
 
 // The spotlight is a SINGLE bright cutout in the dark overlay — no border, no
-// ring. It stays hidden (screen uniformly dark) during the scroll AND while the
-// target's size settles: each measurement is recorded via commitRect, which
-// debounces the reveal by SETTLE_DELAY. Only once no fresh rect has landed for
-// that window does the hole fade in (~200ms) on opacity only, at the FINAL size.
-// Any intermediate/undersized measurement therefore happens entirely off-screen,
-// so the user never sees the hole resize — no scale, no size animation, no
-// border. Only the hole's opacity animates.
+// ring. One race-proof pipeline drives every step (menu or not): the hole stays
+// hidden while the drawer opens and the target scrolls + settles to its FINAL
+// size, then the hole is measured ONCE and fades in (opacity only) at that size.
+// A generation token invalidates any in-flight run the instant the step changes,
+// so a stale callback can never set state or flash a wrong/undersized hole.
 
 export function OnboardingTour({
   tourKey,
@@ -178,32 +193,21 @@ export function OnboardingTour({
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
   const [overlayOpacity, setOverlayOpacity] = useState(0);
   // Whether the cutout hole is open (true) or the screen is plainly dimmed
-  // with no hole (false — welcome / final steps, and while a cutout fades in).
+  // with no hole (false — welcome / final steps, and during every scroll/settle).
   const [holeOpen, setHoleOpen] = useState(false);
 
   // Refs that don't need to trigger re-renders
   const currentHighlightedElRef = useRef<HTMLElement | null>(null);
-  const overlayActiveRef = useRef(false); // true while overlay is shown/fading-in
-  const mutationObserverRef = useRef<MutationObserver | null>(null);
+  const overlayActiveRef = useRef(false); // true while overlay is shown
   const goToStepRef = useRef<((step: number) => void) | null>(null);
   const prevTourKeyRef = useRef(tourKey); // Track previous tourKey to detect actual changes
   const menuOpenedByTourRef = useRef(false); // Track if we opened the menu
   const desktopMenuRef = useRef(false); // Track whether we opened the desktop dropdown (vs mobile sheet)
   const holeOpenRef = useRef(false); // Mirrors holeOpen for use inside stable callbacks
-  // Pending fade-out → jump timer, so a rapid step change can cancel it.
-  const fadeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Guards applySpotlight to run EXACTLY ONCE per step. On menu steps both the
-  // MutationObserver and the immediate setTimeout can fire — whichever wins
-  // flips this, and the loser is ignored. Reset to false on every step change.
-  const spotlightAppliedRef = useRef(false);
-  // Pending immediate-check timer on menu steps, so we can cancel it the moment
-  // the observer path wins (and vice versa).
-  const menuCheckTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Debounced reveal timer. The hole stays INVISIBLE while measurements land;
-  // every new setSpotlightRect resets this timer. Only once no fresh rect has
-  // arrived for SETTLE_DELAY ms do we reveal (fade in) at the final size — so
-  // any intermediate/undersized measurement happens entirely off-screen.
-  const revealTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Monotonic generation token. Bumped on every step change / replay / finish.
+  // Each pipeline run captures its gen and bails at every checkpoint once a newer
+  // run has started, so exactly one run per step can ever commit state.
+  const stepGenRef = useRef(0);
 
   // ── Click simulation helpers ───────────────────────────────────────────────
 
@@ -219,14 +223,16 @@ export function OnboardingTour({
     typeof window !== "undefined" && window.matchMedia("(min-width: 640px)").matches;
 
   const clickMenuButton = useCallback(() => {
+    // Idempotent for both viewports: if the drawer's options are already in the
+    // DOM it's open, so we don't re-click (which on mobile would toggle it shut
+    // when advancing between the two menu steps).
+    const alreadyOpen = document.querySelector(
+      '[data-tour="theme-branding-option"], [data-tour="qr-option"]'
+    );
     if (isDesktop()) {
       // Mark the tour as driving the dropdown so its outside-click handler
       // won't close it when the user presses "Next" on the tour card.
       document.body.dataset.tourActive = "true";
-      // Idempotent: only click to open if the dropdown isn't already open.
-      const alreadyOpen = document.querySelector(
-        '[data-tour="theme-branding-option"], [data-tour="qr-option"]'
-      );
       if (!alreadyOpen) {
         const btn = document.querySelector('[data-tour="tour-menu"]') as HTMLElement | null;
         btn?.click();
@@ -234,12 +240,12 @@ export function OnboardingTour({
       menuOpenedByTourRef.current = true;
       desktopMenuRef.current = true;
     } else {
-      const btn = document.querySelector('[data-tour="menu-button"]') as HTMLElement | null;
-      if (btn) {
-        btn.click();
-        menuOpenedByTourRef.current = true;
-        desktopMenuRef.current = false;
+      if (!alreadyOpen) {
+        const btn = document.querySelector('[data-tour="menu-button"]') as HTMLElement | null;
+        btn?.click();
       }
+      menuOpenedByTourRef.current = true;
+      desktopMenuRef.current = false;
     }
   }, []);
 
@@ -265,234 +271,130 @@ export function OnboardingTour({
     desktopMenuRef.current = false;
   }, []);
 
+  // Detach the currently raised element, restoring its inline styles.
+  const detachHighlight = useCallback(() => {
+    if (currentHighlightedElRef.current) {
+      currentHighlightedElRef.current.style.position = "";
+      currentHighlightedElRef.current.style.zIndex = "";
+      currentHighlightedElRef.current = null;
+    }
+  }, []);
+
+  // ── The single spotlight pipeline ───────────────────────────────────────────
+  // One async sequence per step. Every await is followed by an isStale() bail so
+  // a newer step change (which bumped stepGenRef) aborts this run before it can
+  // touch state. There is no MutationObserver, no dual immediate/observer path,
+  // no dedupe flag and no reveal debounce — this replaces all of them.
+
+  const runStep = useCallback(
+    async (stepIndex: number, gen: number) => {
+      const step = STEPS[stepIndex];
+      if (!step) return;
+      const isStale = () => gen !== stepGenRef.current;
+
+      // 1. Hide the hole for the whole pipeline — the screen is uniformly dark
+      //    (no cutout) while the drawer opens and the target scrolls + settles.
+      setHoleOpen(false);
+      holeOpenRef.current = false;
+
+      // 2. Drop any element the previous step raised, so it can't sit bright
+      //    above the overlay while we scroll toward the next target.
+      detachHighlight();
+
+      // 3. Keep the screen dimmed throughout.
+      overlayActiveRef.current = true;
+      setOverlayOpacity(1);
+
+      // 4. Close the drawer if the tour opened it and this step doesn't need it.
+      if (!step.menuOpen && menuOpenedByTourRef.current) closeMenu();
+
+      // 5. Target-less steps (welcome / final): plain dim, no hole. Done.
+      if (!step.targetSelector) return;
+
+      // 6. Menu steps: open the drawer (idempotent).
+      if (step.menuOpen) clickMenuButton();
+
+      // 7. Wait for the target to exist and be measurable.
+      const el = await waitForElement(step.targetSelector, isStale);
+      if (isStale() || !el) return;
+
+      // 8. Bring it into view. scrollIntoView also scrolls the drawer's OWN
+      //    scroll container, so an option below the fold inside the drawer is
+      //    scrolled into view within the drawer.
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+
+      // 9. Await FULL stability — position AND size steady for 5 frames.
+      const stable = await waitForStable(el, isStale);
+      if (isStale() || !stable) return;
+
+      // 10. Two more frames so the settled layout has actually painted.
+      await nextFrame();
+      if (isStale()) return;
+      await nextFrame();
+      if (isStale()) return;
+
+      // 11. Measure the final geometry exactly once.
+      const rect = el.getBoundingClientRect();
+      if (!rect.width && !rect.height) return;
+      if (isStale()) return;
+
+      // 12. Raise the target and reveal the hole at its final size. The box's
+      //     top/left/width/height are static — only its background opacity fades
+      //     (~200ms), so the hole appears once, fully formed, never resizing.
+      el.style.position = "relative";
+      el.style.zIndex = "51";
+      currentHighlightedElRef.current = el;
+      setSpotlightRect(fromRect(rect, 12));
+      setHoleOpen(true);
+      holeOpenRef.current = true;
+    },
+    [clickMenuButton, closeMenu, detachHighlight]
+  );
+
   // ── Show / replay ──────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (hasCompletedTour === false) setVisible(true);
   }, [hasCompletedTour]);
 
+  // Replay (replay button bumps tourKey): invalidate any in-flight pipeline,
+  // clear all spotlight state, and restart at step 0.
   useEffect(() => {
-    // Only reset when tourKey actually increases (replay button clicked)
     if (tourKey > prevTourKeyRef.current) {
       prevTourKeyRef.current = tourKey;
-      // Kill any pending observer
-      mutationObserverRef.current?.disconnect();
-      mutationObserverRef.current = null;
-      if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
-      fadeTimeoutRef.current = null;
-      if (menuCheckTimeoutRef.current) clearTimeout(menuCheckTimeoutRef.current);
-      menuCheckTimeoutRef.current = null;
-      if (revealTimeoutRef.current) clearTimeout(revealTimeoutRef.current);
-      revealTimeoutRef.current = null;
-      spotlightAppliedRef.current = false;
-      // Instantly clear spotlight
+      stepGenRef.current++; // any running pipeline is now stale and will bail
       overlayActiveRef.current = false;
       setOverlayOpacity(0);
       setHoleOpen(false);
       holeOpenRef.current = false;
       setSpotlightRect(null);
-      if (currentHighlightedElRef.current) {
-        currentHighlightedElRef.current.style.position = "";
-        currentHighlightedElRef.current.style.zIndex = "";
-        currentHighlightedElRef.current = null;
-      }
+      detachHighlight();
       closeMenu();
       setCurrentStep(0);
       setVisible(true);
     }
-  }, [tourKey, closeMenu]);
+  }, [tourKey, closeMenu, detachHighlight]);
 
-  // ── Dim the screen on target-less steps (welcome / final) ──────────────────
-  // These steps never run applySpotlight, so activate the plain dark overlay
-  // here. Runs on first mount (step 0) and after the replay reset.
+  // ── Drive the pipeline on every step change / show / replay ─────────────────
+  // The generation bump here invalidates the previous run; the fresh gen is
+  // handed to this step's run. tourKey is a dep so a replay that lands back on
+  // step 0 still re-runs the pipeline.
   useEffect(() => {
     if (!visible) return;
-    const step = STEPS[currentStep];
-    if (!step.menuOpen && !step.targetSelector) {
-      // Plain dimmed screen: close the hole (fades the cutout out) but keep
-      // the dark overlay. spotlightRect is left mounted so the cutout can
-      // fade out gracefully; it's re-driven the moment a target step runs.
-      overlayActiveRef.current = true;
-      setHoleOpen(false);
-      holeOpenRef.current = false;
-      setOverlayOpacity(1);
-    }
-  }, [visible, currentStep]);
-
-  // ── Spotlight helpers ──────────────────────────────────────────────────────
-
-  const removeSpotlight = useCallback(() => {
-    // Detach any highlighted element but KEEP the dark overlay visible as a
-    // plain dimmed screen (no cutout). This keeps the dimming consistent on
-    // steps with no specific target (welcome + final step).
-    if (currentHighlightedElRef.current) {
-      currentHighlightedElRef.current.style.position = "";
-      currentHighlightedElRef.current.style.zIndex = "";
-      currentHighlightedElRef.current = null;
-    }
-    overlayActiveRef.current = true;
-    setHoleOpen(false);
-    holeOpenRef.current = false;
-    setOverlayOpacity(1);
-  }, []);
-
-  // Record a fresh measurement WITHOUT revealing. Updates the rect (so the
-  // hole, once shown, is at the latest size) and (re)arms the debounced reveal:
-  // if another measurement lands before SETTLE_DELAY elapses, the timer resets
-  // and the hole stays hidden until things go quiet.
-  const commitRect = useCallback((rect: SpotlightRect) => {
-    setSpotlightRect(rect);
-    if (revealTimeoutRef.current) clearTimeout(revealTimeoutRef.current);
-    revealTimeoutRef.current = setTimeout(() => {
-      revealTimeoutRef.current = null;
-      setHoleOpen(true);
-      holeOpenRef.current = true;
-    }, SETTLE_DELAY);
-  }, []);
-
-  const applySpotlight = useCallback((el: HTMLElement) => {
-    // Run exactly once per step. On menu steps the MutationObserver and the
-    // immediate setTimeout can both resolve; the first to reach here wins and
-    // any later call is dropped, so the rect is never measured (and the hole
-    // never resized) twice.
-    if (spotlightAppliedRef.current) return;
-
-    // Ignore elements hidden by CSS (e.g. sm:hidden on desktop)
-    const check = el.getBoundingClientRect();
-    if (!check.width && !check.height) return;
-
-    spotlightAppliedRef.current = true;
-    // The other menu-step path (if still pending) is now redundant — cancel it.
-    if (menuCheckTimeoutRef.current) {
-      clearTimeout(menuCheckTimeoutRef.current);
-      menuCheckTimeoutRef.current = null;
-    }
-    mutationObserverRef.current?.disconnect();
-    mutationObserverRef.current = null;
-
-    // Clean up the previous highlighted element
-    if (currentHighlightedElRef.current && currentHighlightedElRef.current !== el) {
-      currentHighlightedElRef.current.style.position = "";
-      currentHighlightedElRef.current.style.zIndex = "";
-    }
-    currentHighlightedElRef.current = el;
-    el.style.position = "relative";
-    el.style.zIndex = "51";
-    overlayActiveRef.current = true;
-    setOverlayOpacity(1);
-
-    // Hide the spotlight instantly (screen goes uniformly dark, no hole/border)
-    // so nothing is visible while we scroll — no border or fill can drag across
-    // the page during the scroll.
-    setHoleOpen(false);
-    holeOpenRef.current = false;
-
-    // Bring the target into view. scrollIntoView also scrolls the ☰ drawer's
-    // OWN scroll container when the target lives inside it, so options like
-    // Theme & Branding / QR Code are always scrolled into view within the
-    // drawer. Wait for every axis to settle, then SNAP the spotlight on.
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-    waitForScrollEnd(el, () => {
-      const rect = el.getBoundingClientRect();
-      if (!rect.width && !rect.height) return;
-      // Record the geometry but DON'T reveal yet — commitRect debounces the
-      // reveal by SETTLE_DELAY. If a second (corrected) measurement lands, it
-      // resets the timer, so the hole only ever fades in once the size is
-      // quiet. All intermediate measuring happens while the hole is hidden.
-      commitRect(fromRect(rect, 12));
-    });
-  }, [commitRect]);
+    const gen = ++stepGenRef.current;
+    runStep(currentStep, gen);
+  }, [visible, currentStep, tourKey, runStep]);
 
   // ── Step navigation ────────────────────────────────────────────────────────
 
-  const goToStep = useCallback(
-    (newStep: number) => {
-      const step = STEPS[newStep];
-      if (!step) return;
-
-      const prevStep = STEPS[currentStep];
-
-      // Kill any pending MutationObserver + immediate-check timer
-      mutationObserverRef.current?.disconnect();
-      mutationObserverRef.current = null;
-      if (menuCheckTimeoutRef.current) {
-        clearTimeout(menuCheckTimeoutRef.current);
-        menuCheckTimeoutRef.current = null;
-      }
-      // Cancel any pending reveal from the previous step and hide the hole
-      // immediately, so nothing is visible while the new target is measured.
-      if (revealTimeoutRef.current) {
-        clearTimeout(revealTimeoutRef.current);
-        revealTimeoutRef.current = null;
-      }
-      setHoleOpen(false);
-      holeOpenRef.current = false;
-      // New step → allow applySpotlight to run once again.
-      spotlightAppliedRef.current = false;
-
-      setCurrentStep(newStep);
-
-      // Close menu if leaving a menu step for a non-menu step
-      if (prevStep?.menuOpen && !step.menuOpen) {
-        closeMenu();
-      }
-
-      if (step.menuOpen) {
-        // Click the menu button to open the drawer
-        clickMenuButton();
-
-        if (step.targetSelector) {
-          const sel = step.targetSelector;
-
-          // Use MutationObserver to wait for the target element to appear in DOM
-          const observer = new MutationObserver(() => {
-            const found = document.querySelector(sel) as HTMLElement | null;
-            if (found) {
-              observer.disconnect();
-              mutationObserverRef.current = null;
-              // Wait one frame so the mobile drawer finishes painting before we
-              // measure the target — otherwise the spotlight rect is computed
-              // against a not-yet-rendered element and never appears.
-              requestAnimationFrame(() => applySpotlight(found));
-            }
-          });
-          observer.observe(document.body, { childList: true, subtree: true });
-          mutationObserverRef.current = observer;
-
-          // Also check immediately in case the menu is already open. Stored in a
-          // ref so the observer path (or a step change) can cancel it — and
-          // applySpotlight's once-per-step guard drops it if it still fires.
-          menuCheckTimeoutRef.current = setTimeout(() => {
-            menuCheckTimeoutRef.current = null;
-            const existing = document.querySelector(sel) as HTMLElement | null;
-            if (existing) {
-              observer.disconnect();
-              mutationObserverRef.current = null;
-              requestAnimationFrame(() => applySpotlight(existing));
-            }
-          }, 50);
-
-          // Safety timeout — give up after 2s
-          setTimeout(() => {
-            observer.disconnect();
-            if (mutationObserverRef.current === observer) mutationObserverRef.current = null;
-          }, 2000);
-        }
-      } else {
-        if (step.targetSelector) {
-          const sel = step.targetSelector;
-          // Short delay so any close-menu animation settles
-          setTimeout(() => {
-            const el = document.querySelector(sel) as HTMLElement | null;
-            if (el) applySpotlight(el);
-          }, 150);
-        } else {
-          removeSpotlight();
-        }
-      }
-    },
-    [currentStep, clickMenuButton, closeMenu, applySpotlight, removeSpotlight]
-  );
+  const goToStep = useCallback((newStep: number) => {
+    if (!STEPS[newStep]) return;
+    // Hide the hole synchronously (batched with the step change) so the previous
+    // step's cutout can never flash for a frame at its old position.
+    setHoleOpen(false);
+    holeOpenRef.current = false;
+    setCurrentStep(newStep);
+  }, []);
 
   // Keep ref current so keyboard handler never captures a stale closure
   useEffect(() => {
@@ -502,31 +404,19 @@ export function OnboardingTour({
   // ── Finish / skip ──────────────────────────────────────────────────────────
 
   const finish = useCallback(() => {
-    mutationObserverRef.current?.disconnect();
-    mutationObserverRef.current = null;
-    if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
-    fadeTimeoutRef.current = null;
-    if (menuCheckTimeoutRef.current) clearTimeout(menuCheckTimeoutRef.current);
-    menuCheckTimeoutRef.current = null;
-    if (revealTimeoutRef.current) clearTimeout(revealTimeoutRef.current);
-    revealTimeoutRef.current = null;
-    spotlightAppliedRef.current = false;
+    stepGenRef.current++; // invalidate any in-flight pipeline
     overlayActiveRef.current = false;
     setOverlayOpacity(0);
     setHoleOpen(false);
     holeOpenRef.current = false;
     setSpotlightRect(null);
-    if (currentHighlightedElRef.current) {
-      currentHighlightedElRef.current.style.position = "";
-      currentHighlightedElRef.current.style.zIndex = "";
-      currentHighlightedElRef.current = null;
-    }
+    detachHighlight();
     closeMenu();
     setVisible(false);
     if (userId) {
       createSupabaseClient().auth.updateUser({ data: { has_completed_tour: true } });
     }
-  }, [userId, closeMenu]);
+  }, [userId, closeMenu, detachHighlight]);
 
   // ── Keyboard navigation ────────────────────────────────────────────────────
 
@@ -560,10 +450,7 @@ export function OnboardingTour({
 
   useEffect(() => {
     return () => {
-      mutationObserverRef.current?.disconnect();
-      if (fadeTimeoutRef.current) clearTimeout(fadeTimeoutRef.current);
-      if (menuCheckTimeoutRef.current) clearTimeout(menuCheckTimeoutRef.current);
-      if (revealTimeoutRef.current) clearTimeout(revealTimeoutRef.current);
+      stepGenRef.current++; // stop any in-flight pipeline from committing
       if (currentHighlightedElRef.current) {
         currentHighlightedElRef.current.style.position = "";
         currentHighlightedElRef.current.style.zIndex = "";
@@ -591,8 +478,8 @@ export function OnboardingTour({
   const overlayZ = isMenuStep ? 101 : 40;
 
   const dimAlpha = 0.6 * overlayOpacity;
-  // The highlight box is rendered ONLY once a real target rect has been
-  // measured (after scroll settled). Until then — and while scrolling to a new
+  // The highlight box is rendered ONLY once a real target rect has been measured
+  // (after scroll + size settled). Until then — and during every scroll to a new
   // target — the plain dark overlay is shown instead, so the highlight never
   // appears at a stale position and there's no flash of the old spot.
   const showHighlight = holeOpen && spotlightRect !== null;
@@ -619,10 +506,10 @@ export function OnboardingTour({
 
       {/* Base dark overlay — plain full-screen dim with NO hole. Rendered
           whenever the highlight box is NOT (target-less welcome/final steps and
-          while scrolling to a new target). Because it's exactly as dark as the
-          highlight box's box-shadow, swapping between the two is seamless: the
-          surrounding dark never disappears for a frame — only the bright hole
-          fades in or out. It is plain — no animation, no transition. */}
+          during every scroll to a new target). Because it's exactly as dark as
+          the highlight box's box-shadow, swapping between the two is seamless:
+          the surrounding dark never disappears for a frame — only the bright
+          hole fades in or out. It is plain — no animation, no transition. */}
       {!showHighlight && (
         <div
           aria-hidden="true"
@@ -638,8 +525,8 @@ export function OnboardingTour({
 
       {/* Spotlight highlight — a single bright cutout in the dark overlay, with
           NO border/ring of any kind. Rendered ONLY after the target's final rect
-          has been measured (scroll fully settled), so it never appears at a
-          stale position and never drags during scroll. ONE element: the huge
+          has been measured (scroll + size fully settled), so it never appears at
+          a stale position and never drags during scroll. ONE element: the huge
           box-shadow is the surrounding dark and is held CONSTANT (0.6) so it
           never flickers; the element's own background fades from that same dark
           → transparent to "open" the hole. The box always renders at its full,
