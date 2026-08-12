@@ -241,6 +241,18 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
     if (match) setLocale(match);
   }, [allowAutoTranslate, setLocale]);
 
+  // Bring the active tab fully into view. Without this a tab that starts off
+  // the right edge — a menu created after six flat categories, say — is simply
+  // never seen. Scrolling the strip directly (rather than scrollIntoView)
+  // avoids dragging the sticky header up the page.
+  useEffect(() => {
+    for (const el of [menuScrollRef.current, scrollRef.current]) {
+      const tab = el?.querySelector<HTMLElement>('[data-active="true"]');
+      if (!el || !tab) continue;
+      el.scrollTo({ left: tab.offsetLeft - (el.clientWidth - tab.offsetWidth) / 2, behavior: 'smooth' });
+    }
+  }, [activeMenu, activeCategory]);
+
   const scrollLeft = () => scrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' });
   const scrollRight = () => scrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' });
   const menuScrollLeft = () => menuScrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' });
@@ -363,7 +375,9 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
               )}
               <div
                 ref={menuScrollRef}
-                className="tabs-scroll flex gap-1 sm:gap-2 overflow-x-auto scrollbar-none select-none items-stretch"
+                /* snap + scroll-padding keep a tab from coming to rest half-cut
+                   under the arrow buttons at either edge. */
+                className="tabs-scroll flex gap-1 sm:gap-2 overflow-x-auto scrollbar-none select-none items-stretch snap-x snap-mandatory scroll-px-10"
                 style={{ WebkitUserSelect: "none" }}
                 onPointerDown={(e) => {
                   const el = menuScrollRef.current;
@@ -387,8 +401,9 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                     <button
                       key={group.name}
                       type="button"
+                      data-active={isActive}
                       onClick={() => selectMenu(group)}
-                      className={`relative flex-shrink-0 px-3 sm:px-4 pt-3 pb-2.5 min-h-[44px] max-w-[9rem] sm:max-w-[11rem] touch-manipulation transition-colors duration-200 ${
+                      className={`relative flex-shrink-0 snap-start px-3 sm:px-4 pt-3 pb-2.5 min-h-[44px] max-w-[9rem] sm:max-w-[11rem] touch-manipulation transition-colors duration-200 ${
                         anyCategoryUsesImages ? "min-w-[4.75rem]" : "min-w-[3.5rem]"
                       }`}
                     >
@@ -449,7 +464,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
             )}
             <div
               ref={scrollRef}
-              className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 snap-x snap-mandatory items-stretch"
+              className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 snap-x snap-mandatory scroll-px-10 items-stretch"
               onPointerDown={(e) => {
                 const el = scrollRef.current;
                 if (!el) return;
@@ -478,30 +493,35 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                 const catEntry = categoryImageMap[category];
                 const catImageMode = catEntry?.imageMode;
                 const catBannerUrl = catEntry?.bannerUrl ?? null;
-                const usePhoto = anyCategoryUsesImages && catEntry?.show === true;
 
-                if (!usePhoto) {
-                  // Pill tab — hugs its content, grows with it, wraps to two
-                  // lines inside the pill. Row height is equalised by
-                  // items-stretch on the strip.
+                if (!anyCategoryUsesImages) {
+                  // Text tab with an accent underline — the style used whenever
+                  // category images are off, matching the menu row above it but
+                  // a step down in size and weight.
                   return (
                     <motion.button
                       key={category}
                       type="button"
+                      data-active={isActive}
                       onClick={handleClick}
-                      className={`flex-shrink-0 snap-start inline-flex items-center justify-center px-3.5 py-2 min-h-[44px] min-w-[3.75rem] max-w-[11rem] rounded-2xl text-xs font-semibold transition-all duration-200 touch-manipulation ${
-                        isActive
-                          ? "bg-[var(--accent)]/10 text-[var(--foreground)] border-2 border-[var(--accent)] shadow-sm"
-                          : "bg-[var(--card)] text-[var(--foreground)] border border-[var(--card-border)] hover:border-[var(--accent)]/40"
-                      }`}
+                      className="relative flex-shrink-0 snap-start px-3 sm:px-4 pt-1 pb-2.5 min-h-[44px] min-w-[3.5rem] max-w-[11rem] touch-manipulation"
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.28, delay: idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
                       whileTap={{ scale: 0.96 }}
                     >
-                      <span className="tab-label min-w-0">
+                      <span className={`tab-label min-w-0 w-full text-xs sm:text-sm font-semibold uppercase tracking-wide transition-colors duration-200 ${
+                        isActive ? "text-[var(--accent)]" : "text-[var(--muted)]"
+                      }`}>
                         <CategoryName name={category} />
                       </span>
+                      {isActive && (
+                        <motion.span
+                          layoutId="category-underline"
+                          className="absolute left-3 right-3 sm:left-4 sm:right-4 bottom-0 h-[2px] rounded-full bg-[var(--accent)]"
+                          transition={{ type: "spring", stiffness: 420, damping: 36 }}
+                        />
+                      )}
                     </motion.button>
                   );
                 }
@@ -510,6 +530,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                   <motion.button
                     key={category}
                     type="button"
+                    data-active={isActive}
                     onClick={handleClick}
                     className={`flex-shrink-0 snap-start flex flex-col items-center gap-1.5 rounded-2xl transition-all duration-200 touch-manipulation py-2 px-1.5 min-w-[4.75rem] max-w-[6.75rem] sm:max-w-[8.5rem] ${
                       isActive
@@ -521,9 +542,11 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                     transition={{ duration: 0.35, delay: idx * 0.08, ease: [0.22, 1, 0.36, 1] }}
                     whileTap={{ scale: 0.94 }}
                   >
-                    {/* Thumbnail — fixed size, so only the label has to adapt */}
+                    {/* Thumbnail — fixed size, so only the label has to adapt.
+                        A category with no photo of its own falls back to the
+                        generated icon so the row keeps one height. */}
                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden flex-shrink-0 transition-all duration-200">
-                      {catImageMode === 'item' && catBannerUrl ? (
+                      {catEntry?.show && catImageMode === 'item' && catBannerUrl ? (
                         <img src={catBannerUrl} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <CategoryIcon name={category} isActive={isActive} />
