@@ -1398,8 +1398,15 @@ export function AdminMenuEditor({
           restaurantId={restaurantId}
           categories={sortedCategories}
           categoryRows={categoryRows}
-          layered={layered}
+          nestingOn={restaurant?.use_nested_categories === true}
           grouped={grouped}
+          onToggleNesting={async (value) => {
+            const { error } = await supabase.from("restaurants")
+              .update({ use_nested_categories: value }).eq("id", restaurantId);
+            if (error) { showMsg("err", error.message); return false; }
+            setRestaurant((p) => p ? { ...p, use_nested_categories: value } : p);
+            return true;
+          }}
           onClose={() => setShowManageModal(false)}
           onUpdated={async (newCats) => {
             setSortedCategories(newCats);
@@ -1650,7 +1657,6 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [colorCustomized, setColorCustomized] = useState(false);
   const [showCurrencySymbol, setShowCurrencySymbol] = useState(true);
-  const [nestedCategories, setNestedCategories] = useState(false);
 
   useBodyScrollLock(open);
 
@@ -1668,7 +1674,6 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       setHeroUrl(restaurant.hero_image_url ?? "");
       setLogoUrl(restaurant.logo_url ?? "");
       setShowCurrencySymbol(restaurant.show_currency_symbol !== false);
-      setNestedCategories(restaurant.use_nested_categories === true);
       setFontOpen(false);
       setSelectedPreset(null);
       setColorCustomized(false);
@@ -1690,7 +1695,6 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       hero_image_url:       heroUrl.trim() || null,
       logo_url:             logoUrl.trim() || null,
       show_currency_symbol: showCurrencySymbol,
-      use_nested_categories: nestedCategories,
     } as Partial<Restaurant>);
     setOpen(false);
     onClose?.();
@@ -1903,44 +1907,6 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                     <p className="text-xs text-[var(--muted)] mt-1">When off, prices display as numbers only (e.g. &ldquo;18&rdquo; instead of &ldquo;$18&rdquo;).</p>
                   </div>
 
-                  {/* Layered menus toggle */}
-                  <div className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-4 py-3">
-                    <Toggle
-                      label="Use layered menus"
-                      checked={nestedCategories}
-                      onChange={setNestedCategories}
-                    />
-                    <p className="text-xs text-[var(--muted)] mt-1">
-                      Group your categories under menus like Lunch, Dinner and Drinks. Turn it on, then use
-                      Manage categories to put categories inside a menu. Turning it off shows everything flat again —
-                      your structure is kept.
-                    </p>
-                    {/* Flat vs layered illustration */}
-                    <div className="flex gap-4 mt-3 p-3 rounded-xl bg-[var(--card)] border border-[var(--card-border)]">
-                      <div className={`flex-1 text-center transition-opacity ${nestedCategories ? "opacity-40" : ""}`}>
-                        <div className="flex gap-1 justify-center flex-wrap mb-1.5">
-                          {["Starters", "Mains", "Wine"].map((n) => (
-                            <span key={n} className="px-2 py-0.5 rounded-full bg-[var(--card-border)] text-[10px] text-[var(--muted)] font-medium font-sans">{n}</span>
-                          ))}
-                        </div>
-                        <p className="text-[10px] text-[var(--muted)] font-sans">Flat</p>
-                      </div>
-                      <div className={`flex-1 text-center transition-opacity ${nestedCategories ? "" : "opacity-40"}`}>
-                        <div className="flex gap-2 justify-center mb-1">
-                          {["Food", "Drinks"].map((n, i) => (
-                            <span key={n} className={`text-[10px] font-bold font-sans uppercase tracking-wide ${i === 0 ? "text-[var(--accent)] border-b-2 border-[var(--accent)] pb-0.5" : "text-[var(--muted)] pb-0.5"}`}>{n}</span>
-                          ))}
-                        </div>
-                        <div className="flex gap-1 justify-center flex-wrap mb-1.5">
-                          {["Starters", "Mains"].map((n) => (
-                            <span key={n} className="px-2 py-0.5 rounded-full bg-[var(--card-border)] text-[10px] text-[var(--muted)] font-medium font-sans">{n}</span>
-                          ))}
-                        </div>
-                        <p className="text-[10px] text-[var(--muted)] font-sans">Layered</p>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* Font */}
                   <div>
                     <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest mb-2">Font</p>
@@ -2030,7 +1996,6 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                       setHeroUrl(restaurant.hero_image_url ?? "");
                       setLogoUrl(restaurant.logo_url ?? "");
                       setShowCurrencySymbol(restaurant.show_currency_symbol !== false);
-      setNestedCategories(restaurant.use_nested_categories === true);
                     }
                     setOpen(false);
                     onClose?.();
@@ -2654,6 +2619,7 @@ function AddCategoryModal({
 function SortableCategoryManageRow({
   name, itemCount, showImage, imageMode, bannerItemId, categoryItems, onDelete, onSelectImageMode, isDeleting, onRename,
   depth = 0, isMenu = false, childCount = 0, moveTargets, onMove, parentId = null,
+  selectable = false, selected = false, onToggleSelect,
 }: {
   name: string;
   itemCount: number;
@@ -2674,6 +2640,10 @@ function SortableCategoryManageRow({
   moveTargets?: { id: string | null; name: string }[];
   onMove?: (name: string, parentId: string | null) => void;
   parentId?: string | null;
+  /** Bulk-grouping checkbox — only shown for real categories while layered. */
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(name);
@@ -2691,9 +2661,28 @@ function SortableCategoryManageRow({
       }}
       className={`rounded-xl border bg-[var(--background)] overflow-hidden ${
         isMenu ? "border-[var(--accent)]/40 bg-[var(--accent)]/5" : "border-[var(--card-border)]"
+      } ${depth > 0 ? "border-l-[3px] border-l-[var(--accent)]/50" : ""} ${
+        selected ? "ring-2 ring-[var(--accent)]/50" : ""
       }`}
     >
-      <div className="flex items-center gap-3 p-3">
+      <div className="flex items-center gap-2.5 p-3">
+        {selectable && (
+          <button
+            type="button"
+            onClick={onToggleSelect}
+            aria-pressed={selected}
+            title={selected ? "Deselect" : "Select for grouping"}
+            className={`flex-shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
+              selected
+                ? "bg-[var(--accent)] border-[var(--accent)] text-white"
+                : "border-[var(--card-border)] text-transparent hover:border-[var(--accent)]"
+            }`}
+          >
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
+        )}
         <div
           {...attributes}
           {...listeners}
@@ -2822,20 +2811,27 @@ function SortableCategoryManageRow({
 }
 
 function ManageCategoriesModal({
-  restaurantId, categories, categoryRows, layered, grouped, onClose, onUpdated,
+  restaurantId, categories, categoryRows, nestingOn, grouped, onClose, onUpdated, onToggleNesting,
 }: {
   restaurantId: string;
   categories: string[];
   categoryRows: CategoryRow[];
-  layered: boolean;
+  /** The raw restaurants.use_nested_categories flag — not the derived "has children" state. */
+  nestingOn: boolean;
   grouped: Grouped;
   onClose: () => void;
   onUpdated: (newCats: string[]) => Promise<void>;
+  /** Persists the flag. Resolves false if the write failed. */
+  onToggleNesting: (value: boolean) => Promise<boolean>;
 }) {
   const [cats, setCats] = useState(categories);
   const [rows, setRows] = useState<CategoryRow[]>(categoryRows);
   const [newName, setNewName] = useState("");
   const [newParent, setNewParent] = useState("");
+  // Local mirror of the flag so the list switches to layered the instant it flips.
+  const [layered, setLayered] = useState(nestingOn);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [menuName, setMenuName] = useState("");
   const [showImageMap, setShowImageMap] = useState<Record<string, boolean>>({});
   const [imageModeMap, setImageModeMap] = useState<Record<string, string | null>>({});
   const [bannerItemMap, setBannerItemMap] = useState<Record<string, string | null>>({});
@@ -2889,14 +2885,110 @@ function ManageCategoriesModal({
     return out;
   }, [layered, groups, cats]);
 
-  // A category can move to top level or under any top-level row. Menus stay put
-  // so the hierarchy can never grow past two levels.
+  const hasMenus = groups.some((g) => g.children.length > 0);
+
+  // A category can move to top level or into an existing menu. Menus stay put so
+  // the hierarchy can never grow past two levels. Empty top-level rows aren't
+  // offered — creating a menu from scratch is what the grouping panel is for.
   const moveTargets = useMemo(
-    () => layered
-      ? [{ id: null as string | null, name: "Top level" }, ...groups.filter((g) => g.id).map((g) => ({ id: g.id, name: g.name }))]
+    () => layered && hasMenus
+      ? [
+          { id: null as string | null, name: "Top level" },
+          ...groups.filter((g) => g.id && g.children.length > 0).map((g) => ({ id: g.id, name: g.name })),
+        ]
       : undefined,
-    [layered, groups]
+    [layered, hasMenus, groups]
   );
+
+  // Selection follows display order so the new menu's children keep that order.
+  const selectedNames = useMemo(
+    () => flat.filter((f) => !f.isMenu && selected.has(f.name)).map((f) => f.name),
+    [flat, selected]
+  );
+  // A selected row can't also be its own destination.
+  const menuTargets = useMemo(
+    () => groups.filter((g) => g.id && g.children.length > 0 && !selected.has(g.name)).map((g) => ({ id: g.id!, name: g.name })),
+    [groups, selected]
+  );
+
+  const toggleSelected = (name: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
+
+  const handleToggleLayered = async (value: boolean) => {
+    setLayered(value);
+    setDeleteError(null);
+    if (!value) setSelected(new Set());
+    setBusy(true);
+    const ok = await onToggleNesting(value);
+    setBusy(false);
+    // parent_id is never cleared, so flipping back on restores the structure.
+    if (!ok) { setLayered(!value); setDeleteError("Couldn't change that setting. Please try again."); }
+  };
+
+  // One upsert reparents the whole selection — sort_order is assigned in display order.
+  const reparent = async (names: string[], parentId: string | null, startAt: number) => {
+    const { error } = await supabase.from('restaurant_categories').upsert(
+      names.map((name, i) => ({ restaurant_id: restaurantId, name, parent_id: parentId, sort_order: startAt + i })),
+      { onConflict: 'restaurant_id,name' }
+    );
+    if (error) return false;
+    setRows((prev) => prev.map((r) => {
+      const i = names.indexOf(r.name);
+      return i === -1 ? r : { ...r, parent_id: parentId, sort_order: startAt + i };
+    }));
+    return true;
+  };
+
+  // Creates the menu and moves everything ticked into it as one action.
+  const handleGroupIntoNewMenu = async () => {
+    const trimmed = menuName.trim();
+    if (!trimmed || selectedNames.length === 0) return;
+    if (cats.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      setDeleteError("That name is already taken.");
+      return;
+    }
+    setBusy(true);
+    setDeleteError(null);
+    const { data, error } = await supabase.from('restaurant_categories')
+      .upsert(
+        { restaurant_id: restaurantId, name: trimmed, parent_id: null, sort_order: rows.filter((r) => !r.parent_id).length, show_image: false },
+        { onConflict: 'restaurant_id,name' }
+      )
+      .select('id, name, parent_id, sort_order')
+      .single();
+    if (error || !data) {
+      setBusy(false);
+      setDeleteError(`Couldn't create the menu "${trimmed}". Please try again.`);
+      return;
+    }
+    const names = selectedNames;
+    const moved = await reparent(names, (data as CategoryRow).id, 0);
+    setBusy(false);
+    if (!moved) { setDeleteError("Menu created, but the categories couldn't be moved. Please try again."); return; }
+    const nextCats = [...cats, trimmed];
+    setRows((prev) => [...prev, data as CategoryRow]);
+    setCats(nextCats);
+    setSelected(new Set());
+    setMenuName("");
+    await onUpdated(nextCats);
+  };
+
+  const handleGroupIntoExisting = async (parentId: string | null) => {
+    const names = selectedNames;
+    if (names.length === 0) return;
+    setBusy(true);
+    setDeleteError(null);
+    const startAt = rows.filter((r) => (r.parent_id ?? null) === parentId && !names.includes(r.name)).length;
+    const moved = await reparent(names, parentId, startAt);
+    setBusy(false);
+    if (!moved) { setDeleteError("Couldn't move those categories. Please try again."); return; }
+    setSelected(new Set());
+    await onUpdated(cats);
+  };
 
   // sort_order is scoped per level — only siblings are renumbered.
   const persistSiblingOrder = async (names: string[]) => {
@@ -3041,12 +3133,12 @@ function ManageCategoriesModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" style={{ animation: 'fadeIn 0.15s ease-out' }}>
-      <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-sm" style={{ animation: 'modalIn 0.15s ease-out' }}>
+      <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-md" style={{ animation: 'modalIn 0.15s ease-out' }}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--card-border)]">
           <div>
             <h3 className="font-serif text-lg font-semibold text-[var(--foreground)]">{layered ? "Manage menus & categories" : "Manage categories"}</h3>
             <p className="text-xs text-[var(--muted)] mt-0.5">
-              {layered ? "Drag to reorder within a level · use the dropdown to move between menus" : "Drag to reorder · tap trash to delete"}
+              {layered ? "Tick categories to group them · drag to reorder within a level" : "Drag to reorder · tap trash to delete"}
             </p>
           </div>
           <button type="button" onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
@@ -3060,6 +3152,101 @@ function ManageCategoriesModal({
           {deleteError && (
             <p className="text-xs text-red-600 font-sans mb-2 px-1">{deleteError}</p>
           )}
+
+          {/* Layered menus toggle — saves immediately, like everything else here */}
+          <div className="mb-3 pb-3 border-b border-[var(--card-border)]">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-medium text-[var(--foreground)] font-sans">Use layered menus</p>
+              <button
+                type="button"
+                onClick={() => handleToggleLayered(!layered)}
+                className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${layered ? 'bg-[var(--accent)]' : 'bg-gray-200'}`}
+              >
+                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${layered ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+            <p className="text-xs text-[var(--muted)] font-sans mt-1">
+              Group your categories under menus like Lunch, Dinner and Drinks. Turning it off shows
+              everything flat again — your structure is kept.
+            </p>
+            {/* Flat vs layered illustration */}
+            <div className="flex gap-4 mt-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--card-border)]">
+              <div className={`flex-1 text-center transition-opacity ${layered ? "opacity-40" : ""}`}>
+                <div className="flex gap-1 justify-center flex-wrap mb-1.5">
+                  {["Starters", "Mains", "Wine"].map((n) => (
+                    <span key={n} className="px-2 py-0.5 rounded-full bg-[var(--card-border)] text-[10px] text-[var(--muted)] font-medium font-sans">{n}</span>
+                  ))}
+                </div>
+                <p className="text-[10px] text-[var(--muted)] font-sans">Flat</p>
+              </div>
+              <div className={`flex-1 text-center transition-opacity ${layered ? "" : "opacity-40"}`}>
+                <div className="flex gap-2 justify-center mb-1">
+                  {["Food", "Drinks"].map((n, i) => (
+                    <span key={n} className={`text-[10px] font-bold font-sans uppercase tracking-wide ${i === 0 ? "text-[var(--accent)] border-b-2 border-[var(--accent)] pb-0.5" : "text-[var(--muted)] pb-0.5"}`}>{n}</span>
+                  ))}
+                </div>
+                <div className="flex gap-1 justify-center flex-wrap mb-1.5">
+                  {["Starters", "Mains"].map((n) => (
+                    <span key={n} className="px-2 py-0.5 rounded-full bg-[var(--card-border)] text-[10px] text-[var(--muted)] font-medium font-sans">{n}</span>
+                  ))}
+                </div>
+                <p className="text-[10px] text-[var(--muted)] font-sans">Layered</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Grouping panel — the next action once layering is on */}
+          {layered && (
+            <div className="mb-3 rounded-xl border border-[var(--accent)]/40 bg-[var(--accent)]/5 p-3">
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <p className="text-[10px] font-semibold font-sans uppercase tracking-widest text-[var(--accent)]">
+                  {selectedNames.length > 0 ? `${selectedNames.length} selected` : "Group into a menu"}
+                </p>
+                {selectedNames.length > 0 && (
+                  <button type="button" onClick={() => setSelected(new Set())}
+                    className="text-[11px] font-sans text-[var(--muted)] hover:text-[var(--foreground)] underline">
+                    Clear
+                  </button>
+                )}
+              </div>
+              {selectedNames.length === 0 ? (
+                <p className="text-[11px] text-[var(--muted)] font-sans">
+                  {hasMenus
+                    ? "Tick the categories below to move them into a menu, all at once."
+                    : "Nothing is grouped yet — every category is still top level. Tick the ones that belong together below, then name the menu."}
+                </p>
+              ) : (
+                <>
+                  <input
+                    type="text"
+                    value={menuName}
+                    onChange={(e) => { setMenuName(e.target.value); setDeleteError(null); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleGroupIntoNewMenu(); } }}
+                    placeholder="New menu name — e.g. Drinks"
+                    className="font-sans w-full px-3 py-2 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  />
+                  <button type="button" onClick={handleGroupIntoNewMenu} disabled={busy || !menuName.trim()}
+                    className="font-sans mt-2 w-full py-2 rounded-xl bg-[var(--accent)] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
+                    Create menu &amp; move {selectedNames.length} categor{selectedNames.length !== 1 ? 'ies' : 'y'}
+                  </button>
+                  {menuTargets.length > 0 && (
+                    <select
+                      value=""
+                      onChange={(e) => { if (e.target.value) handleGroupIntoExisting(e.target.value === "__top" ? null : e.target.value); }}
+                      className="font-sans mt-2 w-full px-3 py-2 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--muted)] text-xs focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    >
+                      <option value="">…or move them into an existing menu</option>
+                      {menuTargets.map((t) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                      <option value="__top">Top level</option>
+                    </select>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
           {/* Master show images toggle */}
           <div className="flex items-center justify-between gap-3 mb-3 pb-3 border-b border-[var(--card-border)]">
             <p className="text-sm font-medium text-[var(--foreground)] font-sans">Show images next to category names</p>
@@ -3116,6 +3303,9 @@ function ManageCategoriesModal({
                     parentId={entry.parentId}
                     moveTargets={moveTargets}
                     onMove={handleMove}
+                    selectable={layered && !entry.isMenu}
+                    selected={selected.has(cat)}
+                    onToggleSelect={() => toggleSelected(cat)}
                     itemCount={grouped[cat]?.length ?? 0}
                     showImage={masterShowImages}
                     imageMode={imageModeMap[cat] ?? null}
@@ -3168,7 +3358,7 @@ function ManageCategoriesModal({
                 </button>
               </div>
               <p className="text-[11px] text-[var(--muted)] font-sans mt-2">
-                Top level creates a menu once you put a category inside it.
+                A top-level row becomes a menu once a category sits inside it.
               </p>
             </div>
           )}
@@ -4684,17 +4874,17 @@ function SettingsModal({
               <SettingRow label="Current plan" sublabel={planLabel}>
                 {(!subStatus || subStatus === "none" || (subStatus === "trialing" && !hasStripeSubscription)) ? (
                   <button type="button" onClick={openCheckout}
-                    className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
+                    className="px-4 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity">
                     DineLinks Monthly — $25 CAD/mo
                   </button>
                 ) : (subStatus === "trialing" && hasStripeSubscription) ? (
                   <button type="button" onClick={openPortal}
-                    className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
+                    className="px-4 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity">
                     Manage subscription
                   </button>
                 ) : subStatus === "active" && cancelAtPeriodEnd ? (
                   <button type="button" onClick={openPortal}
-                    className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
+                    className="px-4 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity">
                     Resubscribe
                   </button>
                 ) : subStatus === "active" ? (
@@ -4707,7 +4897,7 @@ function SettingsModal({
                   </div>
                 ) : (
                   <button type="button" onClick={openCheckout}
-                    className="px-4 py-2 text-sm font-semibold bg-[#8b6914] text-white rounded-lg hover:opacity-90 transition-opacity">
+                    className="px-4 py-2 text-sm font-semibold bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity">
                     DineLinks Monthly — $25 CAD/mo
                   </button>
                 )}
@@ -4787,7 +4977,7 @@ function SettingsModal({
                 Cancel
               </button>
               <button type="button" onClick={handleSaveAndClose} disabled={saving}
-                className="flex-1 py-2.5 rounded-xl bg-[#8b6914] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50">
+                className="flex-1 py-2.5 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50">
                 Save & close
               </button>
             </div>
