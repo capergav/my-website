@@ -338,6 +338,8 @@ export function AdminMenuEditor({
   const adminTabDragRef = useRef({ active: false, startX: 0, scrollLeft: 0, didDrag: false });
   const menuRowScrollRef = useRef<HTMLDivElement>(null);
   const menuRowDragRef = useRef({ active: false, startX: 0, scrollLeft: 0, didDrag: false });
+  const [menuRowCanScrollLeft, setMenuRowCanScrollLeft] = useState(false);
+  const [menuRowCanScrollRight, setMenuRowCanScrollRight] = useState(false);
 
   const refreshMenuRef = useRef<(() => Promise<void>) | null>(null);
 
@@ -562,6 +564,25 @@ export function AdminMenuEditor({
 
   const adminScrollLeft = () => tabScrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' });
   const adminScrollRight = () => tabScrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' });
+
+  const updateMenuRowScrollState = useCallback(() => {
+    const el = menuRowScrollRef.current;
+    if (!el) return;
+    setMenuRowCanScrollLeft(el.scrollLeft > 4);
+    setMenuRowCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = menuRowScrollRef.current;
+    if (!el) return;
+    updateMenuRowScrollState();
+    const ro = new ResizeObserver(updateMenuRowScrollState);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [updateMenuRowScrollState, menuGroups]);
+
+  const menuRowScrollLeft = () => menuRowScrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' });
+  const menuRowScrollRight = () => menuRowScrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' });
 
   // Global Escape key — close innermost open modal first
   useEffect(() => {
@@ -1029,10 +1050,23 @@ export function AdminMenuEditor({
             {layered && (
               <div className={childTabs.length > 0 ? "border-b border-[var(--card-border)]/70" : ""}>
                 <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
+                  {menuRowCanScrollLeft && (
+                    <button type="button" onClick={menuRowScrollLeft} aria-label="Scroll menus left"
+                      className="flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-7 md:h-7 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+                      <ChevronLeft size={16} />
+                    </button>
+                  )}
+                  {menuRowCanScrollRight && (
+                    <button type="button" onClick={menuRowScrollRight} aria-label="Scroll menus right"
+                      className="flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-7 md:h-7 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+                      <ChevronRight size={16} />
+                    </button>
+                  )}
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleMenuDragEnd}>
                     <SortableContext items={menuGroups.map((g) => g.name)} strategy={horizontalListSortingStrategy}>
                       <div
                         ref={menuRowScrollRef}
+                        onScroll={updateMenuRowScrollState}
                         className="tabs-scroll flex gap-1 sm:gap-2 overflow-x-auto scrollbar-none px-1 items-stretch select-none"
                         style={{ WebkitUserSelect: "none" }}
                         onPointerDown={(e) => {
@@ -2956,9 +2990,18 @@ function ManageCategoriesModal({
     }
     setBusy(true);
     setDeleteError(null);
+    // The menu inherits the earliest slot of the categories it absorbs, so it
+    // appears exactly where they were rather than being appended off the end of
+    // the tab strip where nobody finds it.
+    const absorbedOrders = rows
+      .filter((r) => !r.parent_id && selectedNames.includes(r.name))
+      .map((r) => r.sort_order ?? 0);
+    const sortOrder = absorbedOrders.length > 0
+      ? Math.min(...absorbedOrders)
+      : rows.filter((r) => !r.parent_id).length;
     const { data, error } = await supabase.from('restaurant_categories')
       .upsert(
-        { restaurant_id: restaurantId, name: trimmed, parent_id: null, sort_order: rows.filter((r) => !r.parent_id).length, show_image: false },
+        { restaurant_id: restaurantId, name: trimmed, parent_id: null, sort_order: sortOrder, show_image: false },
         { onConflict: 'restaurant_id,name' }
       )
       .select('id, name, parent_id, sort_order')
@@ -3156,45 +3199,56 @@ function ManageCategoriesModal({
             <p className="text-xs text-red-600 font-sans mb-2 px-1">{deleteError}</p>
           )}
 
-          {/* Layered menus toggle — saves immediately, like everything else here */}
+          {/* Menu structure — the two diagrams are the control, not a preview.
+              Picking one saves immediately, like everything else in this modal. */}
           <div className="mb-3 pb-3 border-b border-[var(--card-border)]">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-medium text-[var(--foreground)] font-sans">Use layered menus</p>
+            <p className="text-sm font-medium text-[var(--foreground)] font-sans">Menu structure</p>
+            <p className="text-xs text-[var(--muted)] font-sans mt-1">
+              Group your categories under menus like Lunch, Dinner and Drinks, or keep everything in
+              one row. Switching back to flat keeps your structure.
+            </p>
+            <div className="grid grid-cols-2 gap-2 mt-3">
               <button
                 type="button"
-                onClick={() => handleToggleLayered(!layered)}
-                className={`relative inline-flex h-5 w-9 flex-shrink-0 items-center rounded-full transition-colors ${layered ? 'bg-[var(--accent)]' : 'bg-gray-200'}`}
+                onClick={() => { if (layered) handleToggleLayered(false); }}
+                aria-pressed={!layered}
+                className={`rounded-xl border-2 p-3 text-center transition-colors cursor-pointer ${
+                  !layered
+                    ? "border-[var(--accent)] bg-[var(--accent)]/10"
+                    : "border-[var(--card-border)] bg-[var(--background)] hover:border-[var(--accent)]/40"
+                }`}
               >
-                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${layered ? 'translate-x-4' : 'translate-x-0.5'}`} />
-              </button>
-            </div>
-            <p className="text-xs text-[var(--muted)] font-sans mt-1">
-              Group your categories under menus like Lunch, Dinner and Drinks. Turning it off shows
-              everything flat again — your structure is kept.
-            </p>
-            {/* Flat vs layered illustration */}
-            <div className="flex gap-4 mt-3 p-3 rounded-xl bg-[var(--background)] border border-[var(--card-border)]">
-              <div className={`flex-1 text-center transition-opacity ${layered ? "opacity-40" : ""}`}>
-                <div className="flex gap-1 justify-center flex-wrap mb-1.5">
+                <div className="flex gap-1 justify-center flex-wrap mb-2 min-h-[2.75rem] items-center">
                   {["Starters", "Mains", "Wine"].map((n) => (
                     <span key={n} className="px-2 py-0.5 rounded-full bg-[var(--card-border)] text-[10px] text-[var(--muted)] font-medium font-sans">{n}</span>
                   ))}
                 </div>
-                <p className="text-[10px] text-[var(--muted)] font-sans">Flat</p>
-              </div>
-              <div className={`flex-1 text-center transition-opacity ${layered ? "" : "opacity-40"}`}>
-                <div className="flex gap-2 justify-center mb-1">
-                  {["Food", "Drinks"].map((n, i) => (
-                    <span key={n} className={`text-[10px] font-bold font-sans uppercase tracking-wide ${i === 0 ? "text-[var(--accent)] border-b-2 border-[var(--accent)] pb-0.5" : "text-[var(--muted)] pb-0.5"}`}>{n}</span>
-                  ))}
+                <p className={`text-xs font-semibold font-sans ${!layered ? "text-[var(--accent)]" : "text-[var(--muted)]"}`}>Flat</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => { if (!layered) handleToggleLayered(true); }}
+                aria-pressed={layered}
+                className={`rounded-xl border-2 p-3 text-center transition-colors cursor-pointer ${
+                  layered
+                    ? "border-[var(--accent)] bg-[var(--accent)]/10"
+                    : "border-[var(--card-border)] bg-[var(--background)] hover:border-[var(--accent)]/40"
+                }`}
+              >
+                <div className="min-h-[2.75rem] mb-2">
+                  <div className="flex gap-2 justify-center mb-1">
+                    {["Food", "Drinks"].map((n, i) => (
+                      <span key={n} className={`text-[10px] font-bold font-sans uppercase tracking-wide ${i === 0 ? "text-[var(--accent)] border-b-2 border-[var(--accent)] pb-0.5" : "text-[var(--muted)] pb-0.5"}`}>{n}</span>
+                    ))}
+                  </div>
+                  <div className="flex gap-1 justify-center flex-wrap">
+                    {["Starters", "Mains"].map((n) => (
+                      <span key={n} className="px-2 py-0.5 rounded-full bg-[var(--card-border)] text-[10px] text-[var(--muted)] font-medium font-sans">{n}</span>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex gap-1 justify-center flex-wrap mb-1.5">
-                  {["Starters", "Mains"].map((n) => (
-                    <span key={n} className="px-2 py-0.5 rounded-full bg-[var(--card-border)] text-[10px] text-[var(--muted)] font-medium font-sans">{n}</span>
-                  ))}
-                </div>
-                <p className="text-[10px] text-[var(--muted)] font-sans">Layered</p>
-              </div>
+                <p className={`text-xs font-semibold font-sans ${layered ? "text-[var(--accent)]" : "text-[var(--muted)]"}`}>Layered</p>
+              </button>
             </div>
           </div>
 

@@ -152,6 +152,8 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
   const menuScrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [menuCanScrollLeft, setMenuCanScrollLeft] = useState(false);
+  const [menuCanScrollRight, setMenuCanScrollRight] = useState(false);
   // Drag-to-scroll state for category tab strip
   const tabDragRef = useRef({ active: false, startX: 0, scrollLeft: 0, didDrag: false });
   const menuDragRef = useRef({ active: false, startX: 0, scrollLeft: 0, didDrag: false });
@@ -202,6 +204,23 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
     return () => { el.removeEventListener('scroll', updateScrollState); ro.disconnect(); };
   }, [updateScrollState, visibleCategories]);
 
+  const updateMenuScrollState = useCallback(() => {
+    const el = menuScrollRef.current;
+    if (!el) return;
+    setMenuCanScrollLeft(el.scrollLeft > 4);
+    setMenuCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = menuScrollRef.current;
+    if (!el) return;
+    updateMenuScrollState();
+    el.addEventListener('scroll', updateMenuScrollState, { passive: true });
+    const ro = new ResizeObserver(updateMenuScrollState);
+    ro.observe(el);
+    return () => { el.removeEventListener('scroll', updateMenuScrollState); ro.disconnect(); };
+  }, [updateMenuScrollState, menuGroups]);
+
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
@@ -224,6 +243,8 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
 
   const scrollLeft = () => scrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' });
   const scrollRight = () => scrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' });
+  const menuScrollLeft = () => menuScrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' });
+  const menuScrollRight = () => menuScrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' });
 
   if (sortedCategories.length === 0) {
     return (
@@ -296,7 +317,12 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
 
   // ── Category listing ──────────────────────────────────────────────────────
   // If no category has show_image enabled, render simple pill tabs instead of image cards
-  const anyCategoryUsesImages = sortedCategories.some(cat => categoryImageMap[cat]?.show === true);
+  // In layered mode a plain top-level category becomes a row-1 tab, so row 1 has
+  // to be counted here too — otherwise a restaurant whose image-bearing
+  // categories all sit at the top level would lose its photos entirely.
+  const anyCategoryUsesImages =
+    sortedCategories.some(cat => categoryImageMap[cat]?.show === true) ||
+    (menuGroups ?? []).some(g => categoryImageMap[g.name]?.show === true);
 
   const selectMenu = (group: MenuGroup) => {
     if (menuDragRef.current.didDrag) { menuDragRef.current.didDrag = false; return; }
@@ -321,6 +347,20 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
             <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
               <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-r from-[var(--background)] to-transparent" />
               <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-l from-[var(--background)] to-transparent" />
+              {menuCanScrollLeft && (
+                <button type="button" onClick={menuScrollLeft}
+                  className="flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                  aria-label="Scroll menus left">
+                  <ChevronLeft size={16} />
+                </button>
+              )}
+              {menuCanScrollRight && (
+                <button type="button" onClick={menuScrollRight}
+                  className="flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                  aria-label="Scroll menus right">
+                  <ChevronRight size={16} />
+                </button>
+              )}
               <div
                 ref={menuScrollRef}
                 className="tabs-scroll flex gap-1 sm:gap-2 overflow-x-auto scrollbar-none select-none items-stretch"
@@ -342,13 +382,29 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
               >
                 {menuGroups!.map((group) => {
                   const isActive = activeMenu === group.name;
+                  const groupEntry = categoryImageMap[group.name];
                   return (
                     <button
                       key={group.name}
                       type="button"
                       onClick={() => selectMenu(group)}
-                      className="relative flex-shrink-0 px-3 sm:px-4 pt-3 pb-2.5 min-h-[44px] min-w-[3.5rem] max-w-[9rem] sm:max-w-[11rem] touch-manipulation transition-colors duration-200"
+                      className={`relative flex-shrink-0 px-3 sm:px-4 pt-3 pb-2.5 min-h-[44px] max-w-[9rem] sm:max-w-[11rem] touch-manipulation transition-colors duration-200 ${
+                        anyCategoryUsesImages ? "min-w-[4.75rem]" : "min-w-[3.5rem]"
+                      }`}
                     >
+                      {/* A top-level category that holds its own items keeps the
+                          photo it was given in flat mode. Real menus have no
+                          image of their own, so they fall back to the icon —
+                          which keeps the whole row a consistent height. */}
+                      {anyCategoryUsesImages && (
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto mb-1.5 rounded-xl overflow-hidden">
+                          {groupEntry?.show && groupEntry.imageMode === 'item' && groupEntry.bannerUrl ? (
+                            <img src={groupEntry.bannerUrl} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <CategoryIcon name={group.name} isActive={isActive} />
+                          )}
+                        </div>
+                      )}
                       <span
                         className={`tab-label w-full text-sm sm:text-base font-bold uppercase tracking-wide transition-colors duration-200 ${
                           isActive ? "text-[var(--accent)]" : "text-[var(--muted)]"
