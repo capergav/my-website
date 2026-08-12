@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } from "react";
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import { createSupabaseClient } from "@/app/lib/supabase";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
-import type { Restaurant } from "@/app/lib/supabase";
+import { buildMenuGroups } from "@/app/lib/supabase";
+import type { Restaurant, CategoryRow, MenuGroup } from "@/app/lib/supabase";
 import { ImageUploader } from "./ImageUploader";
 import { OnboardingTour } from "./OnboardingTour";
 import { useSubscription, type SubStatus } from "@/lib/useSubscription";
@@ -275,6 +276,7 @@ type Props = {
   initialSortedCategories: string[];
   initialAllCategories: string[];
   initialRestaurant: Restaurant | null;
+  initialCategoryRows: CategoryRow[];
   initialCategoryNotes: Record<string, string>;
 };
 
@@ -285,6 +287,7 @@ export function AdminMenuEditor({
   initialSortedCategories,
   initialAllCategories,
   initialRestaurant,
+  initialCategoryRows,
   initialCategoryNotes,
 }: Props) {
   const router = useRouter();
@@ -304,7 +307,9 @@ export function AdminMenuEditor({
 
   const [grouped, setGrouped]                   = useState<Grouped>(initialGrouped);
   const [sortedCategories, setSortedCategories] = useState(initialAllCategories.length > 0 ? initialAllCategories : initialSortedCategories);
+  const [categoryRows, setCategoryRows]         = useState<CategoryRow[]>(initialCategoryRows);
   const [activeCategory, setActiveCategory]     = useState((initialAllCategories[0] ?? initialSortedCategories[0]) ?? "");
+  const [activeMenu, setActiveMenu]             = useState("");
   const [editingItem, setEditingItem]           = useState<MenuItemRow | null>(null);
   const [addingNew, setAddingNew]               = useState(false);
   const [restaurant, setRestaurant]             = useState<Restaurant | null>(initialRestaurant);
@@ -316,7 +321,9 @@ export function AdminMenuEditor({
   const [settingsOpen, setSettingsOpen]         = useState(false);
   const [tourKey, setTourKey]                   = useState(0);
   const [showQR, setShowQR] = useState(false);
-  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  // null = closed. Otherwise the parent the new category goes under —
+  // { id: null } means top level (a menu, when layered).
+  const [categoryModalParent, setCategoryModalParent] = useState<{ id: string | null; name: string } | null>(null);
   const [showManageModal, setShowManageModal]     = useState(false);
   const [user, setUser] = useState<{ id: string; email: string } | null>(null);
   const [hasCompletedTour, setHasCompletedTour] = useState(true); // default true: don't flash tour before we know
@@ -329,8 +336,50 @@ export function AdminMenuEditor({
   const [adminCanScrollLeft, setAdminCanScrollLeft] = useState(false);
   const [adminCanScrollRight, setAdminCanScrollRight] = useState(false);
   const adminTabDragRef = useRef({ active: false, startX: 0, scrollLeft: 0, didDrag: false });
+  const menuRowScrollRef = useRef<HTMLDivElement>(null);
+  const menuRowDragRef = useRef({ active: false, startX: 0, scrollLeft: 0, didDrag: false });
 
   const refreshMenuRef = useRef<(() => Promise<void>) | null>(null);
+
+  // ── Two-level category structure ──────────────────────────────────────────
+  // Categories with children act as menus; everything else behaves exactly as
+  // it did before. When the toggle is off we ignore parent_id entirely (but
+  // never clear it) so turning it back on restores the structure.
+  const menuGroups = useMemo(
+    () => buildMenuGroups(categoryRows, sortedCategories),
+    [categoryRows, sortedCategories]
+  );
+  const layered = restaurant?.use_nested_categories === true && menuGroups.some((g) => g.children.length > 0);
+  const activeGroup = layered ? menuGroups.find((g) => g.name === activeMenu) : undefined;
+  const childTabs = activeGroup?.children ?? [];
+  // Items only ever live on the deepest category, so menus are not selectable
+  // targets when adding an item.
+  const leafCategories = layered
+    ? menuGroups.flatMap((g) => (g.children.length > 0 ? g.children : [g.name]))
+    : sortedCategories;
+  // Row 2 lists the active menu's children. A top-level category with no
+  // children holds its own items, so row 2 is hidden while it is selected.
+  const visibleTabs = layered ? childTabs : sortedCategories;
+
+  // Keep the selected menu in sync with the selected category.
+  useEffect(() => {
+    if (!layered) return;
+    const owner = menuGroups.find((g) => g.name === activeCategory || g.children.includes(activeCategory));
+    if (owner) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (owner.name !== activeMenu) setActiveMenu(owner.name);
+      // A menu is a container — drop down to its first category.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (owner.name === activeCategory && owner.children.length > 0) setActiveCategory(owner.children[0]);
+      return;
+    }
+    const first = menuGroups[0];
+    if (!first) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActiveMenu(first.name);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActiveCategory(first.children[0] ?? first.name);
+  }, [layered, menuGroups, activeCategory, activeMenu]);
 
   // Sync CSS variables immediately when restaurant state changes (e.g. after theme save)
   useEffect(() => {
@@ -471,7 +520,7 @@ export function AdminMenuEditor({
         .order("sort_order", { ascending: true })
         .order("name",       { ascending: true }),
       supabase
-        .from("restaurant_categories").select("name")
+        .from("restaurant_categories").select("id, name, parent_id, sort_order")
         .eq("restaurant_id", restaurantId)
         .order("sort_order", { ascending: true }),
     ]);
@@ -482,10 +531,12 @@ export function AdminMenuEditor({
       if (!g[cat]) g[cat] = [];
       g[cat].push(row as MenuItemRow);
     });
-    const dbCats = (catsResult.data ?? []).map((r: { name: string }) => r.name);
+    const rows = (catsResult.data ?? []) as CategoryRow[];
+    const dbCats = rows.map((r) => r.name);
     const orphanCats = Object.keys(g).filter((c) => !dbCats.includes(c));
     const sorted = [...dbCats, ...orphanCats];
     setGrouped(g);
+    setCategoryRows(rows);
     setSortedCategories(sorted);
     setActiveCategory((prev) => sorted.includes(prev) ? prev : sorted[0] ?? "");
   }, [restaurantId, showMsg, supabase]);
@@ -507,7 +558,7 @@ export function AdminMenuEditor({
     const ro = new ResizeObserver(updateAdminScrollState);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [updateAdminScrollState, sortedCategories]);
+  }, [updateAdminScrollState, visibleTabs]);
 
   const adminScrollLeft = () => tabScrollRef.current?.scrollBy({ left: -200, behavior: 'smooth' });
   const adminScrollRight = () => tabScrollRef.current?.scrollBy({ left: 200, behavior: 'smooth' });
@@ -519,7 +570,7 @@ export function AdminMenuEditor({
       if (editingItem) { setEditingItem(null); return; }
       if (addingNew) { setAddingNew(false); return; }
       if (themeOpen) { setThemeOpen(false); return; }
-      if (showCategoryModal) { setShowCategoryModal(false); return; }
+      if (categoryModalParent) { setCategoryModalParent(null); return; }
       if (showManageModal) { setShowManageModal(false); return; }
       if (settingsOpen) { setSettingsOpen(false); return; }
       if (showQR) { setShowQR(false); return; }
@@ -527,7 +578,7 @@ export function AdminMenuEditor({
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [editingItem, addingNew, themeOpen, showCategoryModal, showManageModal, settingsOpen, showQR, mobileOpen]);
+  }, [editingItem, addingNew, themeOpen, categoryModalParent, showManageModal, settingsOpen, showQR, mobileOpen]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -630,6 +681,25 @@ export function AdminMenuEditor({
     setSaving(false);
   }, [grouped, activeCategory, supabase]);
 
+  // sort_order is scoped per level: siblings order among themselves. parentId is
+  // only written when explicitly given — flat reorders must leave parent_id alone.
+  const persistOrder = useCallback(async (names: string[], parentId?: string | null) => {
+    for (let i = 0; i < names.length; i++) {
+      const row: Record<string, unknown> = { restaurant_id: restaurantId, name: names[i], sort_order: i };
+      if (parentId !== undefined) row.parent_id = parentId;
+      // upsert so categories inferred from items get a row too
+      await supabase.from('restaurant_categories').upsert(row, { onConflict: 'restaurant_id,name' });
+    }
+  }, [restaurantId, supabase]);
+
+  // Optimistic reorder of sibling rows so tabs move instantly, no reload.
+  const reorderRowsInState = useCallback((names: string[]) => {
+    setCategoryRows((prev) => prev.map((r) => {
+      const idx = names.indexOf(r.name);
+      return idx === -1 ? r : { ...r, sort_order: idx };
+    }));
+  }, []);
+
   const handleCategoryDragEnd = useCallback(async (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
@@ -639,12 +709,32 @@ export function AdminMenuEditor({
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(cats, oldIndex, newIndex);
     setSortedCategories(reordered);
-    // Persist sort order — upsert so inferred categories are inserted too
-    for (let i = 0; i < reordered.length; i++) {
-      await supabase.from('restaurant_categories')
-        .upsert({ restaurant_id: restaurantId, name: reordered[i], sort_order: i }, { onConflict: 'restaurant_id,name' });
-    }
-  }, [sortedCategories, restaurantId, supabase]);
+    reorderRowsInState(reordered);
+    await persistOrder(reordered);
+  }, [sortedCategories, persistOrder, reorderRowsInState]);
+
+  const handleMenuDragEnd = useCallback(async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const names = menuGroups.map((g) => g.name);
+    const oldIndex = names.indexOf(active.id as string);
+    const newIndex = names.indexOf(over.id as string);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(names, oldIndex, newIndex);
+    reorderRowsInState(reordered);
+    await persistOrder(reordered, null);
+  }, [menuGroups, persistOrder, reorderRowsInState]);
+
+  const handleChildDragEnd = useCallback(async (e: DragEndEvent) => {
+    const { active, over } = e;
+    if (!over || active.id === over.id || !activeGroup?.id) return;
+    const oldIndex = childTabs.indexOf(active.id as string);
+    const newIndex = childTabs.indexOf(over.id as string);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove([...childTabs], oldIndex, newIndex);
+    reorderRowsInState(reordered);
+    await persistOrder(reordered, activeGroup.id);
+  }, [activeGroup, childTabs, persistOrder, reorderRowsInState]);
 
   const items   = grouped[activeCategory] ?? [];
   const isEmpty = sortedCategories.length === 0;
@@ -922,7 +1012,7 @@ export function AdminMenuEditor({
         <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
           <h3 className="text-xl font-semibold text-[var(--foreground)] font-serif">No categories yet</h3>
           <p className="text-sm text-[var(--muted)] mt-2 max-w-xs">Start by creating a category (e.g. &ldquo;Mains&rdquo;), then add items to it.</p>
-          <button type="button" onClick={() => setShowCategoryModal(true)}
+          <button type="button" onClick={() => setCategoryModalParent({ id: null, name: "" })}
             className="mt-6 bg-[var(--accent)] text-white font-semibold rounded-xl px-6 py-3 hover:opacity-90 transition-opacity flex items-center gap-2">
             <Plus size={16} /> Add first category
           </button>
@@ -931,8 +1021,80 @@ export function AdminMenuEditor({
 
       {!isEmpty && (
         <>
-          {/* Category tabs — draggable + clickable */}
+          {/* Category tabs — draggable + clickable. Both rows share one sticky
+              container so row 2 always pins directly below row 1. */}
           <div data-tour="tour-categories" className="sticky top-0 z-10 bg-[var(--background)]/95 backdrop-blur-md border-b border-[var(--card-border)] shadow-sm">
+
+            {/* Row 1 — menus. Primary level: larger, bolder, accent-marked. */}
+            {layered && (
+              <div className={childTabs.length > 0 ? "border-b border-[var(--card-border)]/70" : ""}>
+                <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
+                  <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleMenuDragEnd}>
+                    <SortableContext items={menuGroups.map((g) => g.name)} strategy={horizontalListSortingStrategy}>
+                      <div
+                        ref={menuRowScrollRef}
+                        className="tabs-scroll flex gap-1 sm:gap-2 overflow-x-auto scrollbar-none px-1 items-stretch select-none"
+                        style={{ WebkitUserSelect: "none" }}
+                        onPointerDown={(e) => {
+                          const el = menuRowScrollRef.current;
+                          if (!el || (e.target as HTMLElement).closest('button')) return;
+                          menuRowDragRef.current = { active: true, startX: e.clientX, scrollLeft: el.scrollLeft, didDrag: false };
+                        }}
+                        onPointerMove={(e) => {
+                          const drag = menuRowDragRef.current;
+                          const el = menuRowScrollRef.current;
+                          if (!drag.active || !el || e.buttons === 0) return;
+                          const dx = e.clientX - drag.startX;
+                          if (Math.abs(dx) > 5) { drag.didDrag = true; el.scrollLeft = drag.scrollLeft - dx; }
+                        }}
+                        onPointerUp={() => { menuRowDragRef.current.active = false; }}
+                        onPointerLeave={() => { menuRowDragRef.current.active = false; }}
+                      >
+                        {menuGroups.map((group) => {
+                          const isActive = activeMenu === group.name;
+                          return (
+                            <SortableCategoryTab key={group.name} name={group.name}>
+                              <button
+                                type="button"
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onClick={() => {
+                                  if (menuRowDragRef.current.didDrag) { menuRowDragRef.current.didDrag = false; return; }
+                                  setActiveMenu(group.name);
+                                  setActiveCategory(group.children[0] ?? group.name);
+                                }}
+                                className="relative flex-shrink-0 px-3 sm:px-4 pt-3 pb-2.5 min-h-[44px] touch-manipulation transition-colors duration-200"
+                              >
+                                <span className={`block text-center text-sm sm:text-base font-bold uppercase tracking-wide leading-tight font-sans max-w-[9rem] line-clamp-2 break-words hyphens-auto transition-colors duration-200 ${
+                                  isActive ? "text-[var(--accent)]" : "text-[var(--muted)]"
+                                }`}>
+                                  {group.name}
+                                </span>
+                                {isActive && (
+                                  <motion.span
+                                    layoutId="admin-menu-underline"
+                                    className="absolute left-3 right-3 sm:left-4 sm:right-4 bottom-0 h-[3px] rounded-full bg-[var(--accent)]"
+                                    transition={{ type: "spring", stiffness: 420, damping: 36 }}
+                                  />
+                                )}
+                              </button>
+                            </SortableCategoryTab>
+                          );
+                        })}
+                        <button
+                          type="button"
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={() => setCategoryModalParent({ id: null, name: "" })}
+                          className="flex-shrink-0 self-center flex items-center gap-1 text-xs font-semibold font-sans text-[var(--accent)] border-2 border-dashed border-[var(--accent)]/30 rounded-xl px-3 py-1.5 hover:bg-[var(--accent)]/5 transition-colors">
+                          <Plus size={14} /> Add menu
+                        </button>
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                </div>
+              </div>
+            )}
+
+            {/* Row 2 — categories inside the active menu (unchanged styling). */}
             <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
               {adminCanScrollLeft && (
                 <button type="button" onClick={adminScrollLeft} aria-label="Scroll categories left"
@@ -946,8 +1108,8 @@ export function AdminMenuEditor({
                   <ChevronRight size={16} />
                 </button>
               )}
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleCategoryDragEnd}>
-                <SortableContext items={sortedCategories} strategy={horizontalListSortingStrategy}>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={layered ? handleChildDragEnd : handleCategoryDragEnd}>
+                <SortableContext items={visibleTabs} strategy={horizontalListSortingStrategy}>
                   <div
                     ref={tabScrollRef}
                     onScroll={updateAdminScrollState}
@@ -970,7 +1132,7 @@ export function AdminMenuEditor({
                     onPointerUp={() => { adminTabDragRef.current.active = false; }}
                     onPointerLeave={() => { adminTabDragRef.current.active = false; }}
                   >
-                    {sortedCategories.map((cat) => (
+                    {visibleTabs.map((cat) => (
                       <SortableCategoryTab key={cat} name={cat}>
                         <button
                           type="button"
@@ -979,7 +1141,7 @@ export function AdminMenuEditor({
                             if (adminTabDragRef.current.didDrag) { adminTabDragRef.current.didDrag = false; return; }
                             setActiveCategory(cat);
                           }}
-                          className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all select-none font-sans ${
+                          className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all select-none font-sans max-w-[11rem] line-clamp-2 break-words hyphens-auto ${
                             activeCategory === cat
                               ? "bg-[var(--accent)] text-white shadow-sm"
                               : "bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted)] hover:text-[var(--foreground)]"
@@ -988,11 +1150,18 @@ export function AdminMenuEditor({
                         </button>
                       </SortableCategoryTab>
                     ))}
+                    {layered && childTabs.length === 0 && (
+                      <span className="flex-shrink-0 text-xs text-[var(--muted)] px-1">
+                        &ldquo;{activeMenu}&rdquo; holds its items directly
+                      </span>
+                    )}
                     <button
                       data-tour="add-category"
                       type="button"
                       onPointerDown={(e) => e.stopPropagation()}
-                      onClick={() => setShowCategoryModal(true)}
+                      onClick={() => setCategoryModalParent(
+                        layered && activeGroup?.id ? { id: activeGroup.id, name: activeGroup.name } : { id: null, name: "" }
+                      )}
                       className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold font-sans text-[var(--accent)] border-2 border-dashed border-[var(--accent)]/30 rounded-xl px-3 py-1.5 hover:bg-[var(--accent)]/5 transition-colors">
                       <Plus size={14} /> Add category
                     </button>
@@ -1161,7 +1330,7 @@ export function AdminMenuEditor({
       {(editingItem || addingNew) && (
         <ItemForm
           item={editingItem ?? undefined}
-          categories={sortedCategories}
+          categories={leafCategories}
           restaurantSlug={restaurantSlug}
           onSave={handleSaveItem}
           onCancel={() => { setEditingItem(null); setAddingNew(false); }}
@@ -1207,16 +1376,19 @@ export function AdminMenuEditor({
       )}
 
       {/* Add Category Modal */}
-      {showCategoryModal && (
+      {categoryModalParent && (
         <AddCategoryModal
           restaurantId={restaurantId}
           existingCategories={sortedCategories}
+          parentId={categoryModalParent.id}
+          parentName={categoryModalParent.name}
+          isMenu={layered && categoryModalParent.id === null}
           onCreated={async (name) => {
-            setShowCategoryModal(false);
+            setCategoryModalParent(null);
             await refreshMenu();
             setActiveCategory(name);
           }}
-          onClose={() => setShowCategoryModal(false)}
+          onClose={() => setCategoryModalParent(null)}
         />
       )}
 
@@ -1225,6 +1397,8 @@ export function AdminMenuEditor({
         <ManageCategoriesModal
           restaurantId={restaurantId}
           categories={sortedCategories}
+          categoryRows={categoryRows}
+          layered={layered}
           grouped={grouped}
           onClose={() => setShowManageModal(false)}
           onUpdated={async (newCats) => {
@@ -1476,6 +1650,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [colorCustomized, setColorCustomized] = useState(false);
   const [showCurrencySymbol, setShowCurrencySymbol] = useState(true);
+  const [nestedCategories, setNestedCategories] = useState(false);
 
   useBodyScrollLock(open);
 
@@ -1493,6 +1668,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       setHeroUrl(restaurant.hero_image_url ?? "");
       setLogoUrl(restaurant.logo_url ?? "");
       setShowCurrencySymbol(restaurant.show_currency_symbol !== false);
+      setNestedCategories(restaurant.use_nested_categories === true);
       setFontOpen(false);
       setSelectedPreset(null);
       setColorCustomized(false);
@@ -1514,6 +1690,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       hero_image_url:       heroUrl.trim() || null,
       logo_url:             logoUrl.trim() || null,
       show_currency_symbol: showCurrencySymbol,
+      use_nested_categories: nestedCategories,
     } as Partial<Restaurant>);
     setOpen(false);
     onClose?.();
@@ -1726,6 +1903,44 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                     <p className="text-xs text-[var(--muted)] mt-1">When off, prices display as numbers only (e.g. &ldquo;18&rdquo; instead of &ldquo;$18&rdquo;).</p>
                   </div>
 
+                  {/* Layered menus toggle */}
+                  <div className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] px-4 py-3">
+                    <Toggle
+                      label="Use layered menus"
+                      checked={nestedCategories}
+                      onChange={setNestedCategories}
+                    />
+                    <p className="text-xs text-[var(--muted)] mt-1">
+                      Group your categories under menus like Lunch, Dinner and Drinks. Turn it on, then use
+                      Manage categories to put categories inside a menu. Turning it off shows everything flat again —
+                      your structure is kept.
+                    </p>
+                    {/* Flat vs layered illustration */}
+                    <div className="flex gap-4 mt-3 p-3 rounded-xl bg-[var(--card)] border border-[var(--card-border)]">
+                      <div className={`flex-1 text-center transition-opacity ${nestedCategories ? "opacity-40" : ""}`}>
+                        <div className="flex gap-1 justify-center flex-wrap mb-1.5">
+                          {["Starters", "Mains", "Wine"].map((n) => (
+                            <span key={n} className="px-2 py-0.5 rounded-full bg-[var(--card-border)] text-[10px] text-[var(--muted)] font-medium font-sans">{n}</span>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-[var(--muted)] font-sans">Flat</p>
+                      </div>
+                      <div className={`flex-1 text-center transition-opacity ${nestedCategories ? "" : "opacity-40"}`}>
+                        <div className="flex gap-2 justify-center mb-1">
+                          {["Food", "Drinks"].map((n, i) => (
+                            <span key={n} className={`text-[10px] font-bold font-sans uppercase tracking-wide ${i === 0 ? "text-[var(--accent)] border-b-2 border-[var(--accent)] pb-0.5" : "text-[var(--muted)] pb-0.5"}`}>{n}</span>
+                          ))}
+                        </div>
+                        <div className="flex gap-1 justify-center flex-wrap mb-1.5">
+                          {["Starters", "Mains"].map((n) => (
+                            <span key={n} className="px-2 py-0.5 rounded-full bg-[var(--card-border)] text-[10px] text-[var(--muted)] font-medium font-sans">{n}</span>
+                          ))}
+                        </div>
+                        <p className="text-[10px] text-[var(--muted)] font-sans">Layered</p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Font */}
                   <div>
                     <p className="text-xs font-semibold text-[var(--muted)] uppercase tracking-widest mb-2">Font</p>
@@ -1815,6 +2030,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                       setHeroUrl(restaurant.hero_image_url ?? "");
                       setLogoUrl(restaurant.logo_url ?? "");
                       setShowCurrencySymbol(restaurant.show_currency_symbol !== false);
+      setNestedCategories(restaurant.use_nested_categories === true);
                     }
                     setOpen(false);
                     onClose?.();
@@ -2320,14 +2536,23 @@ function ItemForm({
 function AddCategoryModal({
   restaurantId,
   existingCategories,
+  parentId = null,
+  parentName = "",
+  isMenu = false,
   onCreated,
   onClose,
 }: {
   restaurantId: string;
   existingCategories: string[];
+  /** null = top level. Set = the menu this category goes under. */
+  parentId?: string | null;
+  parentName?: string;
+  /** Top-level rows are presented as "menus" once layered mode is on. */
+  isMenu?: boolean;
   onCreated: (name: string) => void;
   onClose: () => void;
 }) {
+  const noun = isMenu ? "menu" : "category";
   const [name, setName] = useState("");
   const [showImage, setShowImage] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -2340,14 +2565,18 @@ function AddCategoryModal({
     const trimmed = name.trim();
     if (!trimmed) return;
     if (existingCategories.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
-      setError("That category already exists.");
+      setError(`That ${noun} already exists.`);
       return;
     }
     setSaving(true);
-    const maxOrder = existingCategories.length;
+    // sort_order is scoped per level — count only siblings under the same parent.
+    let siblingQuery = supabase.from("restaurant_categories").select("id").eq("restaurant_id", restaurantId);
+    siblingQuery = parentId === null ? siblingQuery.is("parent_id", null) : siblingQuery.eq("parent_id", parentId);
+    const { data: siblings } = await siblingQuery;
+    const maxOrder = siblings?.length ?? existingCategories.length;
     await supabase
       .from("restaurant_categories")
-      .upsert({ restaurant_id: restaurantId, name: trimmed, sort_order: maxOrder, show_image: showImage }, { onConflict: "restaurant_id,name" });
+      .upsert({ restaurant_id: restaurantId, name: trimmed, parent_id: parentId, sort_order: maxOrder, show_image: showImage }, { onConflict: "restaurant_id,name" });
     setSaving(false);
     onCreated(trimmed);
   };
@@ -2355,23 +2584,32 @@ function AddCategoryModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" style={{ animation: "fadeIn 0.15s ease-out" }}>
       <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-sm p-6" style={{ animation: "modalIn 0.15s ease-out" }}>
-        <h3 className="font-serif text-lg font-semibold text-[var(--foreground)] mb-4">Add category</h3>
+        <h3 className="font-serif text-lg font-semibold text-[var(--foreground)] mb-1">
+          {isMenu ? "Add menu" : parentName ? `Add category to ${parentName}` : "Add category"}
+        </h3>
+        <p className="text-xs text-[var(--muted)] font-sans mb-4">
+          {isMenu
+            ? "A menu is a container — add categories inside it once it exists."
+            : parentName
+              ? `This category will appear under the “${parentName}” menu.`
+              : "Items live inside categories."}
+        </p>
         <form onSubmit={create} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-1.5">Category name</label>
+            <label className="block text-xs font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-1.5">{isMenu ? "Menu name" : "Category name"}</label>
             <input
               type="text"
               value={name}
               onChange={(e) => { setName(e.target.value); setError(""); }}
-              placeholder="e.g. Desserts"
+              placeholder={isMenu ? "e.g. Dinner" : "e.g. Desserts"}
               autoFocus
               className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
             {error && <p className="mt-1 text-xs text-red-600 font-sans">{error}</p>}
           </div>
 
-          {/* Show image toggle */}
-          <div className="rounded-xl border border-[var(--card-border)] p-4 bg-[var(--background)]">
+          {/* Show image toggle — menus are containers, they never show a banner */}
+          <div className={`rounded-xl border border-[var(--card-border)] p-4 bg-[var(--background)] ${isMenu ? "hidden" : ""}`}>
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-[var(--foreground)] font-sans">Show image on category</p>
@@ -2415,6 +2653,7 @@ function AddCategoryModal({
 
 function SortableCategoryManageRow({
   name, itemCount, showImage, imageMode, bannerItemId, categoryItems, onDelete, onSelectImageMode, isDeleting, onRename,
+  depth = 0, isMenu = false, childCount = 0, moveTargets, onMove, parentId = null,
 }: {
   name: string;
   itemCount: number;
@@ -2426,6 +2665,15 @@ function SortableCategoryManageRow({
   onSelectImageMode: (mode: 'icon' | 'item', itemId: string | null) => void;
   isDeleting: boolean;
   onRename: (oldName: string, newName: string) => Promise<void>;
+  /** 0 = top level, 1 = nested under a menu. */
+  depth?: number;
+  /** A top-level row that has children — a container, not an item holder. */
+  isMenu?: boolean;
+  childCount?: number;
+  /** null id = move to top level. Omitted entirely when not layered. */
+  moveTargets?: { id: string | null; name: string }[];
+  onMove?: (name: string, parentId: string | null) => void;
+  parentId?: string | null;
 }) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(name);
@@ -2435,8 +2683,15 @@ function SortableCategoryManageRow({
   return (
     <div
       ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
-      className="rounded-xl border border-[var(--card-border)] bg-[var(--background)] overflow-hidden"
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        marginLeft: depth * 20,
+      }}
+      className={`rounded-xl border bg-[var(--background)] overflow-hidden ${
+        isMenu ? "border-[var(--accent)]/40 bg-[var(--accent)]/5" : "border-[var(--card-border)]"
+      }`}
     >
       <div className="flex items-center gap-3 p-3">
         <div
@@ -2470,7 +2725,10 @@ function SortableCategoryManageRow({
             </div>
           ) : (
             <div className="flex items-center gap-1 group/rename">
-              <p className="text-sm font-medium text-[var(--foreground)] truncate">{name}</p>
+              <p className={`text-sm truncate text-[var(--foreground)] ${isMenu ? "font-bold uppercase tracking-wide" : "font-medium"}`}>{name}</p>
+              {isMenu && (
+                <span className="flex-shrink-0 text-[9px] font-semibold font-sans uppercase tracking-wide text-[var(--accent)] border border-[var(--accent)]/40 rounded px-1 py-px">Menu</span>
+              )}
               <button type="button"
                 onClick={() => { setIsRenaming(true); setRenameValue(name); }}
                 className="opacity-0 group-hover/rename:opacity-100 flex-shrink-0 p-0.5 text-[var(--muted)] hover:text-[var(--foreground)] transition-opacity" title="Rename">
@@ -2480,8 +2738,24 @@ function SortableCategoryManageRow({
               </button>
             </div>
           )}
-          <p className="text-xs text-[var(--muted)]">{itemCount} item{itemCount !== 1 ? 's' : ''}</p>
+          <p className="text-xs text-[var(--muted)]">
+            {isMenu
+              ? `${childCount} categor${childCount !== 1 ? 'ies' : 'y'}`
+              : `${itemCount} item${itemCount !== 1 ? 's' : ''}`}
+          </p>
         </div>
+        {moveTargets && moveTargets.length > 0 && !isMenu && (
+          <select
+            value={parentId ?? ""}
+            onChange={(e) => onMove?.(name, e.target.value === "" ? null : e.target.value)}
+            title="Move to menu"
+            className="flex-shrink-0 max-w-[7.5rem] text-xs font-sans rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-[var(--muted)] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+          >
+            {moveTargets.map((t) => (
+              <option key={t.id ?? "__top"} value={t.id ?? ""}>{t.name}</option>
+            ))}
+          </select>
+        )}
         {isDeleting ? (
           <div className="flex-shrink-0 p-1.5">
             <svg className="w-4 h-4 animate-spin text-gray-400" fill="none" viewBox="0 0 24 24">
@@ -2494,7 +2768,7 @@ function SortableCategoryManageRow({
             type="button"
             onClick={onDelete}
             className="flex-shrink-0 p-1.5 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-            title="Delete category"
+            title={isMenu ? "Delete menu" : "Delete category"}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -2502,8 +2776,9 @@ function SortableCategoryManageRow({
           </button>
         )}
       </div>
-      {/* Image mode picker — only shown when show_image is ON */}
-      {showImage && (
+      {/* Image mode picker — only shown when show_image is ON. Menus are
+          containers and never render a banner, so it's hidden for them. */}
+      {showImage && !isMenu && (
         <div className="px-3 py-2 border-t border-[var(--card-border)] bg-[var(--card)]">
           <p className="text-[10px] font-semibold font-sans text-[var(--muted)] uppercase tracking-wide mb-2">Image type</p>
           <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -2547,15 +2822,20 @@ function SortableCategoryManageRow({
 }
 
 function ManageCategoriesModal({
-  restaurantId, categories, grouped, onClose, onUpdated,
+  restaurantId, categories, categoryRows, layered, grouped, onClose, onUpdated,
 }: {
   restaurantId: string;
   categories: string[];
+  categoryRows: CategoryRow[];
+  layered: boolean;
   grouped: Grouped;
   onClose: () => void;
   onUpdated: (newCats: string[]) => Promise<void>;
 }) {
   const [cats, setCats] = useState(categories);
+  const [rows, setRows] = useState<CategoryRow[]>(categoryRows);
+  const [newName, setNewName] = useState("");
+  const [newParent, setNewParent] = useState("");
   const [showImageMap, setShowImageMap] = useState<Record<string, boolean>>({});
   const [imageModeMap, setImageModeMap] = useState<Record<string, string | null>>({});
   const [bannerItemMap, setBannerItemMap] = useState<Record<string, string | null>>({});
@@ -2596,30 +2876,120 @@ function ManageCategoriesModal({
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
+  // Flattened display order: menu, then its children indented beneath it.
+  // In flat mode this is just the category list, exactly as before.
+  const groups = useMemo(() => buildMenuGroups(rows, cats), [rows, cats]);
+  const flat = useMemo(() => {
+    if (!layered) return cats.map((name) => ({ name, parentId: null as string | null, depth: 0, isMenu: false, childCount: 0 }));
+    const out: { name: string; parentId: string | null; depth: number; isMenu: boolean; childCount: number }[] = [];
+    for (const g of groups) {
+      out.push({ name: g.name, parentId: null, depth: 0, isMenu: g.children.length > 0, childCount: g.children.length });
+      for (const c of g.children) out.push({ name: c, parentId: g.id, depth: 1, isMenu: false, childCount: 0 });
+    }
+    return out;
+  }, [layered, groups, cats]);
+
+  // A category can move to top level or under any top-level row. Menus stay put
+  // so the hierarchy can never grow past two levels.
+  const moveTargets = useMemo(
+    () => layered
+      ? [{ id: null as string | null, name: "Top level" }, ...groups.filter((g) => g.id).map((g) => ({ id: g.id, name: g.name }))]
+      : undefined,
+    [layered, groups]
+  );
+
+  // sort_order is scoped per level — only siblings are renumbered.
+  const persistSiblingOrder = async (names: string[]) => {
+    for (let i = 0; i < names.length; i++) {
+      await supabase.from('restaurant_categories')
+        .upsert({ restaurant_id: restaurantId, name: names[i], sort_order: i }, { onConflict: 'restaurant_id,name' });
+    }
+  };
+
   const handleDragEnd = async (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    const oldIndex = cats.indexOf(active.id as string);
-    const newIndex = cats.indexOf(over.id as string);
+    const a = flat.find((f) => f.name === active.id);
+    const o = flat.find((f) => f.name === over.id);
+    // Reordering is sibling-scoped; use the move dropdown to change parents.
+    if (!a || !o || a.parentId !== o.parentId || a.depth !== o.depth) return;
+    const sibIdxs = flat.reduce<number[]>((acc, f, i) => {
+      if (f.parentId === a.parentId && f.depth === a.depth) acc.push(i);
+      return acc;
+    }, []);
+    const siblings = sibIdxs.map((i) => flat[i].name);
+    const oldIndex = siblings.indexOf(a.name);
+    const newIndex = siblings.indexOf(o.name);
     if (oldIndex === -1 || newIndex === -1) return;
-    const reordered = arrayMove(cats, oldIndex, newIndex);
-    setCats(reordered);
+    const reordered = arrayMove(siblings, oldIndex, newIndex);
+    const names = flat.map((f) => f.name);
+    reordered.forEach((n, k) => { names[sibIdxs[k]] = n; });
+    setCats(names);
+    setRows((prev) => prev.map((r) => {
+      const i = reordered.indexOf(r.name);
+      return i === -1 ? r : { ...r, sort_order: i };
+    }));
     setBusy(true);
-    for (let i = 0; i < reordered.length; i++) {
-      await supabase.from('restaurant_categories')
-        .upsert({ restaurant_id: restaurantId, name: reordered[i], sort_order: i }, { onConflict: 'restaurant_id,name' });
-    }
+    await persistSiblingOrder(reordered);
     setBusy(false);
-    await onUpdated(reordered);
+    await onUpdated(names);
+  };
+
+  const handleMove = async (catName: string, parentId: string | null) => {
+    const row = rows.find((r) => r.name === catName);
+    if (!row || (row.parent_id ?? null) === parentId) return;
+    const sortOrder = rows.filter((r) => (r.parent_id ?? null) === parentId && r.name !== catName).length;
+    setBusy(true);
+    const { error } = await supabase.from('restaurant_categories')
+      .update({ parent_id: parentId, sort_order: sortOrder })
+      .eq('restaurant_id', restaurantId).eq('name', catName);
+    setBusy(false);
+    if (error) { setDeleteError(`Couldn't move "${catName}". Please try again.`); return; }
+    setRows((prev) => prev.map((r) => r.name === catName ? { ...r, parent_id: parentId, sort_order: sortOrder } : r));
+    await onUpdated(cats);
+  };
+
+  const handleAdd = async () => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    if (cats.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+      setDeleteError("That name is already taken.");
+      return;
+    }
+    const parentId = newParent === "" ? null : newParent;
+    const sortOrder = rows.filter((r) => (r.parent_id ?? null) === parentId).length;
+    setBusy(true);
+    setDeleteError(null);
+    const { data, error } = await supabase.from('restaurant_categories')
+      .upsert({ restaurant_id: restaurantId, name: trimmed, parent_id: parentId, sort_order: sortOrder, show_image: masterShowImages }, { onConflict: 'restaurant_id,name' })
+      .select('id, name, parent_id, sort_order')
+      .single();
+    setBusy(false);
+    if (error || !data) { setDeleteError(`Couldn't add "${trimmed}". Please try again.`); return; }
+    const nextCats = [...cats, trimmed];
+    setRows((prev) => [...prev, data as CategoryRow]);
+    setCats(nextCats);
+    setNewName("");
+    await onUpdated(nextCats);
   };
 
   const handleDelete = async (catName: string) => {
-    const itemsInCat = grouped[catName] ?? [];
-    if (itemsInCat.length > 0) {
-      const confirmed = confirm(
-        `This will unassign ${itemsInCat.length} item${itemsInCat.length > 1 ? 's' : ''} from "${catName}". They will still exist but won't appear in any tab until reassigned. Continue?`
-      );
-      if (!confirmed) return;
+    // Deleting a menu cascades to its child category rows (parent_id is
+    // ON DELETE CASCADE). Items reference categories by name, so we unassign
+    // every affected item ourselves rather than leaving them stranded.
+    const row = rows.find((r) => r.name === catName);
+    const childNames = layered && row ? rows.filter((r) => r.parent_id === row.id).map((r) => r.name) : [];
+    const affected = [catName, ...childNames];
+    const itemsInCat = affected.flatMap((n) => grouped[n] ?? []);
+    if (childNames.length > 0 || itemsInCat.length > 0) {
+      const parts: string[] = [];
+      if (childNames.length > 0) {
+        parts.push(`Deleting the menu "${catName}" also deletes its ${childNames.length} categor${childNames.length > 1 ? 'ies' : 'y'} (${childNames.join(', ')}).`);
+      }
+      if (itemsInCat.length > 0) {
+        parts.push(`${itemsInCat.length} item${itemsInCat.length > 1 ? 's' : ''} will be unassigned. They will still exist but won't appear in any tab until reassigned.`);
+      }
+      if (!confirm(`${parts.join(' ')} Continue?`)) return;
     }
     setDeletingCats(prev => { const next = new Set(prev); next.add(catName); return next; });
     setDeleteError(null);
@@ -2630,8 +3000,9 @@ function ManageCategoriesModal({
       .delete().eq('restaurant_id', restaurantId).eq('name', catName);
     setDeletingCats(prev => { const next = new Set(prev); next.delete(catName); return next; });
     if (error) { setDeleteError(`Failed to delete "${catName}". Please try again.`); return; }
-    const newCats = cats.filter((c) => c !== catName);
+    const newCats = cats.filter((c) => !affected.includes(c));
     setCats(newCats);
+    setRows((prev) => prev.filter((r) => !affected.includes(r.name)));
     await onUpdated(newCats);
   };
 
@@ -2642,6 +3013,7 @@ function ManageCategoriesModal({
     if (!error) {
       const newCats = cats.map(c => c === oldName ? newName : c);
       setCats(newCats);
+      setRows(prev => prev.map(r => r.name === oldName ? { ...r, name: newName } : r));
       setShowImageMap(prev => { const n = { ...prev }; n[newName] = n[oldName]; delete n[oldName]; return n; });
       setImageModeMap(prev => { const n = { ...prev }; n[newName] = n[oldName]; delete n[oldName]; return n; });
       setBannerItemMap(prev => { const n = { ...prev }; n[newName] = n[oldName]; delete n[oldName]; return n; });
@@ -2652,11 +3024,13 @@ function ManageCategoriesModal({
 
   const handleToggleMasterShowImages = async (val: boolean) => {
     setMasterShowImages(val);
+    // Menus are containers — only real categories get a banner image.
+    const imageCats = flat.filter((f) => !f.isMenu).map((f) => f.name);
     const updatedMap: Record<string, boolean> = {};
-    for (const cat of cats) updatedMap[cat] = val;
+    for (const cat of imageCats) updatedMap[cat] = val;
     setShowImageMap(updatedMap);
     setBusy(true);
-    for (const cat of cats) {
+    for (const cat of imageCats) {
       await supabase.from('restaurant_categories')
         .update({ show_image: val })
         .eq('restaurant_id', restaurantId)
@@ -2670,8 +3044,10 @@ function ManageCategoriesModal({
       <div className="bg-[var(--card)] rounded-2xl shadow-2xl w-full max-w-sm" style={{ animation: 'modalIn 0.15s ease-out' }}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--card-border)]">
           <div>
-            <h3 className="font-serif text-lg font-semibold text-[var(--foreground)]">Manage categories</h3>
-            <p className="text-xs text-[var(--muted)] mt-0.5">Drag to reorder · tap trash to delete</p>
+            <h3 className="font-serif text-lg font-semibold text-[var(--foreground)]">{layered ? "Manage menus & categories" : "Manage categories"}</h3>
+            <p className="text-xs text-[var(--muted)] mt-0.5">
+              {layered ? "Drag to reorder within a level · use the dropdown to move between menus" : "Drag to reorder · tap trash to delete"}
+            </p>
           </div>
           <button type="button" onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2726,12 +3102,20 @@ function ManageCategoriesModal({
           )}
 
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={cats} strategy={verticalListSortingStrategy}>
+            <SortableContext items={flat.map((f) => f.name)} strategy={verticalListSortingStrategy}>
               <div className="space-y-2">
-                {cats.map((cat) => (
+                {flat.map((entry) => {
+                  const cat = entry.name;
+                  return (
                   <SortableCategoryManageRow
                     key={cat}
                     name={cat}
+                    depth={entry.depth}
+                    isMenu={entry.isMenu}
+                    childCount={entry.childCount}
+                    parentId={entry.parentId}
+                    moveTargets={moveTargets}
+                    onMove={handleMove}
                     itemCount={grouped[cat]?.length ?? 0}
                     showImage={masterShowImages}
                     imageMode={imageModeMap[cat] ?? null}
@@ -2749,10 +3133,45 @@ function ManageCategoriesModal({
                         .eq('name', cat);
                     }}
                   />
-                ))}
+                  );
+                })}
               </div>
             </SortableContext>
           </DndContext>
+
+          {/* Add at any level */}
+          {layered && (
+            <div className="mt-4 pt-4 border-t border-[var(--card-border)]">
+              <p className="text-[10px] font-semibold font-sans uppercase tracking-widest text-[var(--muted)] mb-2">Add new</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => { setNewName(e.target.value); setDeleteError(null); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
+                  placeholder="Name"
+                  className="font-sans flex-1 min-w-0 px-3 py-2 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                />
+                <select
+                  value={newParent}
+                  onChange={(e) => setNewParent(e.target.value)}
+                  className="font-sans max-w-[8rem] px-2 py-2 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--muted)] text-xs focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                >
+                  <option value="">Top level</option>
+                  {groups.filter((g) => g.id).map((g) => (
+                    <option key={g.id} value={g.id!}>In {g.name}</option>
+                  ))}
+                </select>
+                <button type="button" onClick={handleAdd} disabled={busy || !newName.trim()}
+                  className="font-sans flex-shrink-0 px-3 py-2 rounded-xl bg-[var(--accent)] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
+                  Add
+                </button>
+              </div>
+              <p className="text-[11px] text-[var(--muted)] font-sans mt-2">
+                Top level creates a menu once you put a category inside it.
+              </p>
+            </div>
+          )}
         </div>
         <div className="px-6 py-4 border-t border-[var(--card-border)]">
           <button type="button" onClick={onClose}

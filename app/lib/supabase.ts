@@ -56,7 +56,39 @@ export type Restaurant = {
   muted_color?: string | null;
   title_color?: string | null;
   show_currency_symbol?: boolean | null;
+  use_nested_categories?: boolean | null;
 };
+
+/** A row from restaurant_categories. parent_id null = top level. */
+export type CategoryRow = {
+  id: string;
+  name: string;
+  parent_id: string | null;
+  sort_order: number | null;
+};
+
+/** A top-level category plus the names of its child categories (empty = flat leaf). */
+export type MenuGroup = { id: string | null; name: string; children: string[] };
+
+/**
+ * Builds the two-level structure from flat category rows.
+ * A top-level row WITH children is a menu (container); WITHOUT children it
+ * behaves as an ordinary category that holds its own items.
+ */
+export function buildMenuGroups(rows: CategoryRow[], extraTopLevel: string[] = []): MenuGroup[] {
+  const bySort = (a: CategoryRow, b: CategoryRow) => (a.sort_order ?? 0) - (b.sort_order ?? 0);
+  const tops = rows.filter((r) => !r.parent_id).sort(bySort);
+  const groups: MenuGroup[] = tops.map((top) => ({
+    id: top.id,
+    name: top.name,
+    children: rows.filter((r) => r.parent_id === top.id).sort(bySort).map((r) => r.name),
+  }));
+  const known = new Set(rows.map((r) => r.name));
+  for (const name of extraTopLevel) {
+    if (!known.has(name)) groups.push({ id: null, name, children: [] });
+  }
+  return groups;
+}
 
 export type CategoryNote = {
   id: string;

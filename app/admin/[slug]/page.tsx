@@ -4,7 +4,7 @@ import { redirect, notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/app/lib/supabase";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
-import type { Restaurant, CategoryNote } from "@/app/lib/supabase";
+import type { Restaurant, CategoryNote, CategoryRow } from "@/app/lib/supabase";
 import { AdminMenuEditor } from "./AdminMenuEditor";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -17,7 +17,7 @@ export default async function AdminSlugPage({ params }: Props) {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, slug, name, main_color, accent_color, background_color, font_family, font_color, hero_image_url, logo_url, owner_id, brand_primary_1, brand_secondary_1, brand_bg_1, brand_font_1, brand_primary_2, brand_secondary_2, brand_bg_2, brand_font_2, muted_color, title_color")
+    .select("id, slug, name, main_color, accent_color, background_color, font_family, font_color, hero_image_url, logo_url, owner_id, brand_primary_1, brand_secondary_1, brand_bg_1, brand_font_1, brand_primary_2, brand_secondary_2, brand_bg_2, brand_font_2, muted_color, title_color, use_nested_categories")
     .eq("slug", slug)
     .eq("owner_id", user.id)
     .maybeSingle<Restaurant>();
@@ -27,7 +27,7 @@ export default async function AdminSlugPage({ params }: Props) {
   const [{ data: menuItems, error: menuError }, { data: categoryNotesRows }, { data: dbCategories }] = await Promise.all([
     supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }).order("name", { ascending: true }),
     supabase.from("category_notes").select("category, note").eq("restaurant_id", restaurant.id),
-    supabase.from("restaurant_categories").select("name").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }),
+    supabase.from("restaurant_categories").select("id, name, parent_id, sort_order").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }),
   ]);
 
   if (menuError) {
@@ -46,7 +46,8 @@ export default async function AdminSlugPage({ params }: Props) {
   }, {});
 
   // DB categories are source of truth for order; include orphaned item categories too
-  const dbCategoryNames = (dbCategories ?? []).map((r: { name: string }) => r.name);
+  const categoryRows = (dbCategories ?? []) as CategoryRow[];
+  const dbCategoryNames = categoryRows.map((r) => r.name);
   const orphanCats = Object.keys(grouped).filter((c) => !dbCategoryNames.includes(c));
   const allCategories = [...dbCategoryNames, ...orphanCats];
 
@@ -99,6 +100,7 @@ export default async function AdminSlugPage({ params }: Props) {
         initialSortedCategories={sortedCategories}
         initialAllCategories={allCategories}
         initialRestaurant={restaurant}
+        initialCategoryRows={categoryRows}
         initialCategoryNotes={initialCategoryNotes}
       />
     </>

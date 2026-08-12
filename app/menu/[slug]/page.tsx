@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
-import { createSupabaseServerClient } from "@/app/lib/supabase";
+import { createSupabaseServerClient, buildMenuGroups, type CategoryRow, type MenuGroup } from "@/app/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import type { MenuItemRow } from "@/app/lib/constants";
 import { MenuTabs } from "@/app/components/MenuTabs";
@@ -38,7 +38,7 @@ export default async function PublicMenuPage({ params }: Props) {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id, muted_color, title_color, allow_auto_translate, show_currency_symbol, default_language, feedback_enabled")
+    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id, muted_color, title_color, allow_auto_translate, show_currency_symbol, default_language, feedback_enabled, use_nested_categories")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -101,7 +101,7 @@ export default async function PublicMenuPage({ params }: Props) {
   const [{ data: menuItems }, { data: categoryNotesRows }, { data: categoryRows }] = await Promise.all([
     supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }).order("name", { ascending: true }),
     supabase.from("category_notes").select("category, note").eq("restaurant_id", restaurant.id),
-    supabase.from("restaurant_categories").select("name, show_image, image_url, banner_item_id, use_banner, image_mode, sort_order").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }),
+    supabase.from("restaurant_categories").select("id, parent_id, name, show_image, image_url, banner_item_id, use_banner, image_mode, sort_order").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }),
   ]);
 
   // Build a lookup of item images for banner_item_id resolution
@@ -146,6 +146,17 @@ export default async function PublicMenuPage({ params }: Props) {
     ...dbCategoryOrder.filter((c) => grouped[c]),
     ...Object.keys(grouped).filter((c) => !dbCategoryOrder.includes(c)),
   ];
+
+  // Two-level structure. Only built when the restaurant has opted in — when the
+  // toggle is off, existing parent_id values are ignored (never deleted) so the
+  // structure comes back intact if they turn it on again.
+  let menuGroups: MenuGroup[] | undefined;
+  if ((restaurant as { use_nested_categories?: boolean | null }).use_nested_categories === true) {
+    const orphans = Object.keys(grouped).filter((c) => !dbCategoryOrder.includes(c));
+    menuGroups = buildMenuGroups((categoryRows ?? []) as CategoryRow[], orphans)
+      .map((g) => ({ ...g, children: g.children.filter((c) => grouped[c]) }))
+      .filter((g) => g.children.length > 0 || grouped[g.name]);
+  }
 
   // Fallback: if banner is on but no banner_item_id, use first item image in category
   for (const [catName, entry] of Object.entries(categoryImageMap)) {
@@ -214,7 +225,7 @@ export default async function PublicMenuPage({ params }: Props) {
         restaurantId={restaurant.id}
       />
       {hasItems ? (
-        <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNotes={categoryNotes} categoryImageMap={categoryImageMap} restaurantId={restaurant.id} allowAutoTranslate={!!(restaurant as { allow_auto_translate?: boolean }).allow_auto_translate} showCurrencySymbol={(restaurant as { show_currency_symbol?: boolean | null }).show_currency_symbol !== false} />
+        <MenuTabs grouped={grouped} sortedCategories={sortedCategories} menuGroups={menuGroups} categoryNotes={categoryNotes} categoryImageMap={categoryImageMap} restaurantId={restaurant.id} allowAutoTranslate={!!(restaurant as { allow_auto_translate?: boolean }).allow_auto_translate} showCurrencySymbol={(restaurant as { show_currency_symbol?: boolean | null }).show_currency_symbol !== false} />
       ) : (
         <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
           <h2 className="text-2xl font-semibold" style={{ color: fontColor }}>No items yet</h2>

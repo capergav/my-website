@@ -12,6 +12,7 @@ import {
   ChevronLeft, ChevronRight,
 } from "lucide-react";
 import type { Locale } from "@/app/lib/translations";
+import type { MenuGroup } from "@/app/lib/supabase";
 
 export type MenuItem = {
   id: string;
@@ -45,6 +46,8 @@ export const DIET_FILTER_OPTIONS = [
 export type MenuTabsProps = {
   grouped: Record<string, MenuItem[]>;
   sortedCategories: string[];
+  /** Present only when the restaurant opted into layered menus. */
+  menuGroups?: MenuGroup[];
   categoryNotes?: Record<string, string>;
   categoryImageMap?: Record<string, { show: boolean; url: string | null; useBanner?: boolean; bannerUrl?: string | null; imageMode?: string | null }>;
   restaurantId?: string;
@@ -129,18 +132,37 @@ function hasDetails(item: MenuItem): boolean {
   return hasDesc || hasImg || hasDiet;
 }
 
-export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, categoryImageMap = {}, restaurantId, language, allowAutoTranslate, showCurrencySymbol = true }: MenuTabsProps) {
+// Layered menus only kick in once a top-level menu actually has children —
+// a restaurant that turned the toggle on but hasn't nested anything yet still
+// renders completely flat.
+function isLayered(menuGroups?: MenuGroup[]): boolean {
+  return Boolean(menuGroups && menuGroups.some((g) => g.children.length > 0));
+}
+
+export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes = {}, categoryImageMap = {}, restaurantId, language, allowAutoTranslate, showCurrencySymbol = true }: MenuTabsProps) {
   const { t, getCategoryLabel, setLocale, locale } = useLanguage();
-  const [activeCategory, setActiveCategory] = useState(sortedCategories[0] ?? "");
+  const layered = isLayered(menuGroups);
+  const [activeMenu, setActiveMenu] = useState(layered ? menuGroups![0].name : "");
+  const [activeCategory, setActiveCategory] = useState(
+    layered ? (menuGroups![0].children[0] ?? menuGroups![0].name) : (sortedCategories[0] ?? "")
+  );
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [dietFilter, setDietFilter] = useState<string>("all");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const menuScrollRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
   // Drag-to-scroll state for category tab strip
   const tabDragRef = useRef({ active: false, startX: 0, scrollLeft: 0, didDrag: false });
+  const menuDragRef = useRef({ active: false, startX: 0, scrollLeft: 0, didDrag: false });
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
+
+  const activeGroup = layered ? menuGroups!.find((g) => g.name === activeMenu) : undefined;
+  // Row 2 lists the active menu's children. A top-level category with no
+  // children holds its own items directly, so row 2 is hidden for it.
+  const visibleCategories = layered ? (activeGroup?.children ?? []) : sortedCategories;
+  const showCategoryRow = visibleCategories.length > (layered ? 0 : 1);
 
   const getSession = useCallback(() => {
     if (typeof window === "undefined") return "";
@@ -178,7 +200,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
     const ro = new ResizeObserver(updateScrollState);
     ro.observe(el);
     return () => { el.removeEventListener('scroll', updateScrollState); ro.disconnect(); };
-  }, [updateScrollState]);
+  }, [updateScrollState, visibleCategories]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -276,11 +298,81 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
   // If no category has show_image enabled, render simple pill tabs instead of image cards
   const anyCategoryUsesImages = sortedCategories.some(cat => categoryImageMap[cat]?.show === true);
 
+  const selectMenu = (group: MenuGroup) => {
+    if (menuDragRef.current.didDrag) { menuDragRef.current.didDrag = false; return; }
+    const next = group.children[0] ?? group.name;
+    setActiveMenu(group.name);
+    setActiveCategory(next);
+    setDietFilter("all");
+    // Analytics always records the deepest category the visitor lands on.
+    fireTrack("category_view", { category: next, language: locale });
+  };
+
   return (
     <>
-      {/* Category tab strip — hidden when only one category */}
-      {sortedCategories.length > 1 && (
+      {/* Tab strip. Both rows live in one sticky container so row 2 always pins
+          directly below row 1 without any hand-tuned offset. */}
+      {(layered || showCategoryRow) && (
         <div className="sticky top-0 z-40 bg-[var(--background)] border-b border-[var(--card-border)] shadow-sm">
+
+        {/* Row 1 — menus. Primary level: larger, bolder, accent-marked. */}
+        {layered && (
+          <div className={showCategoryRow ? "border-b border-[var(--card-border)]/70" : ""}>
+            <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
+              <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-r from-[var(--background)] to-transparent" />
+              <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-l from-[var(--background)] to-transparent" />
+              <div
+                ref={menuScrollRef}
+                className="tabs-scroll flex gap-1 sm:gap-2 overflow-x-auto scrollbar-none select-none"
+                style={{ WebkitUserSelect: "none" }}
+                onPointerDown={(e) => {
+                  const el = menuScrollRef.current;
+                  if (!el) return;
+                  menuDragRef.current = { active: true, startX: e.clientX, scrollLeft: el.scrollLeft, didDrag: false };
+                }}
+                onPointerMove={(e) => {
+                  const drag = menuDragRef.current;
+                  const el = menuScrollRef.current;
+                  if (!drag.active || !el || e.buttons === 0) return;
+                  const dx = e.clientX - drag.startX;
+                  if (Math.abs(dx) > 5) { drag.didDrag = true; el.scrollLeft = drag.scrollLeft - dx; }
+                }}
+                onPointerUp={() => { menuDragRef.current.active = false; }}
+                onPointerLeave={() => { menuDragRef.current.active = false; }}
+              >
+                {menuGroups!.map((group) => {
+                  const isActive = activeMenu === group.name;
+                  return (
+                    <button
+                      key={group.name}
+                      type="button"
+                      onClick={() => selectMenu(group)}
+                      className="relative flex-shrink-0 px-3 sm:px-4 pt-3 pb-2.5 min-h-[44px] touch-manipulation transition-colors duration-200"
+                    >
+                      <span
+                        className={`block text-center text-sm sm:text-base font-bold uppercase tracking-wide leading-tight max-w-[9rem] line-clamp-2 break-words hyphens-auto transition-colors duration-200 ${
+                          isActive ? "text-[var(--accent)]" : "text-[var(--muted)]"
+                        }`}
+                      >
+                        <CategoryName name={group.name} />
+                      </span>
+                      {isActive && (
+                        <motion.span
+                          layoutId="menu-underline"
+                          className="absolute left-3 right-3 sm:left-4 sm:right-4 bottom-0 h-[3px] rounded-full bg-[var(--accent)]"
+                          transition={{ type: "spring", stiffness: 420, damping: 36 }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Row 2 — categories for the active menu (unchanged styling). */}
+        {showCategoryRow && (
           <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
             {/* Left/right fade edges */}
             <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-r from-[var(--background)] to-transparent" />
@@ -320,7 +412,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
               onPointerUp={() => { tabDragRef.current.active = false; }}
               onPointerLeave={() => { tabDragRef.current.active = false; }}
             >
-              {sortedCategories.map((category, idx) => {
+              {visibleCategories.map((category, idx) => {
                 const isActive = activeCategory === category;
                 const handleClick = () => {
                   if (tabDragRef.current.didDrag) { tabDragRef.current.didDrag = false; return; }
@@ -412,6 +504,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNotes = {}, catego
               })}
             </div>
           </div>
+        )}
         </div>
       )}
 
