@@ -262,7 +262,7 @@ function SortableCategoryTab({ name, children }: { name: string; children: React
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
       {...attributes}
       {...listeners}
-      className="cursor-grab active:cursor-grabbing touch-none flex-shrink-0"
+      className="cursor-grab active:cursor-grabbing touch-none flex-shrink-0 flex"
     >
       {children}
     </div>
@@ -1062,9 +1062,9 @@ export function AdminMenuEditor({
                                   setActiveMenu(group.name);
                                   setActiveCategory(group.children[0] ?? group.name);
                                 }}
-                                className="relative flex-shrink-0 px-3 sm:px-4 pt-3 pb-2.5 min-h-[44px] touch-manipulation transition-colors duration-200"
+                                className="relative flex-shrink-0 px-3 sm:px-4 pt-3 pb-2.5 min-h-[44px] min-w-[3.5rem] max-w-[9rem] sm:max-w-[11rem] touch-manipulation transition-colors duration-200"
                               >
-                                <span className={`block text-center text-sm sm:text-base font-bold uppercase tracking-wide leading-tight font-sans max-w-[9rem] line-clamp-2 break-words hyphens-auto transition-colors duration-200 ${
+                                <span className={`tab-label w-full text-sm sm:text-base font-bold uppercase tracking-wide font-sans transition-colors duration-200 ${
                                   isActive ? "text-[var(--accent)]" : "text-[var(--muted)]"
                                 }`}>
                                   {group.name}
@@ -1113,7 +1113,7 @@ export function AdminMenuEditor({
                   <div
                     ref={tabScrollRef}
                     onScroll={updateAdminScrollState}
-                    className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 items-center"
+                    className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 items-stretch"
                     onPointerDown={(e) => {
                       const el = tabScrollRef.current;
                       if (!el || (e.target as HTMLElement).closest('button')) return;
@@ -1141,17 +1141,17 @@ export function AdminMenuEditor({
                             if (adminTabDragRef.current.didDrag) { adminTabDragRef.current.didDrag = false; return; }
                             setActiveCategory(cat);
                           }}
-                          className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-all select-none font-sans max-w-[11rem] line-clamp-2 break-words hyphens-auto ${
+                          className={`flex-shrink-0 inline-flex items-center justify-center px-4 py-2 min-h-[44px] min-w-[3.75rem] max-w-[11rem] rounded-xl text-sm font-medium transition-all select-none font-sans ${
                             activeCategory === cat
                               ? "bg-[var(--accent)] text-white shadow-sm"
                               : "bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted)] hover:text-[var(--foreground)]"
                           }`}>
-                          {cat}
+                          <span className="tab-label min-w-0">{cat}</span>
                         </button>
                       </SortableCategoryTab>
                     ))}
                     {layered && childTabs.length === 0 && (
-                      <span className="flex-shrink-0 text-xs text-[var(--muted)] px-1">
+                      <span className="flex-shrink-0 self-center text-xs text-[var(--muted)] px-1">
                         &ldquo;{activeMenu}&rdquo; holds its items directly
                       </span>
                     )}
@@ -1162,14 +1162,14 @@ export function AdminMenuEditor({
                       onClick={() => setCategoryModalParent(
                         layered && activeGroup?.id ? { id: activeGroup.id, name: activeGroup.name } : { id: null, name: "" }
                       )}
-                      className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold font-sans text-[var(--accent)] border-2 border-dashed border-[var(--accent)]/30 rounded-xl px-3 py-1.5 hover:bg-[var(--accent)]/5 transition-colors">
+                      className="flex-shrink-0 self-center flex items-center gap-1 whitespace-nowrap text-xs font-semibold font-sans text-[var(--accent)] border-2 border-dashed border-[var(--accent)]/30 rounded-xl px-3 py-1.5 hover:bg-[var(--accent)]/5 transition-colors">
                       <Plus size={14} /> Add category
                     </button>
                     <button
                       type="button"
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => setShowManageModal(true)}
-                      className="flex-shrink-0 flex items-center gap-1 text-xs font-semibold font-sans text-[var(--muted)] border border-[var(--card-border)] rounded-xl px-3 py-1.5 hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 transition-colors"
+                      className="flex-shrink-0 self-center flex items-center gap-1 whitespace-nowrap text-xs font-semibold font-sans text-[var(--muted)] border border-[var(--card-border)] rounded-xl px-3 py-1.5 hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 transition-colors"
                       title="Manage categories"
                     >
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1185,15 +1185,18 @@ export function AdminMenuEditor({
           </div>
 
           <div data-tour="menu-area" className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
-            <div className="flex justify-between items-center mb-5">
-              <h2 className="font-serif text-xl sm:text-2xl font-semibold">{activeCategory}</h2>
+            <div className="flex justify-between items-start gap-3 mb-5">
+              <h2 className="font-serif text-xl sm:text-2xl font-semibold min-w-0 flex-1 break-words hyphens-auto text-wrap-balance">{activeCategory}</h2>
+              {/* The category is already named in the heading beside this, so the
+                  button stays short rather than truncating it mid-word again. */}
               <motion.button data-tour="tour-add-item" type="button"
                 onClick={() => { setAddingNew(true); setEditingItem(null); }}
-                className="px-4 py-2 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity shadow-sm"
+                title={`Add item to ${activeCategory}`}
+                className="flex-shrink-0 whitespace-nowrap px-4 py-2 min-h-[44px] rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity shadow-sm"
                 whileTap={{ scale: 0.96 }}
                 transition={{ duration: 0.1 }}
               >
-                + Add item to {activeCategory.length > 20 ? activeCategory.slice(0, 20) + "…" : activeCategory}
+                + Add item
               </motion.button>
             </div>
 

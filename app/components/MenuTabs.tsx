@@ -323,7 +323,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
               <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-l from-[var(--background)] to-transparent" />
               <div
                 ref={menuScrollRef}
-                className="tabs-scroll flex gap-1 sm:gap-2 overflow-x-auto scrollbar-none select-none"
+                className="tabs-scroll flex gap-1 sm:gap-2 overflow-x-auto scrollbar-none select-none items-stretch"
                 style={{ WebkitUserSelect: "none" }}
                 onPointerDown={(e) => {
                   const el = menuScrollRef.current;
@@ -347,10 +347,10 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                       key={group.name}
                       type="button"
                       onClick={() => selectMenu(group)}
-                      className="relative flex-shrink-0 px-3 sm:px-4 pt-3 pb-2.5 min-h-[44px] touch-manipulation transition-colors duration-200"
+                      className="relative flex-shrink-0 px-3 sm:px-4 pt-3 pb-2.5 min-h-[44px] min-w-[3.5rem] max-w-[9rem] sm:max-w-[11rem] touch-manipulation transition-colors duration-200"
                     >
                       <span
-                        className={`block text-center text-sm sm:text-base font-bold uppercase tracking-wide leading-tight max-w-[9rem] line-clamp-2 break-words hyphens-auto transition-colors duration-200 ${
+                        className={`tab-label w-full text-sm sm:text-base font-bold uppercase tracking-wide transition-colors duration-200 ${
                           isActive ? "text-[var(--accent)]" : "text-[var(--muted)]"
                         }`}
                       >
@@ -393,7 +393,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
             )}
             <div
               ref={scrollRef}
-              className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 snap-x snap-mandatory"
+              className="tabs-scroll flex gap-2 overflow-x-auto py-3 scrollbar-none px-1 snap-x snap-mandatory items-stretch"
               onPointerDown={(e) => {
                 const el = scrollRef.current;
                 if (!el) return;
@@ -419,41 +419,21 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                   setActiveCategory(category); setDietFilter("all"); fireTrack("category_view", { category, language: locale });
                 };
 
-                if (!anyCategoryUsesImages) {
-                  // Simple pill tabs
-                  return (
-                    <motion.button
-                      key={category}
-                      type="button"
-                      onClick={handleClick}
-                      className={`flex-shrink-0 snap-start px-3 py-2 rounded-full text-[9px] font-semibold transition-all duration-200 touch-manipulation whitespace-normal line-clamp-2 text-center min-w-[72px] max-w-[88px] leading-tight break-words hyphens-auto ${
-                        isActive
-                          ? "bg-[var(--accent)]/10 text-[var(--foreground)] border-2 border-[var(--accent)] shadow-sm"
-                          : "bg-[var(--card)] text-[var(--foreground)] border border-[var(--card-border)] hover:border-[var(--accent)]/40"
-                      }`}
-                      initial={{ opacity: 0, x: -12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.28, delay: idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
-                      whileTap={{ scale: 0.96 }}
-                    >
-                      <CategoryName name={category} />
-                    </motion.button>
-                  );
-                }
-
-                // Image card tabs (or pill for categories with show_image=false)
                 const catEntry = categoryImageMap[category];
-                const catShow = catEntry?.show === true;
                 const catImageMode = catEntry?.imageMode;
                 const catBannerUrl = catEntry?.bannerUrl ?? null;
+                const usePhoto = anyCategoryUsesImages && catEntry?.show === true;
 
-                if (!catShow) {
+                if (!usePhoto) {
+                  // Pill tab — hugs its content, grows with it, wraps to two
+                  // lines inside the pill. Row height is equalised by
+                  // items-stretch on the strip.
                   return (
                     <motion.button
                       key={category}
                       type="button"
                       onClick={handleClick}
-                      className={`flex-shrink-0 snap-start px-3 py-2 rounded-full text-[9px] font-semibold transition-all duration-200 touch-manipulation whitespace-normal line-clamp-2 text-center min-w-[72px] max-w-[88px] leading-tight break-words hyphens-auto ${
+                      className={`flex-shrink-0 snap-start inline-flex items-center justify-center px-3.5 py-2 min-h-[44px] min-w-[3.75rem] max-w-[11rem] rounded-2xl text-xs font-semibold transition-all duration-200 touch-manipulation ${
                         isActive
                           ? "bg-[var(--accent)]/10 text-[var(--foreground)] border-2 border-[var(--accent)] shadow-sm"
                           : "bg-[var(--card)] text-[var(--foreground)] border border-[var(--card-border)] hover:border-[var(--accent)]/40"
@@ -463,7 +443,9 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                       transition={{ duration: 0.28, delay: idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
                       whileTap={{ scale: 0.96 }}
                     >
-                      <CategoryName name={category} />
+                      <span className="tab-label min-w-0">
+                        <CategoryName name={category} />
+                      </span>
                     </motion.button>
                   );
                 }
@@ -473,7 +455,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                     key={category}
                     type="button"
                     onClick={handleClick}
-                    className={`flex-shrink-0 w-[72px] sm:w-24 flex flex-col items-center gap-1.5 rounded-2xl transition-all duration-200 touch-manipulation py-2 snap-start ${
+                    className={`flex-shrink-0 snap-start flex flex-col items-center gap-1.5 rounded-2xl transition-all duration-200 touch-manipulation py-2 px-1.5 min-w-[4.75rem] max-w-[6.75rem] sm:max-w-[8.5rem] ${
                       isActive
                         ? "ring-2 ring-[var(--main-color)] ring-offset-2 ring-offset-[var(--background)] shadow-md"
                         : "opacity-70 hover:opacity-100"
@@ -483,7 +465,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                     transition={{ duration: 0.35, delay: idx * 0.08, ease: [0.22, 1, 0.36, 1] }}
                     whileTap={{ scale: 0.94 }}
                   >
-                    {/* Thumbnail */}
+                    {/* Thumbnail — fixed size, so only the label has to adapt */}
                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl overflow-hidden flex-shrink-0 transition-all duration-200">
                       {catImageMode === 'item' && catBannerUrl ? (
                         <img src={catBannerUrl} alt="" className="w-full h-full object-cover" />
@@ -491,9 +473,9 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                         <CategoryIcon name={category} isActive={isActive} />
                       )}
                     </div>
-                    {/* Label */}
+                    {/* Label — two reserved lines keeps every tab the same height */}
                     <span
-                      className={`text-[9px] sm:text-xs font-semibold text-center leading-tight px-1 w-full line-clamp-2 uppercase tracking-wide break-words hyphens-auto ${
+                      className={`tab-label tab-label-2 w-full text-[10px] sm:text-xs font-semibold uppercase ${
                         isActive ? "text-[var(--foreground)]" : "text-[var(--muted)]"
                       }`}
                     >
@@ -510,12 +492,11 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
 
       {/* Category content */}
       <div className="max-w-2xl mx-auto px-4 sm:px-6 py-6 sm:py-10 pb-[env(safe-area-inset-bottom)]">
-        {/* Header + filter */}
-        {(() => {
-          const isLongName = activeCategory.length > 14;
-          return (
-        <div className={`flex ${isLongName ? "flex-col items-start gap-2" : "flex-row items-center justify-between"} mb-4`}>
-          <div className="min-w-0">
+        {/* Header + filter. The heading flexes and wraps rather than switching
+            layout on name length — the rendered label is translated, so the
+            raw category string is no guide to how wide it actually is. */}
+        <div className="flex flex-row items-start justify-between gap-3 mb-4">
+          <div className="min-w-0 flex-1">
             {/* Category heading with optional inline thumbnail */}
             {(() => {
               const mapEntry = categoryImageMap[activeCategory];
@@ -523,7 +504,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
               const headingImageMode = mapEntry?.imageMode;
               const thumbUrl = (mapEntry?.bannerUrl ?? mapEntry?.url) ?? null;
               return (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   {showImg && headingImageMode === 'item' && thumbUrl && (
                     <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-[var(--card-border)] shadow-sm">
                       <img src={thumbUrl} alt="" className="w-full h-full object-cover" />
@@ -534,7 +515,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                       <CategoryIcon name={activeCategory} isActive={false} />
                     </div>
                   )}
-                  <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-[var(--foreground)] break-words hyphens-auto">
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-[var(--foreground)] min-w-0 break-words hyphens-auto text-wrap-balance">
                     <CategoryName name={activeCategory} />
                   </h2>
                 </div>
@@ -546,14 +527,14 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
               </p>
             )}
           </div>
-          <div className={`relative ${isLongName ? "w-full" : "flex-shrink-0"}`} ref={filterRef}>
+          <div className="relative flex-shrink-0" ref={filterRef}>
             <button
               type="button"
               onClick={() => setFilterOpen(o => !o)}
               className="flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-xl bg-[var(--card)] text-[var(--foreground)] font-medium text-sm border border-[var(--card-border)] shadow-sm hover:shadow-md transition-shadow touch-manipulation"
               aria-expanded={filterOpen}
             >
-              <span>
+              <span className="whitespace-nowrap">
                 {t(DIET_FILTER_OPTIONS.find(o => o.value === dietFilter)?.labelKey ?? "filter.all")}
               </span>
               <svg
@@ -588,8 +569,6 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
             )}
           </div>
         </div>
-          );
-        })()}
 
         {/* Dietary legend — at the top of the item list */}
         <DietaryLegend items={rawItems} />

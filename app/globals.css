@@ -79,6 +79,37 @@ body {
   word-break: break-all;
 }
 
+/* ── Category tab labels ────────────────────────────────────────────────────
+   Category names render in 10 languages, so the same tab holds anything from
+   "中文" to "Boissons rafraîchissantes". The label wraps to at most two
+   centred lines and clamps with the ellipsis inside its own box.
+
+   This MUST sit on a dedicated <span>, never on the tab <button>:
+   -webkit-line-clamp needs display:-webkit-box, which overrides the button's
+   own flex/block layout — that is what pushed labels off-centre and let the
+   ellipsis render outside the tab. Width limits belong on the button so it
+   can still hug short names. */
+.tab-label {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  max-width: 100%;
+  text-align: center;
+  line-height: 1.25;
+  /* Breaks only when a single word cannot fit a line — never mid-word
+     while a word boundary is still available. */
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: auto;
+}
+
+/* Reserves both lines up front so a one-line and a two-line tab are the same
+   height and their first lines stay aligned across the row. */
+.tab-label-2 {
+  min-height: 2.5em; /* 2 lines x line-height 1.25 */
+}
+
 /* Tab strip horizontal scroll - minimal scrollbar */
 .tabs-scroll {
   scrollbar-width: thin;
