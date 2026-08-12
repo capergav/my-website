@@ -336,6 +336,12 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
     sortedCategories.some(cat => categoryImageMap[cat]?.show === true) ||
     (menuGroups ?? []).some(g => categoryImageMap[g.name]?.show === true);
 
+  // Sub-category row sits on a faintly tinted band so the two rows read as two
+  // levels. Flat mode has only one row, so it stays on the page background.
+  const subBand = layered
+    ? "color-mix(in srgb, var(--foreground) 4%, var(--background))"
+    : "var(--background)";
+
   const selectMenu = (group: MenuGroup) => {
     if (menuDragRef.current.didDrag) { menuDragRef.current.didDrag = false; return; }
     const next = group.children[0] ?? group.name;
@@ -442,12 +448,14 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
           </div>
         )}
 
-        {/* Row 2 — categories for the active menu (unchanged styling). */}
+        {/* Row 2 — sub-categories of the active menu. Tinted band + inset
+            shadow so it reads as a level below row 1 rather than a second
+            row of equal-weight tabs. */}
         {showCategoryRow && (
-          <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
-            {/* Left/right fade edges */}
-            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-r from-[var(--background)] to-transparent" />
-            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10 bg-gradient-to-l from-[var(--background)] to-transparent" />
+          <div className="relative max-w-4xl mx-auto px-3 sm:px-6" style={{ background: subBand }}>
+            {/* Left/right fade edges — matched to the band so the tint is even */}
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10" style={{ backgroundImage: `linear-gradient(to right, ${subBand}, transparent)` }} />
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10" style={{ backgroundImage: `linear-gradient(to left, ${subBand}, transparent)` }} />
             {canScrollLeft && (
               <button type="button" onClick={scrollLeft}
                 className="flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center rounded-full bg-[var(--card)] border border-[var(--card-border)] shadow-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
@@ -495,33 +503,31 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                 const catBannerUrl = catEntry?.bannerUrl ?? null;
 
                 if (!anyCategoryUsesImages) {
-                  // Text tab with an accent underline — the style used whenever
-                  // category images are off, matching the menu row above it but
-                  // a step down in size and weight.
+                  // Text tab. The active one is a solid accent pill rather than
+                  // an underline — row 1 already owns the underline, so reusing
+                  // it here made the two levels look interchangeable.
                   return (
                     <motion.button
                       key={category}
                       type="button"
                       data-active={isActive}
+                      aria-current={isActive ? "true" : undefined}
                       onClick={handleClick}
-                      className="relative flex-shrink-0 snap-start px-3 sm:px-4 pt-1 pb-2.5 min-h-[44px] min-w-[3.5rem] max-w-[11rem] touch-manipulation"
+                      className={`relative flex-shrink-0 snap-start inline-flex items-center justify-center px-3.5 py-2 min-h-[40px] min-w-[3.5rem] max-w-[11rem] rounded-full transition-colors duration-200 touch-manipulation ${
+                        isActive
+                          ? "bg-[var(--accent)] shadow-sm"
+                          : "hover:bg-[var(--foreground)]/5"
+                      }`}
                       initial={{ opacity: 0, x: -12 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.28, delay: idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
                       whileTap={{ scale: 0.96 }}
                     >
-                      <span className={`tab-label min-w-0 w-full text-xs sm:text-sm font-semibold uppercase tracking-wide transition-colors duration-200 ${
-                        isActive ? "text-[var(--accent)]" : "text-[var(--muted)]"
+                      <span className={`tab-label min-w-0 text-xs sm:text-sm tracking-wide transition-colors duration-200 ${
+                        isActive ? "font-bold text-white" : "font-medium text-[var(--muted)]"
                       }`}>
                         <CategoryName name={category} />
                       </span>
-                      {isActive && (
-                        <motion.span
-                          layoutId="category-underline"
-                          className="absolute left-3 right-3 sm:left-4 sm:right-4 bottom-0 h-[2px] rounded-full bg-[var(--accent)]"
-                          transition={{ type: "spring", stiffness: 420, damping: 36 }}
-                        />
-                      )}
                     </motion.button>
                   );
                 }
@@ -531,11 +537,15 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                     key={category}
                     type="button"
                     data-active={isActive}
+                    aria-current={isActive ? "true" : undefined}
                     onClick={handleClick}
+                    /* The ring used to be --main-color, which is the card
+                       colour — white on a near-white strip, so the selected
+                       tab was invisible. It is the accent now. */
                     className={`flex-shrink-0 snap-start flex flex-col items-center gap-1.5 rounded-2xl transition-all duration-200 touch-manipulation py-2 px-1.5 min-w-[4.75rem] max-w-[6.75rem] sm:max-w-[8.5rem] ${
                       isActive
-                        ? "ring-2 ring-[var(--main-color)] ring-offset-2 ring-offset-[var(--background)] shadow-md"
-                        : "opacity-70 hover:opacity-100"
+                        ? "bg-[var(--accent)]/12 ring-2 ring-[var(--accent)] shadow-md"
+                        : "opacity-65 hover:opacity-100"
                     }`}
                     initial={{ opacity: 0, x: -16 }}
                     animate={{ opacity: isActive ? 1 : 0.7, x: 0 }}
@@ -554,8 +564,8 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                     </div>
                     {/* Label — two reserved lines keeps every tab the same height */}
                     <span
-                      className={`tab-label tab-label-2 w-full text-[10px] sm:text-xs font-semibold uppercase ${
-                        isActive ? "text-[var(--foreground)]" : "text-[var(--muted)]"
+                      className={`tab-label tab-label-2 w-full text-[10px] sm:text-xs uppercase ${
+                        isActive ? "font-bold text-[var(--accent)]" : "font-semibold text-[var(--muted)]"
                       }`}
                     >
                       <CategoryName name={category} />
@@ -583,6 +593,14 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
               const headingImageMode = mapEntry?.imageMode;
               const thumbUrl = (mapEntry?.bannerUrl ?? mapEntry?.url) ?? null;
               return (
+                <>
+                {/* Current path — the menu row scrolls, so this is the one
+                    place a guest can always see which menu they're inside. */}
+                {layered && activeGroup && activeGroup.children.length > 0 && (
+                  <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-1">
+                    <CategoryName name={activeGroup.name} />
+                  </p>
+                )}
                 <div className="flex items-center gap-3 min-w-0">
                   {showImg && headingImageMode === 'item' && thumbUrl && (
                     <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-[var(--card-border)] shadow-sm">
@@ -598,6 +616,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                     <CategoryName name={activeCategory} />
                   </h2>
                 </div>
+                </>
               );
             })()}
             {categoryNotes[activeCategory] && (

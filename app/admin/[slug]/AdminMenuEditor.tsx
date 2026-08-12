@@ -1186,7 +1186,7 @@ export function AdminMenuEditor({
                     ))}
                     {layered && childTabs.length === 0 && (
                       <span className="flex-shrink-0 self-center text-xs text-[var(--muted)] px-1">
-                        &ldquo;{activeMenu}&rdquo; holds its items directly
+                        {activeMenu} contains menu items, not sub-categories
                       </span>
                     )}
                     <button
@@ -2708,7 +2708,7 @@ function SortableCategoryManageRow({
             type="button"
             onClick={onToggleSelect}
             aria-pressed={selected}
-            title={selected ? "Deselect" : "Select for grouping"}
+            title={selected ? "Deselect" : "Select to move into a menu"}
             className={`flex-shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-colors ${
               selected
                 ? "bg-[var(--accent)] border-[var(--accent)] text-white"
@@ -2766,15 +2766,15 @@ function SortableCategoryManageRow({
           )}
           <p className="text-xs text-[var(--muted)]">
             {isMenu
-              ? `${childCount} categor${childCount !== 1 ? 'ies' : 'y'}`
-              : `${itemCount} item${itemCount !== 1 ? 's' : ''}`}
+              ? `Contains ${childCount} sub-categor${childCount !== 1 ? 'ies' : 'y'}`
+              : `Contains ${itemCount} menu item${itemCount !== 1 ? 's' : ''}`}
           </p>
         </div>
         {moveTargets && moveTargets.length > 0 && !isMenu && (
           <select
             value={parentId ?? ""}
             onChange={(e) => onMove?.(name, e.target.value === "" ? null : e.target.value)}
-            title="Move to menu"
+            title="Choose which menu this category sits in"
             className="flex-shrink-0 max-w-[7.5rem] text-xs font-sans rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-[var(--muted)] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           >
             {moveTargets.map((t) => (
@@ -2930,7 +2930,7 @@ function ManageCategoriesModal({
   const moveTargets = useMemo(
     () => layered && hasMenus
       ? [
-          { id: null as string | null, name: "Top level" },
+          { id: null as string | null, name: "Not in a menu" },
           ...groups.filter((g) => g.id && g.children.length > 0).map((g) => ({ id: g.id, name: g.name })),
         ]
       : undefined,
@@ -3122,10 +3122,10 @@ function ManageCategoriesModal({
     if (childNames.length > 0 || itemsInCat.length > 0) {
       const parts: string[] = [];
       if (childNames.length > 0) {
-        parts.push(`Deleting the menu "${catName}" also deletes its ${childNames.length} categor${childNames.length > 1 ? 'ies' : 'y'} (${childNames.join(', ')}).`);
+        parts.push(`Deleting the menu "${catName}" also deletes the ${childNames.length} categor${childNames.length > 1 ? 'ies' : 'y'} inside it (${childNames.join(', ')}).`);
       }
       if (itemsInCat.length > 0) {
-        parts.push(`${itemsInCat.length} item${itemsInCat.length > 1 ? 's' : ''} will be unassigned. They will still exist but won't appear in any tab until reassigned.`);
+        parts.push(`${itemsInCat.length} menu item${itemsInCat.length > 1 ? 's' : ''} will be left without a category. They won't be deleted, but customers won't see them until you move them somewhere else.`);
       }
       if (!confirm(`${parts.join(' ')} Continue?`)) return;
     }
@@ -3184,7 +3184,9 @@ function ManageCategoriesModal({
           <div>
             <h3 className="font-serif text-lg font-semibold text-[var(--foreground)]">{layered ? "Manage menus & categories" : "Manage categories"}</h3>
             <p className="text-xs text-[var(--muted)] mt-0.5">
-              {layered ? "Tick categories to group them · drag to reorder within a level" : "Drag to reorder · tap trash to delete"}
+              {layered
+                ? "Tick the categories you want to group, then name the menu. Drag to reorder."
+                : "Drag to reorder. Tap the bin to delete."}
             </p>
           </div>
           <button type="button" onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
@@ -3202,10 +3204,11 @@ function ManageCategoriesModal({
           {/* Menu structure — the two diagrams are the control, not a preview.
               Picking one saves immediately, like everything else in this modal. */}
           <div className="mb-3 pb-3 border-b border-[var(--card-border)]">
-            <p className="text-sm font-medium text-[var(--foreground)] font-sans">Menu structure</p>
+            <p className="text-sm font-medium text-[var(--foreground)] font-sans">How your menu is organised</p>
             <p className="text-xs text-[var(--muted)] font-sans mt-1">
-              Group your categories under menus like Lunch, Dinner and Drinks, or keep everything in
-              one row. Switching back to flat keeps your structure.
+              Flat shows all your categories in a single row. Layered lets you put categories inside
+              menus like Lunch, Dinner and Drinks, so customers pick a menu first and then a category.
+              You can switch back at any time — nothing is deleted.
             </p>
             <div className="grid grid-cols-2 gap-2 mt-3">
               <button
@@ -3224,6 +3227,7 @@ function ManageCategoriesModal({
                   ))}
                 </div>
                 <p className={`text-xs font-semibold font-sans ${!layered ? "text-[var(--accent)]" : "text-[var(--muted)]"}`}>Flat</p>
+                <p className="text-[10px] text-[var(--muted)] font-sans mt-0.5 leading-snug">All categories in one row</p>
               </button>
               <button
                 type="button"
@@ -3248,6 +3252,7 @@ function ManageCategoriesModal({
                   </div>
                 </div>
                 <p className={`text-xs font-semibold font-sans ${layered ? "text-[var(--accent)]" : "text-[var(--muted)]"}`}>Layered</p>
+                <p className="text-[10px] text-[var(--muted)] font-sans mt-0.5 leading-snug">Categories grouped inside menus</p>
               </button>
             </div>
           </div>
@@ -3257,7 +3262,7 @@ function ManageCategoriesModal({
             <div className="mb-3 rounded-xl border border-[var(--accent)]/40 bg-[var(--accent)]/5 p-3">
               <div className="flex items-center justify-between gap-2 mb-2">
                 <p className="text-[10px] font-semibold font-sans uppercase tracking-widest text-[var(--accent)]">
-                  {selectedNames.length > 0 ? `${selectedNames.length} selected` : "Group into a menu"}
+                  {selectedNames.length > 0 ? `${selectedNames.length} selected` : "Put categories inside a menu"}
                 </p>
                 {selectedNames.length > 0 && (
                   <button type="button" onClick={() => setSelected(new Set())}
@@ -3269,8 +3274,8 @@ function ManageCategoriesModal({
               {selectedNames.length === 0 ? (
                 <p className="text-[11px] text-[var(--muted)] font-sans">
                   {hasMenus
-                    ? "Tick the categories below to move them into a menu, all at once."
-                    : "Nothing is grouped yet — every category is still top level. Tick the ones that belong together below, then name the menu."}
+                    ? "Tick any categories below to move them into a menu together."
+                    : "You don't have any menus yet. Tick the categories that belong together below, then give the menu a name — Lunch, Drinks, and so on."}
                 </p>
               ) : (
                 <>
@@ -3292,11 +3297,11 @@ function ManageCategoriesModal({
                       onChange={(e) => { if (e.target.value) handleGroupIntoExisting(e.target.value === "__top" ? null : e.target.value); }}
                       className="font-sans mt-2 w-full px-3 py-2 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--muted)] text-xs focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                     >
-                      <option value="">…or move them into an existing menu</option>
+                      <option value="">…or move them into a menu you already have</option>
                       {menuTargets.map((t) => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
+                        <option key={t.id} value={t.id}>Into {t.name}</option>
                       ))}
-                      <option value="__top">Top level</option>
+                      <option value="__top">Take them out of their menu</option>
                     </select>
                   )}
                 </>
@@ -3404,9 +3409,9 @@ function ManageCategoriesModal({
                   onChange={(e) => setNewParent(e.target.value)}
                   className="font-sans max-w-[8rem] px-2 py-2 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--muted)] text-xs focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                 >
-                  <option value="">Top level</option>
+                  <option value="">Not in a menu</option>
                   {groups.filter((g) => g.id).map((g) => (
-                    <option key={g.id} value={g.id!}>In {g.name}</option>
+                    <option key={g.id} value={g.id!}>Inside {g.name}</option>
                   ))}
                 </select>
                 <button type="button" onClick={handleAdd} disabled={busy || !newName.trim()}
@@ -3415,7 +3420,8 @@ function ManageCategoriesModal({
                 </button>
               </div>
               <p className="text-[11px] text-[var(--muted)] font-sans mt-2">
-                A top-level row becomes a menu once a category sits inside it.
+                A category holds your menu items. Put another category inside it and it becomes a
+                menu instead — a heading customers tap to see what&rsquo;s in it.
               </p>
             </div>
           )}
