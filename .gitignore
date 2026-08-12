@@ -46,3 +46,7 @@ skills-lock.json
 next-env.d.ts
 
 .vercel
+
+# local lead-gen working files
+DineLinks_Ontario_Leads.xlsx
+dinelinks_leads_scraper.js
