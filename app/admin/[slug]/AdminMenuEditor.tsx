@@ -53,6 +53,7 @@ const PRESETS = [
     main: "#ffffff",
     accent: "#8b1a1a",
     fontColor: "#2c2520",
+    titleColor: "#2c2520",
     mutedColor: "#6b5e54",
     fontFamily: "serif",
   },
@@ -63,6 +64,7 @@ const PRESETS = [
     main: "#fffbf3",
     accent: "#1a3a2e",
     fontColor: "#1f1d18",
+    titleColor: "#1f1d18",
     mutedColor: "#6b6258",
     fontFamily: "playfair",
   },
@@ -73,6 +75,7 @@ const PRESETS = [
     main: "#f8f8f5",
     accent: "#1f1d1a",
     fontColor: "#1f1d1a",
+    titleColor: "#1f1d1a",
     mutedColor: "#7a7670",
     fontFamily: "sans",
   },
@@ -83,6 +86,7 @@ const PRESETS = [
     main: "#ffffff",
     accent: "#1d4470",
     fontColor: "#1a2535",
+    titleColor: "#1a2535",
     mutedColor: "#6b7785",
     fontFamily: "sans",
   },
@@ -93,6 +97,7 @@ const PRESETS = [
     main: "#fffbf0",
     accent: "#4a5d23",
     fontColor: "#2b3514",
+    titleColor: "#2b3514",
     mutedColor: "#7a7560",
     fontFamily: "cinzel",
   },
@@ -103,6 +108,7 @@ const PRESETS = [
     main: "#fafafa",
     accent: "#c8553d",
     fontColor: "#1f1f1f",
+    titleColor: "#1f1f1f",
     mutedColor: "#6b6b6b",
     fontFamily: "sans",
   },
@@ -113,6 +119,7 @@ const PRESETS = [
     main: "#2c1820",
     accent: "#c9a55a",
     fontColor: "#f4e8d8",
+    titleColor: "#ffffff",
     mutedColor: "#b8a89c",
     fontFamily: "cinzel",
   },
@@ -123,6 +130,7 @@ const PRESETS = [
     main: "#ffffff",
     accent: "#6b8270",
     fontColor: "#2a2a28",
+    titleColor: "#2a2a28",
     mutedColor: "#7a7872",
     fontFamily: "sans",
   },
@@ -133,6 +141,7 @@ const PRESETS = [
     main: "#fffaf0",
     accent: "#b85a3e",
     fontColor: "#2e2520",
+    titleColor: "#2e2520",
     mutedColor: "#7a6f65",
     fontFamily: "pacifico",
   },
@@ -143,6 +152,7 @@ const PRESETS = [
     main: "#ffffff",
     accent: "#0f766e",
     fontColor: "#1a2e2b",
+    titleColor: "#1a2e2b",
     mutedColor: "#4a6b66",
     fontFamily: "sans",
   },
@@ -153,6 +163,7 @@ const PRESETS = [
     main: "#ffffff",
     accent: "#c2410c",
     fontColor: "#1c1109",
+    titleColor: "#1c1109",
     mutedColor: "#7c4a2a",
     fontFamily: "serif",
   },
@@ -163,6 +174,7 @@ const PRESETS = [
     main: "#ffffff",
     accent: "#4338ca",
     fontColor: "#1e1b4b",
+    titleColor: "#1e1b4b",
     mutedColor: "#6366f1",
     fontFamily: "sans",
   },
@@ -329,6 +341,7 @@ export function AdminMenuEditor({
     if (restaurant.background_color)  root.style.setProperty("--background", restaurant.background_color);
     if (restaurant.main_color)        root.style.setProperty("--card",       restaurant.main_color);
     if (restaurant.muted_color)       root.style.setProperty("--muted",      restaurant.muted_color);
+    if (restaurant.title_color)       root.style.setProperty("--title",      restaurant.title_color);
     let fontFamily = "var(--font-geist-sans), system-ui, sans-serif";
     switch (restaurant.font_family) {
       case "serif":    fontFamily = "var(--font-cormorant), Georgia, serif"; break;
@@ -796,7 +809,7 @@ export function AdminMenuEditor({
               style={{ background: "transparent" }} />
           )}
           <p className="text-white/50 text-[10px] font-semibold uppercase tracking-widest">Admin Panel</p>
-          <h1 className="font-serif text-xl font-semibold text-white drop-shadow-md">
+          <h1 className="font-serif text-xl font-semibold drop-shadow-md" style={{ color: "var(--title, #ffffff)" }}>
             {restaurant?.name ?? "Your Restaurant"}
           </h1>
         </div>
@@ -809,7 +822,7 @@ export function AdminMenuEditor({
               style={{ background: "transparent" }} />
           )}
           <p className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-0.5">Admin Panel</p>
-          <h1 data-tour="tour-restaurant-name" className="font-serif text-3xl font-semibold text-white drop-shadow-md">
+          <h1 data-tour="tour-restaurant-name" className="font-serif text-3xl font-semibold drop-shadow-md" style={{ color: "var(--title, #ffffff)" }}>
             {restaurant?.name ?? "Your Restaurant"}
           </h1>
         </div>
@@ -1454,6 +1467,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
   const [bg, setBg]                       = useState(D_BG);
   const [fontColor, setFontColor]         = useState(D_TEXT);
   const [mutedColor, setMutedColor]       = useState("#6b6560");
+  const [titleColor, setTitleColor]       = useState(D_TEXT);
   const [font, setFont]                   = useState("sans");
   const [name, setName]                   = useState("");
   const [heroUrl, setHeroUrl]             = useState("");
@@ -1473,6 +1487,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       setBg(restaurant.background_color ?? D_BG);
       setFontColor(restaurant.font_color ?? D_TEXT);
       setMutedColor(restaurant.muted_color ?? "#6b6560");
+      setTitleColor(restaurant.title_color ?? restaurant.font_color ?? D_TEXT);
       setFont(restaurant.font_family ?? "sans");
       setName(restaurant.name ?? "");
       setHeroUrl(restaurant.hero_image_url ?? "");
@@ -1493,6 +1508,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
       background_color:     bg || null,
       font_color:           fontColor || null,
       muted_color:          mutedColor.trim() || null,
+      title_color:          titleColor || null,
       font_family:          font,
       name:                 name.trim() || null,
       hero_image_url:       heroUrl.trim() || null,
@@ -1508,6 +1524,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
     { label: "Accent colour",   value: accent,    set: setAccent    },
     { label: "Page background", value: bg,        set: setBg        },
     { label: "Text colour",     value: fontColor, set: setFontColor },
+    { label: "Restaurant name colour", value: titleColor, set: setTitleColor },
   ] as const;
 
   const trigger = sheetMode ? (
@@ -1555,7 +1572,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
               {/* LIVE PREVIEW — always at top */}
               <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm" style={{ background: bg || '#faf8f5' }}>
                 <div className="h-9 w-full flex items-center px-3" style={{ background: card }}>
-                  <span className="text-[10px] font-bold truncate" style={{ color: fontColor }}>{name || "Your Restaurant"}</span>
+                  <span className="text-[10px] font-bold truncate" style={{ color: titleColor }}>{name || "Your Restaurant"}</span>
                 </div>
                 <div className="px-3 pt-2 pb-0.5">
                   <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: fontColor, opacity: 0.5 }}>Mains</p>
@@ -1593,6 +1610,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                           setBg(preset.background);
                           setFontColor(preset.fontColor);
                           setMutedColor(preset.mutedColor);
+                          setTitleColor(preset.titleColor);
                           setFont(preset.fontFamily);
                           setSelectedPreset(preset.name);
                           setColorCustomized(false);
@@ -1791,6 +1809,7 @@ function ThemeModal({ restaurant, onSave, saving, sheetMode, onClose, tourTarget
                       setBg(restaurant.background_color ?? D_BG);
                       setFontColor(restaurant.font_color ?? D_TEXT);
                       setMutedColor(restaurant.muted_color ?? "#6b6560");
+                      setTitleColor(restaurant.title_color ?? restaurant.font_color ?? D_TEXT);
                       setFont(restaurant.font_family ?? "sans");
                       setName(restaurant.name ?? "");
                       setHeroUrl(restaurant.hero_image_url ?? "");

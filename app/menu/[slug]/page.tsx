@@ -38,7 +38,7 @@ export default async function PublicMenuPage({ params }: Props) {
 
   const { data: restaurant } = await supabase
     .from("restaurants")
-    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id, muted_color, allow_auto_translate, show_currency_symbol, default_language, feedback_enabled")
+    .select("id, name, hero_image_url, main_color, accent_color, background_color, font_family, font_color, logo_url, owner_id, muted_color, title_color, allow_auto_translate, show_currency_symbol, default_language, feedback_enabled")
     .eq("slug", slug)
     .maybeSingle();
 
@@ -159,6 +159,7 @@ export default async function PublicMenuPage({ params }: Props) {
   const accent    = restaurant.accent_color ?? "#8b6914";
   const bg        = restaurant.background_color ?? "#faf8f5";
   const card      = restaurant.main_color ?? "#ffffff";
+  const titleColor = (restaurant as { title_color?: string | null }).title_color ?? restaurant.font_color ?? "#ffffff";
 
   let fontFamily = "var(--font-geist-sans), system-ui, sans-serif";
   switch (restaurant.font_family) {
@@ -173,7 +174,7 @@ export default async function PublicMenuPage({ params }: Props) {
   }
 
   const muted = (restaurant as { muted_color?: string | null }).muted_color ?? `${fontColor}99`;
-  const themeStyle = `:root{--font-body:${fontFamily};--foreground:${fontColor};--accent:${accent};--background:${bg};--card:${card};--muted:${muted};--card-border:${fontColor}26}body{color:var(--foreground);font-family:var(--font-body),system-ui,sans-serif}`;
+  const themeStyle = `:root{--font-body:${fontFamily};--foreground:${fontColor};--accent:${accent};--background:${bg};--card:${card};--muted:${muted};--title:${titleColor};--card-border:${fontColor}26}body{color:var(--foreground);font-family:var(--font-body),system-ui,sans-serif}`;
 
   const hasItems = sortedCategories.length > 0;
 
@@ -191,6 +192,7 @@ export default async function PublicMenuPage({ params }: Props) {
         "--background": bg,
         "--card": card,
         "--muted": (restaurant as { muted_color?: string | null }).muted_color ?? `${fontColor}99`,
+        "--title": titleColor,
         "--card-border": `${fontColor}26`,
         "--main-color": card,
         "--accent-color": accent,

@@ -60,8 +60,8 @@ export function HeroWithLang({
           />
         )}
         <h1
-          className={`font-semibold text-white tracking-wide drop-shadow-lg ${logoUrl ? "text-2xl lg:text-3xl" : "text-4xl sm:text-5xl lg:text-6xl"}`}
-          style={{ animation: "heroFadeUp 0.4s ease-out both" }}
+          className={`font-semibold tracking-wide drop-shadow-lg ${logoUrl ? "text-2xl lg:text-3xl" : "text-4xl sm:text-5xl lg:text-6xl"}`}
+          style={{ color: "var(--title, #ffffff)", animation: "heroFadeUp 0.4s ease-out both" }}
         >
           {title}
         </h1>
