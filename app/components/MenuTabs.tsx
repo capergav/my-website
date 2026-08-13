@@ -43,9 +43,18 @@ export const DIET_FILTER_OPTIONS = [
   { value: "spicy",          labelKey: "filter.spicy"         },
 ] as const;
 
+/**
+ * Every category key in this component — `sortedCategories`, `activeCategory`,
+ * `activeMenu`, `MenuGroup.children`, and the keys of `grouped`,
+ * `categoryNotes` and `categoryImageMap` — is a restaurant_categories.id, NOT
+ * a name. Names are only unique within one menu, so two menus can each hold a
+ * "Desserts"; keying by name merged their items and left the list unchanged
+ * when switching menus. `categoryNames` maps id → label for display.
+ */
 export type MenuTabsProps = {
   grouped: Record<string, MenuItem[]>;
   sortedCategories: string[];
+  categoryNames: Record<string, string>;
   /** Present only when the restaurant opted into layered menus. */
   menuGroups?: MenuGroup[];
   categoryNotes?: Record<string, string>;
@@ -139,13 +148,15 @@ function isLayered(menuGroups?: MenuGroup[]): boolean {
   return Boolean(menuGroups && menuGroups.some((g) => g.children.length > 0));
 }
 
-export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes = {}, categoryImageMap = {}, restaurantId, language, allowAutoTranslate, showCurrencySymbol = true }: MenuTabsProps) {
+export function MenuTabs({ grouped, sortedCategories, categoryNames, menuGroups, categoryNotes = {}, categoryImageMap = {}, restaurantId, language, allowAutoTranslate, showCurrencySymbol = true }: MenuTabsProps) {
   const { t, getCategoryLabel, setLocale, locale } = useLanguage();
   const layered = isLayered(menuGroups);
-  const [activeMenu, setActiveMenu] = useState(layered ? menuGroups![0].name : "");
+  const [activeMenu, setActiveMenu] = useState(layered ? menuGroups![0].id : "");
   const [activeCategory, setActiveCategory] = useState(
-    layered ? (menuGroups![0].children[0] ?? menuGroups![0].name) : (sortedCategories[0] ?? "")
+    layered ? (menuGroups![0].children[0] ?? menuGroups![0].id) : (sortedCategories[0] ?? "")
   );
+  /** Display label for a category id. */
+  const label = (id: string) => categoryNames[id] ?? "";
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [dietFilter, setDietFilter] = useState<string>("all");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -160,7 +171,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
   const [filterOpen, setFilterOpen] = useState(false);
   const filterRef = useRef<HTMLDivElement>(null);
 
-  const activeGroup = layered ? menuGroups!.find((g) => g.name === activeMenu) : undefined;
+  const activeGroup = layered ? menuGroups!.find((g) => g.id === activeMenu) : undefined;
   // Row 2 lists the active menu's children. A top-level category with no
   // children holds its own items directly, so row 2 is hidden for it.
   const visibleCategories = layered ? (activeGroup?.children ?? []) : sortedCategories;
@@ -334,7 +345,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
   // categories all sit at the top level would lose its photos entirely.
   const anyCategoryUsesImages =
     sortedCategories.some(cat => categoryImageMap[cat]?.show === true) ||
-    (menuGroups ?? []).some(g => categoryImageMap[g.name]?.show === true);
+    (menuGroups ?? []).some(g => categoryImageMap[g.id]?.show === true);
 
   // Sub-category row sits on a faintly tinted band so the two rows read as two
   // levels. Flat mode has only one row, so it stays on the page background.
@@ -344,12 +355,13 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
 
   const selectMenu = (group: MenuGroup) => {
     if (menuDragRef.current.didDrag) { menuDragRef.current.didDrag = false; return; }
-    const next = group.children[0] ?? group.name;
-    setActiveMenu(group.name);
+    const next = group.children[0] ?? group.id;
+    setActiveMenu(group.id);
     setActiveCategory(next);
     setDietFilter("all");
     // Analytics always records the deepest category the visitor lands on.
-    fireTrack("category_view", { category: next, language: locale });
+    // It stores the human-readable name, not the id.
+    fireTrack("category_view", { category: label(next), language: locale });
   };
 
   return (
@@ -401,11 +413,11 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                 onPointerLeave={() => { menuDragRef.current.active = false; }}
               >
                 {menuGroups!.map((group) => {
-                  const isActive = activeMenu === group.name;
-                  const groupEntry = categoryImageMap[group.name];
+                  const isActive = activeMenu === group.id;
+                  const groupEntry = categoryImageMap[group.id];
                   return (
                     <button
-                      key={group.name}
+                      key={group.id}
                       type="button"
                       data-active={isActive}
                       onClick={() => selectMenu(group)}
@@ -422,7 +434,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                           {groupEntry?.show && groupEntry.imageMode === 'item' && groupEntry.bannerUrl ? (
                             <img src={groupEntry.bannerUrl} alt="" className="w-full h-full object-cover" />
                           ) : (
-                            <CategoryIcon name={group.name} isActive={isActive} />
+                            <CategoryIcon name={label(group.id)} isActive={isActive} />
                           )}
                         </div>
                       )}
@@ -431,7 +443,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                           isActive ? "text-[var(--accent)]" : "text-[var(--muted)]"
                         }`}
                       >
-                        <CategoryName name={group.name} />
+                        <CategoryName name={label(group.id)} />
                       </span>
                       {isActive && (
                         <motion.span
@@ -495,7 +507,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                 const isActive = activeCategory === category;
                 const handleClick = () => {
                   if (tabDragRef.current.didDrag) { tabDragRef.current.didDrag = false; return; }
-                  setActiveCategory(category); setDietFilter("all"); fireTrack("category_view", { category, language: locale });
+                  setActiveCategory(category); setDietFilter("all"); fireTrack("category_view", { category: label(category), language: locale });
                 };
 
                 const catEntry = categoryImageMap[category];
@@ -526,7 +538,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                       <span className={`tab-label min-w-0 text-xs sm:text-sm tracking-wide transition-colors duration-200 ${
                         isActive ? "font-bold text-white" : "font-medium text-[var(--muted)]"
                       }`}>
-                        <CategoryName name={category} />
+                        <CategoryName name={label(category)} />
                       </span>
                     </motion.button>
                   );
@@ -559,7 +571,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                       {catEntry?.show && catImageMode === 'item' && catBannerUrl ? (
                         <img src={catBannerUrl} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <CategoryIcon name={category} isActive={isActive} />
+                        <CategoryIcon name={label(category)} isActive={isActive} />
                       )}
                     </div>
                     {/* Label — two reserved lines keeps every tab the same height */}
@@ -568,7 +580,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                         isActive ? "font-bold text-[var(--accent)]" : "font-semibold text-[var(--muted)]"
                       }`}
                     >
-                      <CategoryName name={category} />
+                      <CategoryName name={label(category)} />
                     </span>
                   </motion.button>
                 );
@@ -598,7 +610,7 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                     place a guest can always see which menu they're inside. */}
                 {layered && activeGroup && activeGroup.children.length > 0 && (
                   <p className="text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)] mb-1">
-                    <CategoryName name={activeGroup.name} />
+                    <CategoryName name={label(activeGroup.id)} />
                   </p>
                 )}
                 <div className="flex items-center gap-3 min-w-0">
@@ -609,11 +621,11 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
                   )}
                   {showImg && headingImageMode === 'icon' && (
                     <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border border-[var(--card-border)] shadow-sm">
-                      <CategoryIcon name={activeCategory} isActive={false} />
+                      <CategoryIcon name={label(activeCategory)} isActive={false} />
                     </div>
                   )}
                   <h2 className="text-lg sm:text-xl md:text-2xl font-semibold text-[var(--foreground)] min-w-0 break-words hyphens-auto text-wrap-balance">
-                    <CategoryName name={activeCategory} />
+                    <CategoryName name={label(activeCategory)} />
                   </h2>
                 </div>
                 </>
@@ -693,12 +705,12 @@ export function MenuTabs({ grouped, sortedCategories, menuGroups, categoryNotes 
               key={item.id}
               role={clickable ? "button" : undefined}
               tabIndex={clickable ? 0 : undefined}
-              onClick={clickable ? () => { setSelectedItem(item); fireTrack("item_click", { item_id: item.id, category: item.category ?? activeCategory, language: locale }); } : undefined}
+              onClick={clickable ? () => { setSelectedItem(item); fireTrack("item_click", { item_id: item.id, category: item.category ?? label(activeCategory), language: locale }); } : undefined}
               onKeyDown={clickable ? (e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
                   setSelectedItem(item);
-                  fireTrack("item_click", { item_id: item.id, category: item.category ?? activeCategory, language: locale });
+                  fireTrack("item_click", { item_id: item.id, category: item.category ?? label(activeCategory), language: locale });
                 }
               } : undefined}
               initial={{ opacity: 0, y: 18 }}

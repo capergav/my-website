@@ -28,7 +28,11 @@ export type MenuItemRow = {
   description?: string | null;
   price: number | string;
   image_url?: string | null;
+  /** Display label only — a denormalised mirror of the category name, kept in
+   *  sync by a DB trigger. Never use it to identify a category: two menus may
+   *  each contain a "Desserts". `category_id` is the source of truth. */
   category?: string | null;
+  category_id?: string | null;
   available?: boolean | null;
   hidden?: boolean | null;
   chefs_favorite?: boolean | null;

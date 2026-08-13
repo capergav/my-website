@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
-import { createSupabaseServerClient, buildMenuGroups, type CategoryRow, type MenuGroup } from "@/app/lib/supabase";
+import { createSupabaseServerClient, buildMenuGroups, categoryNameMap, type CategoryRow, type MenuGroup } from "@/app/lib/supabase";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import type { MenuItemRow } from "@/app/lib/constants";
 import { MenuTabs } from "@/app/components/MenuTabs";
@@ -100,7 +100,7 @@ export default async function PublicMenuPage({ params }: Props) {
 
   const [{ data: menuItems }, { data: categoryNotesRows }, { data: categoryRows }] = await Promise.all([
     supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }).order("name", { ascending: true }),
-    supabase.from("category_notes").select("category, note").eq("restaurant_id", restaurant.id),
+    supabase.from("category_notes").select("category_id, note").eq("restaurant_id", restaurant.id),
     supabase.from("restaurant_categories").select("id, parent_id, name, show_image, image_url, banner_item_id, use_banner, image_mode, sort_order").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }),
   ]);
 
@@ -110,8 +110,18 @@ export default async function PublicMenuPage({ params }: Props) {
     if (item.image_url) itemImageById[item.id] = item.image_url;
   }
 
+  // Everything below is keyed by restaurant_categories.id, never by name.
+  // Category names are only unique within a single menu, so a name cannot
+  // identify a category — "Desserts" may exist under both Lunch and Dinner.
+  const catRows = (categoryRows ?? []) as (CategoryRow & {
+    show_image: boolean; image_url: string | null; banner_item_id: string | null;
+    use_banner: boolean | null; image_mode: string | null;
+  })[];
+
+  const categoryNames = categoryNameMap(catRows);
+
   const categoryImageMap: Record<string, { show: boolean; url: string | null; useBanner: boolean; bannerUrl: string | null; imageMode: string | null }> = {};
-  for (const row of (categoryRows ?? []) as { name: string; show_image: boolean; image_url: string | null; banner_item_id: string | null; use_banner: boolean | null; image_mode: string | null }[]) {
+  for (const row of catRows) {
     const useBanner = row.use_banner !== false;
     let bannerUrl: string | null = null;
     if (useBanner) {
@@ -119,49 +129,46 @@ export default async function PublicMenuPage({ params }: Props) {
         bannerUrl = itemImageById[row.banner_item_id];
       }
     }
-    categoryImageMap[row.name] = { show: row.show_image ?? false, url: row.image_url ?? null, useBanner, bannerUrl, imageMode: row.image_mode ?? null };
+    categoryImageMap[row.id] = { show: row.show_image ?? false, url: row.image_url ?? null, useBanner, bannerUrl, imageMode: row.image_mode ?? null };
   }
 
   const categoryNotes: Record<string, string> = {};
-  for (const row of (categoryNotesRows ?? []) as { category: string; note: string | null }[]) {
-    if (row.note?.trim()) categoryNotes[row.category] = row.note.trim();
+  for (const row of (categoryNotesRows ?? []) as { category_id: string | null; note: string | null }[]) {
+    if (row.category_id && row.note?.trim()) categoryNotes[row.category_id] = row.note.trim();
   }
 
   // Hidden items are excluded from the customer menu entirely — they never
   // reach the browser. (Unavailable items still render, greyed out, in MenuTabs.)
-  const grouped = (menuItems ?? []).reduce<Record<string, MenuItemRow[]>>((acc, item) => {
-    if ((item as MenuItemRow).hidden === true) return acc;
-    const cat = (item as MenuItemRow).category || "Other";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(item as MenuItemRow);
+  // Items with no category_id are uncategorised and simply aren't shown.
+  const grouped = (menuItems ?? []).reduce<Record<string, MenuItemRow[]>>((acc, row) => {
+    const item = row as MenuItemRow;
+    if (item.hidden === true) return acc;
+    const catId = item.category_id;
+    if (!catId) return acc;
+    if (!acc[catId]) acc[catId] = [];
+    acc[catId].push(item);
     return acc;
   }, {});
 
   // Order categories by the restaurant's saved sort_order (source of truth),
   // exactly matching the admin panel. restaurant_categories is already ordered
-  // by sort_order above; only keep categories that actually have items, then
-  // append any orphan categories that exist on items but not in the table.
-  const dbCategoryOrder = (categoryRows ?? []).map((r) => (r as { name: string }).name);
-  const sortedCategories = [
-    ...dbCategoryOrder.filter((c) => grouped[c]),
-    ...Object.keys(grouped).filter((c) => !dbCategoryOrder.includes(c)),
-  ];
+  // by sort_order above; only keep categories that actually have items.
+  const sortedCategories = catRows.map((r) => r.id).filter((id) => grouped[id]);
 
   // Two-level structure. Only built when the restaurant has opted in — when the
   // toggle is off, existing parent_id values are ignored (never deleted) so the
   // structure comes back intact if they turn it on again.
   let menuGroups: MenuGroup[] | undefined;
   if ((restaurant as { use_nested_categories?: boolean | null }).use_nested_categories === true) {
-    const orphans = Object.keys(grouped).filter((c) => !dbCategoryOrder.includes(c));
-    menuGroups = buildMenuGroups((categoryRows ?? []) as CategoryRow[], orphans)
+    menuGroups = buildMenuGroups(catRows)
       .map((g) => ({ ...g, children: g.children.filter((c) => grouped[c]) }))
-      .filter((g) => g.children.length > 0 || grouped[g.name]);
+      .filter((g) => g.children.length > 0 || grouped[g.id]);
   }
 
   // Fallback: if banner is on but no banner_item_id, use first item image in category
-  for (const [catName, entry] of Object.entries(categoryImageMap)) {
+  for (const [catId, entry] of Object.entries(categoryImageMap)) {
     if (entry.useBanner && !entry.bannerUrl) {
-      const firstWithImg = (grouped[catName] ?? []).find((i) => i.image_url);
+      const firstWithImg = (grouped[catId] ?? []).find((i) => i.image_url);
       if (firstWithImg?.image_url) entry.bannerUrl = firstWithImg.image_url;
     }
   }
@@ -225,7 +232,7 @@ export default async function PublicMenuPage({ params }: Props) {
         restaurantId={restaurant.id}
       />
       {hasItems ? (
-        <MenuTabs grouped={grouped} sortedCategories={sortedCategories} menuGroups={menuGroups} categoryNotes={categoryNotes} categoryImageMap={categoryImageMap} restaurantId={restaurant.id} allowAutoTranslate={!!(restaurant as { allow_auto_translate?: boolean }).allow_auto_translate} showCurrencySymbol={(restaurant as { show_currency_symbol?: boolean | null }).show_currency_symbol !== false} />
+        <MenuTabs grouped={grouped} sortedCategories={sortedCategories} categoryNames={categoryNames} menuGroups={menuGroups} categoryNotes={categoryNotes} categoryImageMap={categoryImageMap} restaurantId={restaurant.id} allowAutoTranslate={!!(restaurant as { allow_auto_translate?: boolean }).allow_auto_translate} showCurrencySymbol={(restaurant as { show_currency_symbol?: boolean | null }).show_currency_symbol !== false} />
       ) : (
         <div className="flex flex-col items-center justify-center py-24 px-6 text-center">
           <h2 className="text-2xl font-semibold" style={{ color: fontColor }}>No items yet</h2>

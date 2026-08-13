@@ -2,7 +2,6 @@ export const dynamic = "force-dynamic";
 
 import { redirect, notFound } from "next/navigation";
 import { createSupabaseServerClient } from "@/app/lib/supabase";
-import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
 import type { Restaurant, CategoryNote, CategoryRow } from "@/app/lib/supabase";
 import { AdminMenuEditor } from "./AdminMenuEditor";
@@ -26,7 +25,7 @@ export default async function AdminSlugPage({ params }: Props) {
 
   const [{ data: menuItems, error: menuError }, { data: categoryNotesRows }, { data: dbCategories }] = await Promise.all([
     supabase.from("menu_items").select("*").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }).order("name", { ascending: true }),
-    supabase.from("category_notes").select("category, note").eq("restaurant_id", restaurant.id),
+    supabase.from("category_notes").select("category_id, note").eq("restaurant_id", restaurant.id),
     supabase.from("restaurant_categories").select("id, name, parent_id, sort_order").eq("restaurant_id", restaurant.id).order("sort_order", { ascending: true }),
   ]);
 
@@ -38,24 +37,24 @@ export default async function AdminSlugPage({ params }: Props) {
     );
   }
 
-  const grouped = (menuItems ?? []).reduce<Record<string, MenuItemRow[]>>((acc, item) => {
-    const cat = (item as MenuItemRow).category || "Other";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(item as MenuItemRow);
+  // Keyed by restaurant_categories.id throughout — a category name is only
+  // unique within one menu, so it can no longer identify a category.
+  // Items with no category_id are uncategorised and grouped under nothing.
+  const grouped = (menuItems ?? []).reduce<Record<string, MenuItemRow[]>>((acc, row) => {
+    const item = row as MenuItemRow;
+    if (!item.category_id) return acc;
+    if (!acc[item.category_id]) acc[item.category_id] = [];
+    acc[item.category_id].push(item);
     return acc;
   }, {});
 
-  // DB categories are source of truth for order; include orphaned item categories too
+  // DB categories are the source of truth for order.
   const categoryRows = (dbCategories ?? []) as CategoryRow[];
-  const dbCategoryNames = categoryRows.map((r) => r.name);
-  const orphanCats = Object.keys(grouped).filter((c) => !dbCategoryNames.includes(c));
-  const allCategories = [...dbCategoryNames, ...orphanCats];
-
-  const sortedCategories = allCategories;
+  const sortedCategories = categoryRows.map((r) => r.id);
 
   const initialCategoryNotes: Record<string, string> = {};
-  for (const row of (categoryNotesRows ?? []) as Pick<CategoryNote, "category" | "note">[]) {
-    initialCategoryNotes[row.category] = row.note ?? "";
+  for (const row of (categoryNotesRows ?? []) as Pick<CategoryNote, "category_id" | "note">[]) {
+    if (row.category_id) initialCategoryNotes[row.category_id] = row.note ?? "";
   }
 
   const fontColor  = restaurant.font_color ?? "#2c2a26";
@@ -98,7 +97,6 @@ export default async function AdminSlugPage({ params }: Props) {
         restaurantSlug={slug}
         initialGrouped={grouped}
         initialSortedCategories={sortedCategories}
-        initialAllCategories={allCategories}
         initialRestaurant={restaurant}
         initialCategoryRows={categoryRows}
         initialCategoryNotes={initialCategoryNotes}

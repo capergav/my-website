@@ -7,7 +7,7 @@ import QRCode from "qrcode";
 import { createSupabaseClient } from "@/app/lib/supabase";
 import { CATEGORY_ORDER } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
-import { buildMenuGroups } from "@/app/lib/supabase";
+import { buildMenuGroups, categoryNameMap } from "@/app/lib/supabase";
 import type { Restaurant, CategoryRow, MenuGroup } from "@/app/lib/supabase";
 import { ImageUploader } from "./ImageUploader";
 import { OnboardingTour } from "./OnboardingTour";
@@ -274,7 +274,6 @@ type Props = {
   restaurantSlug: string;
   initialGrouped: Grouped;
   initialSortedCategories: string[];
-  initialAllCategories: string[];
   initialRestaurant: Restaurant | null;
   initialCategoryRows: CategoryRow[];
   initialCategoryNotes: Record<string, string>;
@@ -285,7 +284,6 @@ export function AdminMenuEditor({
   restaurantSlug,
   initialGrouped,
   initialSortedCategories,
-  initialAllCategories,
   initialRestaurant,
   initialCategoryRows,
   initialCategoryNotes,
@@ -306,9 +304,9 @@ export function AdminMenuEditor({
   };
 
   const [grouped, setGrouped]                   = useState<Grouped>(initialGrouped);
-  const [sortedCategories, setSortedCategories] = useState(initialAllCategories.length > 0 ? initialAllCategories : initialSortedCategories);
+  const [sortedCategories, setSortedCategories] = useState(initialSortedCategories);
   const [categoryRows, setCategoryRows]         = useState<CategoryRow[]>(initialCategoryRows);
-  const [activeCategory, setActiveCategory]     = useState((initialAllCategories[0] ?? initialSortedCategories[0]) ?? "");
+  const [activeCategory, setActiveCategory]     = useState(initialSortedCategories[0] ?? "");
   const [activeMenu, setActiveMenu]             = useState("");
   const [editingItem, setEditingItem]           = useState<MenuItemRow | null>(null);
   const [addingNew, setAddingNew]               = useState(false);
@@ -347,17 +345,18 @@ export function AdminMenuEditor({
   // Categories with children act as menus; everything else behaves exactly as
   // it did before. When the toggle is off we ignore parent_id entirely (but
   // never clear it) so turning it back on restores the structure.
-  const menuGroups = useMemo(
-    () => buildMenuGroups(categoryRows, sortedCategories),
-    [categoryRows, sortedCategories]
-  );
+  // Every category key below is a restaurant_categories.id, never a name —
+  // names are only unique within one menu now. `categoryNames` resolves labels.
+  const menuGroups = useMemo(() => buildMenuGroups(categoryRows), [categoryRows]);
+  const categoryNames = useMemo(() => categoryNameMap(categoryRows), [categoryRows]);
+  const catLabel = useCallback((id: string) => categoryNames[id] ?? "", [categoryNames]);
   const layered = restaurant?.use_nested_categories === true && menuGroups.some((g) => g.children.length > 0);
-  const activeGroup = layered ? menuGroups.find((g) => g.name === activeMenu) : undefined;
+  const activeGroup = layered ? menuGroups.find((g) => g.id === activeMenu) : undefined;
   const childTabs = activeGroup?.children ?? [];
   // Items only ever live on the deepest category, so menus are not selectable
   // targets when adding an item.
   const leafCategories = layered
-    ? menuGroups.flatMap((g) => (g.children.length > 0 ? g.children : [g.name]))
+    ? menuGroups.flatMap((g) => (g.children.length > 0 ? g.children : [g.id]))
     : sortedCategories;
   // Row 2 lists the active menu's children. A top-level category with no
   // children holds its own items, so row 2 is hidden while it is selected.
@@ -375,21 +374,21 @@ export function AdminMenuEditor({
   // Keep the selected menu in sync with the selected category.
   useEffect(() => {
     if (!layered) return;
-    const owner = menuGroups.find((g) => g.name === activeCategory || g.children.includes(activeCategory));
+    const owner = menuGroups.find((g) => g.id === activeCategory || g.children.includes(activeCategory));
     if (owner) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (owner.name !== activeMenu) setActiveMenu(owner.name);
+      if (owner.id !== activeMenu) setActiveMenu(owner.id);
       // A menu is a container — drop down to its first category.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (owner.name === activeCategory && owner.children.length > 0) setActiveCategory(owner.children[0]);
+      if (owner.id === activeCategory && owner.children.length > 0) setActiveCategory(owner.children[0]);
       return;
     }
     const first = menuGroups[0];
     if (!first) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setActiveMenu(first.name);
+    setActiveMenu(first.id);
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setActiveCategory(first.children[0] ?? first.name);
+    setActiveCategory(first.children[0] ?? first.id);
   }, [layered, menuGroups, activeCategory, activeMenu]);
 
   // Sync CSS variables immediately when restaurant state changes (e.g. after theme save)
@@ -429,19 +428,23 @@ export function AdminMenuEditor({
       const isNew = ageMs < 5 * 60 * 1000; // account < 5 minutes old
       if (isEmpty && isNew) {
         (async () => {
-          await supabase.from('restaurant_categories').upsert(
-            { restaurant_id: restaurantId, name: 'Mains', sort_order: 0 },
-            { onConflict: 'restaurant_id,name' }
-          );
-          await supabase.from('menu_items').insert({
-            restaurant_id: restaurantId,
-            name: 'Sample Dish',
-            description: 'Feel free to edit or delete this item and add your real menu.',
-            price: 0,
-            category: 'Mains',
-            available: true,
-            sort_order: 0,
-          });
+          // Brand-new empty account, so a plain insert is safe — there is
+          // nothing to conflict with, and we need the id back for the item.
+          const { data: seedCat } = await supabase.from('restaurant_categories')
+            .insert({ restaurant_id: restaurantId, name: 'Mains', sort_order: 0 })
+            .select('id')
+            .single();
+          if (seedCat) {
+            await supabase.from('menu_items').insert({
+              restaurant_id: restaurantId,
+              name: 'Sample Dish',
+              description: 'Feel free to edit or delete this item and add your real menu.',
+              price: 0,
+              category_id: seedCat.id,
+              available: true,
+              sort_order: 0,
+            });
+          }
           // refreshMenu is assigned after this effect runs; call via ref
           refreshMenuRef.current?.();
         })();
@@ -538,14 +541,13 @@ export function AdminMenuEditor({
     if (itemsResult.error) { showMsg("err", itemsResult.error.message); return; }
     const g: Grouped = {};
     (itemsResult.data ?? []).forEach((row) => {
-      const cat = (row as MenuItemRow).category || "Other";
-      if (!g[cat]) g[cat] = [];
-      g[cat].push(row as MenuItemRow);
+      const item = row as MenuItemRow;
+      if (!item.category_id) return;
+      if (!g[item.category_id]) g[item.category_id] = [];
+      g[item.category_id].push(item);
     });
     const rows = (catsResult.data ?? []) as CategoryRow[];
-    const dbCats = rows.map((r) => r.name);
-    const orphanCats = Object.keys(g).filter((c) => !dbCats.includes(c));
-    const sorted = [...dbCats, ...orphanCats];
+    const sorted = rows.map((r) => r.id);
     setGrouped(g);
     setCategoryRows(rows);
     setSortedCategories(sorted);
@@ -625,7 +627,7 @@ export function AdminMenuEditor({
       if (error) showMsg("err", error.message);
       else { showMsg("ok", "Item updated."); setEditingItem(null); await refreshMenu(); }
     } else {
-      const catItems = (payload.category && grouped[payload.category]) ? grouped[payload.category] : [];
+      const catItems = (payload.category_id && grouped[payload.category_id]) ? grouped[payload.category_id] : [];
       const { error } = await supabase.from("menu_items").insert({
         ...payload, restaurant_id: restaurantId, sort_order: catItems.length,
       });
@@ -662,14 +664,16 @@ export function AdminMenuEditor({
     setSaving(false);
   };
 
-  const handleSaveCategoryNote = async (category: string, note: string) => {
+  const handleSaveCategoryNote = async (categoryId: string, note: string) => {
     setSavingNote(true);
+    // Keyed on category_id: two menus may each have a "Desserts", and they must
+    // not share a note. `category` is still written as a readable label.
     const { error } = await supabase.from("category_notes").upsert(
-      { restaurant_id: restaurantId, category, note: note.trim() || null },
-      { onConflict: "restaurant_id,category" }
+      { restaurant_id: restaurantId, category_id: categoryId, category: categoryNames[categoryId] ?? "", note: note.trim() || null },
+      { onConflict: "category_id" }
     );
     if (error) showMsg("err", error.message);
-    else { setCategoryNotes((p) => ({ ...p, [category]: note.trim() })); showMsg("ok", "Note saved."); }
+    else { setCategoryNotes((p) => ({ ...p, [categoryId]: note.trim() })); showMsg("ok", "Note saved."); }
     setSavingNote(false);
   };
 
@@ -713,19 +717,22 @@ export function AdminMenuEditor({
 
   // sort_order is scoped per level: siblings order among themselves. parentId is
   // only written when explicitly given — flat reorders must leave parent_id alone.
-  const persistOrder = useCallback(async (names: string[], parentId?: string | null) => {
-    for (let i = 0; i < names.length; i++) {
-      const row: Record<string, unknown> = { restaurant_id: restaurantId, name: names[i], sort_order: i };
+  // sort_order is scoped per level: siblings order among themselves. parentId is
+  // only written when explicitly given — flat reorders must leave parent_id alone.
+  // Updates by primary key: every category is guaranteed to have a row now, and
+  // (restaurant_id, name) is no longer unique so it can't be an upsert target.
+  const persistOrder = useCallback(async (ids: string[], parentId?: string | null) => {
+    for (let i = 0; i < ids.length; i++) {
+      const row: Record<string, unknown> = { sort_order: i };
       if (parentId !== undefined) row.parent_id = parentId;
-      // upsert so categories inferred from items get a row too
-      await supabase.from('restaurant_categories').upsert(row, { onConflict: 'restaurant_id,name' });
+      await supabase.from('restaurant_categories').update(row).eq('id', ids[i]);
     }
-  }, [restaurantId, supabase]);
+  }, [supabase]);
 
   // Optimistic reorder of sibling rows so tabs move instantly, no reload.
-  const reorderRowsInState = useCallback((names: string[]) => {
+  const reorderRowsInState = useCallback((ids: string[]) => {
     setCategoryRows((prev) => prev.map((r) => {
-      const idx = names.indexOf(r.name);
+      const idx = ids.indexOf(r.id);
       return idx === -1 ? r : { ...r, sort_order: idx };
     }));
   }, []);
@@ -746,11 +753,11 @@ export function AdminMenuEditor({
   const handleMenuDragEnd = useCallback(async (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    const names = menuGroups.map((g) => g.name);
-    const oldIndex = names.indexOf(active.id as string);
-    const newIndex = names.indexOf(over.id as string);
+    const ids = menuGroups.map((g) => g.id);
+    const oldIndex = ids.indexOf(active.id as string);
+    const newIndex = ids.indexOf(over.id as string);
     if (oldIndex === -1 || newIndex === -1) return;
-    const reordered = arrayMove(names, oldIndex, newIndex);
+    const reordered = arrayMove(ids, oldIndex, newIndex);
     reorderRowsInState(reordered);
     await persistOrder(reordered, null);
   }, [menuGroups, persistOrder, reorderRowsInState]);
@@ -1072,7 +1079,7 @@ export function AdminMenuEditor({
                     </button>
                   )}
                   <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleMenuDragEnd}>
-                    <SortableContext items={menuGroups.map((g) => g.name)} strategy={horizontalListSortingStrategy}>
+                    <SortableContext items={menuGroups.map((g) => g.id)} strategy={horizontalListSortingStrategy}>
                       <div
                         ref={menuRowScrollRef}
                         onScroll={updateMenuRowScrollState}
@@ -1094,16 +1101,16 @@ export function AdminMenuEditor({
                         onPointerLeave={() => { menuRowDragRef.current.active = false; }}
                       >
                         {menuGroups.map((group) => {
-                          const isActive = activeMenu === group.name;
+                          const isActive = activeMenu === group.id;
                           return (
-                            <SortableCategoryTab key={group.name} name={group.name}>
+                            <SortableCategoryTab key={group.id} name={group.id}>
                               <button
                                 type="button"
                                 onPointerDown={(e) => e.stopPropagation()}
                                 onClick={() => {
                                   if (menuRowDragRef.current.didDrag) { menuRowDragRef.current.didDrag = false; return; }
-                                  setActiveMenu(group.name);
-                                  setActiveCategory(group.children[0] ?? group.name);
+                                  setActiveMenu(group.id);
+                                  setActiveCategory(group.children[0] ?? group.id);
                                 }}
                                 className="relative flex-shrink-0 px-3 sm:px-4 pt-3 pb-2.5 min-h-[44px] min-w-[3.5rem] max-w-[9rem] sm:max-w-[11rem] touch-manipulation transition-colors duration-200"
                               >
@@ -1182,13 +1189,13 @@ export function AdminMenuEditor({
                               ? "bg-[var(--accent)] text-white shadow-sm"
                               : "bg-[var(--card)] border border-[var(--card-border)] text-[var(--muted)] hover:text-[var(--foreground)]"
                           }`}>
-                          <span className="tab-label min-w-0">{cat}</span>
+                          <span className="tab-label min-w-0">{catLabel(cat)}</span>
                         </button>
                       </SortableCategoryTab>
                     ))}
                     {layered && childTabs.length === 0 && (
                       <span className="flex-shrink-0 self-center text-xs text-[var(--muted)] px-1">
-                        {activeMenu} contains menu items, not sub-categories
+                        {catLabel(activeMenu)} contains menu items, not sub-categories
                       </span>
                     )}
                     {/* The label always names the row it will land in, because in
@@ -1228,12 +1235,12 @@ export function AdminMenuEditor({
 
           <div data-tour="menu-area" className="max-w-2xl mx-auto px-4 sm:px-6 py-6">
             <div className="flex justify-between items-start gap-3 mb-5">
-              <h2 className="font-serif text-xl sm:text-2xl font-semibold min-w-0 flex-1 break-words hyphens-auto text-wrap-balance">{activeCategory}</h2>
+              <h2 className="font-serif text-xl sm:text-2xl font-semibold min-w-0 flex-1 break-words hyphens-auto text-wrap-balance">{catLabel(activeCategory)}</h2>
               {/* The category is already named in the heading beside this, so the
                   button stays short rather than truncating it mid-word again. */}
               <motion.button data-tour="tour-add-item" type="button"
                 onClick={() => { setAddingNew(true); setEditingItem(null); }}
-                title={`Add item to ${activeCategory}`}
+                title={`Add item to ${catLabel(activeCategory)}`}
                 className="flex-shrink-0 whitespace-nowrap px-4 py-2 min-h-[44px] rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity shadow-sm"
                 whileTap={{ scale: 0.96 }}
                 transition={{ duration: 0.1 }}
@@ -1244,6 +1251,7 @@ export function AdminMenuEditor({
 
             <CategoryNoteEditor
               category={activeCategory}
+              label={catLabel(activeCategory)}
               initialNote={categoryNotes[activeCategory] ?? ""}
               onSave={handleSaveCategoryNote}
               saving={savingNote}
@@ -1257,7 +1265,7 @@ export function AdminMenuEditor({
                       <p className="text-sm text-[var(--muted)]">
                         Add your first item to{" "}
                         <span className="font-semibold" style={{ color: "var(--main-color)" }}>
-                          &ldquo;{activeCategory}&rdquo;
+                          &ldquo;{catLabel(activeCategory)}&rdquo;
                         </span>
                         {" "}— click &ldquo;+ Add item&rdquo; to get started.
                       </p>
@@ -1376,6 +1384,7 @@ export function AdminMenuEditor({
         <ItemForm
           item={editingItem ?? undefined}
           categories={leafCategories}
+          catLabel={catLabel}
           restaurantSlug={restaurantSlug}
           onSave={handleSaveItem}
           onCancel={() => { setEditingItem(null); setAddingNew(false); }}
@@ -1424,14 +1433,13 @@ export function AdminMenuEditor({
       {categoryModalParent && (
         <AddCategoryModal
           restaurantId={restaurantId}
-          existingCategories={sortedCategories}
           parentId={categoryModalParent.id}
           parentName={categoryModalParent.name}
           isSubCategory={layered && categoryModalParent.id !== null && childTabs.length === 0}
-          onCreated={async (name) => {
+          onCreated={async (categoryId) => {
             setCategoryModalParent(null);
             await refreshMenu();
-            setActiveCategory(name);
+            setActiveCategory(categoryId);
           }}
           onClose={() => setCategoryModalParent(null)}
         />
@@ -1510,18 +1518,19 @@ function VisibilityToggle({ hidden, onChange }: { hidden: boolean; onChange: (v:
   );
 }
 
+// `category` is a restaurant_categories.id — `label` is what the owner sees.
 function CategoryNoteEditor({
-  category, initialNote, onSave, saving,
-}: { category: string; initialNote: string; onSave: (cat: string, note: string) => void; saving: boolean }) {
+  category, label, initialNote, onSave, saving,
+}: { category: string; label: string; initialNote: string; onSave: (cat: string, note: string) => void; saving: boolean }) {
   const [note, setNote] = useState(initialNote);
   useEffect(() => { setNote(initialNote); }, [initialNote]);
   return (
     <div className="mb-5 p-4 rounded-xl border border-[var(--card-border)] bg-[var(--card)]">
       <label className="block text-xs font-sans font-semibold uppercase tracking-widest text-[var(--muted)] mb-2">
-        Note for &ldquo;{category}&rdquo;
+        Note for &ldquo;{label}&rdquo;
       </label>
       <textarea value={note} onChange={(e) => setNote(e.target.value)}
-        placeholder={`Optional note for "${category}" — e.g. "All ${category.toLowerCase()} served hot"`}
+        placeholder={`Optional note for "${label}" — e.g. "All ${label.toLowerCase()} served hot"`}
         rows={2}
         className="font-sans w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm resize-y focus:outline-none focus:ring-2 focus:ring-[var(--accent)]" />
       <button type="button" onClick={() => onSave(category, note)} disabled={saving}
@@ -2393,10 +2402,12 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
   );
 }
 
+// `categories` and `initialCategory` are restaurant_categories.id values;
+// `catLabel` turns one into the name shown in the dropdown.
 function ItemForm({
-  item, categories, restaurantSlug, onSave, onCancel, saving, existingImageUrl, initialCategory,
+  item, categories, catLabel, restaurantSlug, onSave, onCancel, saving, existingImageUrl, initialCategory,
 }: {
-  item?: MenuItemRow; categories: readonly string[]; restaurantSlug: string;
+  item?: MenuItemRow; categories: readonly string[]; catLabel: (id: string) => string; restaurantSlug: string;
   onSave: (p: Partial<MenuItemRow>) => void; onCancel: () => void; saving: boolean;
   existingImageUrl?: string; initialCategory?: string;
 }) {
@@ -2405,7 +2416,7 @@ function ItemForm({
   const [price, setPrice]             = useState(item != null ? String(Number(item.price)) : "");
   const [priceSuffix, setPriceSuffix] = useState(item?.price_suffix ?? "");
   const [imgUrl, setImgUrl]           = useState(item?.image_url ?? "");
-  const [category, setCategory]       = useState(item?.category ?? initialCategory ?? "");
+  const [category, setCategory]       = useState(item?.category_id ?? initialCategory ?? "");
   const [available, setAvailable]     = useState<boolean>(item?.available ?? true);
   const [chefs, setChefs]         = useState<boolean>(item?.chefs_favorite ?? false);
   const [gluten, setGluten]       = useState<boolean>(item?.gluten_free ?? false);
@@ -2424,7 +2435,7 @@ function ItemForm({
     onSave({
       name: name.trim(), description: desc.trim() || null, price: p,
       price_suffix: priceSuffix.trim() || null,
-      image_url: imgUrl.trim() || null, category: category || "Other",
+      image_url: imgUrl.trim() || null, category_id: category,
       available, chefs_favorite: chefs, gluten_free: gluten, nut_free: nut,
       vegan, vegetarian: veg, dairy_free: dairy, spicy,
     });
@@ -2477,7 +2488,7 @@ function ItemForm({
                     className="font-sans w-full px-4 py-2.5 rounded-xl border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                   >
                     <option value="" disabled>Select a category…</option>
-                    {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                    {categories.map((c) => <option key={c} value={c}>{catLabel(c)}</option>)}
                   </select>
                 )}
                 {!category && categories.length > 0 && (
@@ -2545,7 +2556,6 @@ function ItemForm({
 
 function AddCategoryModal({
   restaurantId,
-  existingCategories,
   parentId = null,
   parentName = "",
   isSubCategory = false,
@@ -2553,13 +2563,12 @@ function AddCategoryModal({
   onClose,
 }: {
   restaurantId: string;
-  existingCategories: string[];
   /** null = top level. Set = the menu this category goes under. */
   parentId?: string | null;
   parentName?: string;
   /** The parent currently holds menu items, so this new row nests below them. */
   isSubCategory?: boolean;
-  onCreated: (name: string) => void;
+  onCreated: (categoryId: string) => void;
   onClose: () => void;
 }) {
   const noun = isSubCategory ? "sub-category" : "category";
@@ -2574,21 +2583,33 @@ function AddCategoryModal({
     e.preventDefault();
     const trimmed = name.trim();
     if (!trimmed) return;
-    if (existingCategories.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
-      setError(`That ${noun} already exists.`);
-      return;
-    }
     setSaving(true);
-    // sort_order is scoped per level — count only siblings under the same parent.
-    let siblingQuery = supabase.from("restaurant_categories").select("id").eq("restaurant_id", restaurantId);
+
+    // Names only have to be unique among siblings — two different menus may
+    // each hold a "Desserts". Siblings are read fresh rather than taken from
+    // local state so a category added in another tab still collides.
+    // sort_order is likewise scoped per level.
+    let siblingQuery = supabase.from("restaurant_categories").select("id, name").eq("restaurant_id", restaurantId);
     siblingQuery = parentId === null ? siblingQuery.is("parent_id", null) : siblingQuery.eq("parent_id", parentId);
     const { data: siblings } = await siblingQuery;
-    const maxOrder = siblings?.length ?? existingCategories.length;
-    await supabase
+
+    if ((siblings ?? []).some((s) => s.name.toLowerCase() === trimmed.toLowerCase())) {
+      setError(`That ${noun} already exists${parentName ? ` in ${parentName}` : ""}.`);
+      setSaving(false);
+      return;
+    }
+
+    const { data: created, error: insertError } = await supabase
       .from("restaurant_categories")
-      .upsert({ restaurant_id: restaurantId, name: trimmed, parent_id: parentId, sort_order: maxOrder, show_image: showImage }, { onConflict: "restaurant_id,name" });
+      .insert({ restaurant_id: restaurantId, name: trimmed, parent_id: parentId, sort_order: siblings?.length ?? 0, show_image: showImage })
+      .select("id")
+      .single();
     setSaving(false);
-    onCreated(trimmed);
+    if (insertError || !created) {
+      setError(`Could not create that ${noun}. Please try again.`);
+      return;
+    }
+    onCreated(created.id);
   };
 
   return (
@@ -2664,10 +2685,12 @@ function AddCategoryModal({
 // ── Manage Categories Modal ───────────────────────────────────────────────────
 
 function SortableCategoryManageRow({
-  name, itemCount, showImage, imageMode, bannerItemId, categoryItems, onDelete, onSelectImageMode, isDeleting, onRename,
+  id, name, itemCount, showImage, imageMode, bannerItemId, categoryItems, onDelete, onSelectImageMode, isDeleting, onRename,
   depth = 0, isMenu = false, childCount = 0, moveTargets, onMove, parentId = null,
   selectable = false, selected = false, onToggleSelect,
 }: {
+  /** restaurant_categories.id — the drag id and what every callback reports. */
+  id: string;
   name: string;
   itemCount: number;
   showImage: boolean;
@@ -2677,7 +2700,7 @@ function SortableCategoryManageRow({
   onDelete: () => void;
   onSelectImageMode: (mode: 'icon' | 'item', itemId: string | null) => void;
   isDeleting: boolean;
-  onRename: (oldName: string, newName: string) => Promise<void>;
+  onRename: (categoryId: string, newName: string) => Promise<void>;
   /** 0 = top level, 1 = nested under a menu. */
   depth?: number;
   /** A top-level row that has children — a container, not an item holder. */
@@ -2685,7 +2708,7 @@ function SortableCategoryManageRow({
   childCount?: number;
   /** null id = move to top level. Omitted entirely when not layered. */
   moveTargets?: { id: string | null; name: string }[];
-  onMove?: (name: string, parentId: string | null) => void;
+  onMove?: (categoryId: string, parentId: string | null) => void;
   parentId?: string | null;
   /** Bulk-grouping checkbox — only shown for real categories while layered. */
   selectable?: boolean;
@@ -2694,7 +2717,7 @@ function SortableCategoryManageRow({
 }) {
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(name);
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: name });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const itemsWithImages = categoryItems.filter((i) => i.image_url);
 
   return (
@@ -2745,14 +2768,14 @@ function SortableCategoryManageRow({
                 value={renameValue}
                 onChange={(e) => setRenameValue(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') { e.preventDefault(); const t = renameValue.trim(); if (t && t !== name) onRename(name, t); setIsRenaming(false); }
+                  if (e.key === 'Enter') { e.preventDefault(); const t = renameValue.trim(); if (t && t !== name) onRename(id, t); setIsRenaming(false); }
                   if (e.key === 'Escape') { setIsRenaming(false); setRenameValue(name); }
                 }}
                 autoFocus
                 className="flex-1 min-w-0 text-sm font-medium border-b border-[var(--accent)] bg-transparent text-[var(--foreground)] focus:outline-none py-0.5"
               />
               <button type="button"
-                onClick={() => { const t = renameValue.trim(); if (t && t !== name) onRename(name, t); setIsRenaming(false); }}
+                onClick={() => { const t = renameValue.trim(); if (t && t !== name) onRename(id, t); setIsRenaming(false); }}
                 className="flex-shrink-0 p-0.5 text-[var(--accent)] hover:opacity-70 transition-opacity" title="Save">
                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
@@ -2783,7 +2806,7 @@ function SortableCategoryManageRow({
         {moveTargets && moveTargets.length > 0 && !isMenu && (
           <select
             value={parentId ?? ""}
-            onChange={(e) => onMove?.(name, e.target.value === "" ? null : e.target.value)}
+            onChange={(e) => onMove?.(id, e.target.value === "" ? null : e.target.value)}
             title="Choose which menu this category sits in"
             className="flex-shrink-0 max-w-[7.5rem] text-xs font-sans rounded-lg border border-[var(--card-border)] bg-[var(--card)] text-[var(--muted)] px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           >
@@ -2861,6 +2884,7 @@ function ManageCategoriesModal({
   restaurantId, categories, categoryRows, nestingOn, grouped, onClose, onUpdated, onToggleNesting,
 }: {
   restaurantId: string;
+  /** restaurant_categories.id values, in display order. */
   categories: string[];
   categoryRows: CategoryRow[];
   /** The raw restaurants.use_nested_categories flag — not the derived "has children" state. */
@@ -2893,17 +2917,17 @@ function ManageCategoriesModal({
   useEffect(() => {
     supabase
       .from('restaurant_categories')
-      .select('name, show_image, image_mode, banner_item_id')
+      .select('id, show_image, image_mode, banner_item_id')
       .eq('restaurant_id', restaurantId)
       .then(({ data }) => {
         if (data) {
           const showMap: Record<string, boolean> = {};
           const modeMap: Record<string, string | null> = {};
           const itemMap: Record<string, string | null> = {};
-          for (const row of data as { name: string; show_image: boolean | null; image_mode: string | null; banner_item_id: string | null }[]) {
-            showMap[row.name] = row.show_image ?? false;
-            modeMap[row.name] = row.image_mode ?? null;
-            itemMap[row.name] = row.banner_item_id ?? null;
+          for (const row of data as { id: string; show_image: boolean | null; image_mode: string | null; banner_item_id: string | null }[]) {
+            showMap[row.id] = row.show_image ?? false;
+            modeMap[row.id] = row.image_mode ?? null;
+            itemMap[row.id] = row.banner_item_id ?? null;
           }
           setShowImageMap(showMap);
           setImageModeMap(modeMap);
@@ -2921,23 +2945,27 @@ function ManageCategoriesModal({
 
   // Flattened display order: menu, then its children indented beneath it.
   // In flat mode this is just the category list, exactly as before.
-  const groups = useMemo(() => buildMenuGroups(rows, cats), [rows, cats]);
+  const names = useMemo(() => categoryNameMap(rows), [rows]);
+  const label = useCallback((id: string) => names[id] ?? "", [names]);
+
+  const groups = useMemo(() => buildMenuGroups(rows), [rows]);
   const flat = useMemo(() => {
-    if (!layered) return cats.map((name) => ({ name, parentId: null as string | null, depth: 0, isMenu: false, childCount: 0 }));
-    const out: { name: string; parentId: string | null; depth: number; isMenu: boolean; childCount: number }[] = [];
+    type Entry = { id: string; name: string; parentId: string | null; depth: number; isMenu: boolean; childCount: number };
+    if (!layered) return cats.map((id): Entry => ({ id, name: names[id] ?? "", parentId: null, depth: 0, isMenu: false, childCount: 0 }));
+    const out: Entry[] = [];
     for (const g of groups) {
-      out.push({ name: g.name, parentId: null, depth: 0, isMenu: g.children.length > 0, childCount: g.children.length });
-      for (const c of g.children) out.push({ name: c, parentId: g.id, depth: 1, isMenu: false, childCount: 0 });
+      out.push({ id: g.id, name: g.name, parentId: null, depth: 0, isMenu: g.children.length > 0, childCount: g.children.length });
+      for (const c of g.children) out.push({ id: c, name: names[c] ?? "", parentId: g.id, depth: 1, isMenu: false, childCount: 0 });
     }
     return out;
-  }, [layered, groups, cats]);
+  }, [layered, groups, cats, names]);
 
   // A top-level row is a valid destination if it already holds categories, or if
   // it holds nothing at all — a menu created empty has to be fillable, otherwise
   // it's a dead end nothing can ever be moved into. A top-level row holding its
   // own items is excluded: dropping a category in would strand those items.
   const destinationGroups = useMemo(
-    () => groups.filter((g) => g.id && (g.children.length > 0 || (grouped[g.name]?.length ?? 0) === 0)),
+    () => groups.filter((g) => g.children.length > 0 || (grouped[g.id]?.length ?? 0) === 0),
     [groups, grouped]
   );
 
@@ -2956,20 +2984,20 @@ function ManageCategoriesModal({
   );
 
   // Selection follows display order so the new menu's children keep that order.
-  const selectedNames = useMemo(
-    () => flat.filter((f) => !f.isMenu && selected.has(f.name)).map((f) => f.name),
+  const selectedIds = useMemo(
+    () => flat.filter((f) => !f.isMenu && selected.has(f.id)).map((f) => f.id),
     [flat, selected]
   );
   // A selected row can't also be its own destination.
   const menuTargets = useMemo(
-    () => destinationGroups.filter((g) => !selected.has(g.name)).map((g) => ({ id: g.id!, name: g.name })),
+    () => destinationGroups.filter((g) => !selected.has(g.id)).map((g) => ({ id: g.id, name: g.name })),
     [destinationGroups, selected]
   );
 
-  const toggleSelected = (name: string) =>
+  const toggleSelected = (id: string) =>
     setSelected((prev) => {
       const next = new Set(prev);
-      if (next.has(name)) next.delete(name); else next.add(name);
+      if (next.has(id)) next.delete(id); else next.add(id);
       return next;
     });
 
@@ -2984,15 +3012,16 @@ function ManageCategoriesModal({
     if (!ok) { setLayered(!value); setDeleteError("Couldn't change that setting. Please try again."); }
   };
 
-  // One upsert reparents the whole selection — sort_order is assigned in display order.
-  const reparent = async (names: string[], parentId: string | null, startAt: number) => {
-    const { error } = await supabase.from('restaurant_categories').upsert(
-      names.map((name, i) => ({ restaurant_id: restaurantId, name, parent_id: parentId, sort_order: startAt + i })),
-      { onConflict: 'restaurant_id,name' }
-    );
-    if (error) return false;
+  // Reparents the whole selection — sort_order is assigned in display order.
+  const reparent = async (ids: string[], parentId: string | null, startAt: number) => {
+    for (let i = 0; i < ids.length; i++) {
+      const { error } = await supabase.from('restaurant_categories')
+        .update({ parent_id: parentId, sort_order: startAt + i })
+        .eq('id', ids[i]);
+      if (error) return false;
+    }
     setRows((prev) => prev.map((r) => {
-      const i = names.indexOf(r.name);
+      const i = ids.indexOf(r.id);
       return i === -1 ? r : { ...r, parent_id: parentId, sort_order: startAt + i };
     }));
     return true;
@@ -3004,7 +3033,8 @@ function ManageCategoriesModal({
   const handleGroupIntoNewMenu = async () => {
     const trimmed = menuName.trim();
     if (!trimmed) return;
-    if (cats.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
+    // A menu is top-level, so it only has to be unique among other top-level rows.
+    if (rows.some((r) => !r.parent_id && r.name.toLowerCase() === trimmed.toLowerCase())) {
       setDeleteError("That name is already taken.");
       return;
     }
@@ -3014,16 +3044,13 @@ function ManageCategoriesModal({
     // appears exactly where they were rather than being appended off the end of
     // the tab strip where nobody finds it.
     const absorbedOrders = rows
-      .filter((r) => !r.parent_id && selectedNames.includes(r.name))
+      .filter((r) => !r.parent_id && selectedIds.includes(r.id))
       .map((r) => r.sort_order ?? 0);
     const sortOrder = absorbedOrders.length > 0
       ? Math.min(...absorbedOrders)
       : rows.filter((r) => !r.parent_id).length;
     const { data, error } = await supabase.from('restaurant_categories')
-      .upsert(
-        { restaurant_id: restaurantId, name: trimmed, parent_id: null, sort_order: sortOrder, show_image: false },
-        { onConflict: 'restaurant_id,name' }
-      )
+      .insert({ restaurant_id: restaurantId, name: trimmed, parent_id: null, sort_order: sortOrder, show_image: false })
       .select('id, name, parent_id, sort_order')
       .single();
     if (error || !data) {
@@ -3031,11 +3058,10 @@ function ManageCategoriesModal({
       setDeleteError(`Couldn't create the menu "${trimmed}". Please try again.`);
       return;
     }
-    const names = selectedNames;
-    const moved = names.length === 0 || await reparent(names, (data as CategoryRow).id, 0);
+    const moved = selectedIds.length === 0 || await reparent(selectedIds, (data as CategoryRow).id, 0);
     setBusy(false);
     if (!moved) { setDeleteError("Menu created, but the categories couldn't be moved. Please try again."); return; }
-    const nextCats = [...cats, trimmed];
+    const nextCats = [...cats, (data as CategoryRow).id];
     setRows((prev) => [...prev, data as CategoryRow]);
     setCats(nextCats);
     setSelected(new Set());
@@ -3044,12 +3070,12 @@ function ManageCategoriesModal({
   };
 
   const handleGroupIntoExisting = async (parentId: string | null) => {
-    const names = selectedNames;
-    if (names.length === 0) return;
+    const ids = selectedIds;
+    if (ids.length === 0) return;
     setBusy(true);
     setDeleteError(null);
-    const startAt = rows.filter((r) => (r.parent_id ?? null) === parentId && !names.includes(r.name)).length;
-    const moved = await reparent(names, parentId, startAt);
+    const startAt = rows.filter((r) => (r.parent_id ?? null) === parentId && !ids.includes(r.id)).length;
+    const moved = await reparent(ids, parentId, startAt);
     setBusy(false);
     if (!moved) { setDeleteError("Couldn't move those categories. Please try again."); return; }
     setSelected(new Set());
@@ -3057,125 +3083,122 @@ function ManageCategoriesModal({
   };
 
   // sort_order is scoped per level — only siblings are renumbered.
-  const persistSiblingOrder = async (names: string[]) => {
-    for (let i = 0; i < names.length; i++) {
-      await supabase.from('restaurant_categories')
-        .upsert({ restaurant_id: restaurantId, name: names[i], sort_order: i }, { onConflict: 'restaurant_id,name' });
+  const persistSiblingOrder = async (ids: string[]) => {
+    for (let i = 0; i < ids.length; i++) {
+      await supabase.from('restaurant_categories').update({ sort_order: i }).eq('id', ids[i]);
     }
   };
 
   const handleDragEnd = async (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
-    const a = flat.find((f) => f.name === active.id);
-    const o = flat.find((f) => f.name === over.id);
+    const a = flat.find((f) => f.id === active.id);
+    const o = flat.find((f) => f.id === over.id);
     // Reordering is sibling-scoped; use the move dropdown to change parents.
     if (!a || !o || a.parentId !== o.parentId || a.depth !== o.depth) return;
     const sibIdxs = flat.reduce<number[]>((acc, f, i) => {
       if (f.parentId === a.parentId && f.depth === a.depth) acc.push(i);
       return acc;
     }, []);
-    const siblings = sibIdxs.map((i) => flat[i].name);
-    const oldIndex = siblings.indexOf(a.name);
-    const newIndex = siblings.indexOf(o.name);
+    const siblings = sibIdxs.map((i) => flat[i].id);
+    const oldIndex = siblings.indexOf(a.id);
+    const newIndex = siblings.indexOf(o.id);
     if (oldIndex === -1 || newIndex === -1) return;
     const reordered = arrayMove(siblings, oldIndex, newIndex);
-    const names = flat.map((f) => f.name);
-    reordered.forEach((n, k) => { names[sibIdxs[k]] = n; });
-    setCats(names);
+    const nextIds = flat.map((f) => f.id);
+    reordered.forEach((n, k) => { nextIds[sibIdxs[k]] = n; });
+    setCats(nextIds);
     setRows((prev) => prev.map((r) => {
-      const i = reordered.indexOf(r.name);
+      const i = reordered.indexOf(r.id);
       return i === -1 ? r : { ...r, sort_order: i };
     }));
     setBusy(true);
     await persistSiblingOrder(reordered);
     setBusy(false);
-    await onUpdated(names);
+    await onUpdated(nextIds);
   };
 
-  const handleMove = async (catName: string, parentId: string | null) => {
-    const row = rows.find((r) => r.name === catName);
+  const handleMove = async (catId: string, parentId: string | null) => {
+    const row = rows.find((r) => r.id === catId);
     if (!row || (row.parent_id ?? null) === parentId) return;
-    const sortOrder = rows.filter((r) => (r.parent_id ?? null) === parentId && r.name !== catName).length;
+    const sortOrder = rows.filter((r) => (r.parent_id ?? null) === parentId && r.id !== catId).length;
     setBusy(true);
     const { error } = await supabase.from('restaurant_categories')
       .update({ parent_id: parentId, sort_order: sortOrder })
-      .eq('restaurant_id', restaurantId).eq('name', catName);
+      .eq('id', catId);
     setBusy(false);
-    if (error) { setDeleteError(`Couldn't move "${catName}". Please try again.`); return; }
-    setRows((prev) => prev.map((r) => r.name === catName ? { ...r, parent_id: parentId, sort_order: sortOrder } : r));
+    if (error) { setDeleteError(`Couldn't move "${row.name}". Please try again.`); return; }
+    setRows((prev) => prev.map((r) => r.id === catId ? { ...r, parent_id: parentId, sort_order: sortOrder } : r));
     await onUpdated(cats);
   };
 
   const handleAdd = async () => {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    if (cats.some((c) => c.toLowerCase() === trimmed.toLowerCase())) {
-      setDeleteError("That name is already taken.");
+    const parentId = newParent === "" ? null : newParent;
+    // Only siblings have to be distinct — "Desserts" may exist under two menus.
+    const siblings = rows.filter((r) => (r.parent_id ?? null) === parentId);
+    if (siblings.some((r) => r.name.toLowerCase() === trimmed.toLowerCase())) {
+      setDeleteError(parentId ? `"${trimmed}" already exists in that menu.` : "That name is already taken.");
       return;
     }
-    const parentId = newParent === "" ? null : newParent;
-    const sortOrder = rows.filter((r) => (r.parent_id ?? null) === parentId).length;
+    const sortOrder = siblings.length;
     setBusy(true);
     setDeleteError(null);
     const { data, error } = await supabase.from('restaurant_categories')
-      .upsert({ restaurant_id: restaurantId, name: trimmed, parent_id: parentId, sort_order: sortOrder, show_image: masterShowImages }, { onConflict: 'restaurant_id,name' })
+      .insert({ restaurant_id: restaurantId, name: trimmed, parent_id: parentId, sort_order: sortOrder, show_image: masterShowImages })
       .select('id, name, parent_id, sort_order')
       .single();
     setBusy(false);
     if (error || !data) { setDeleteError(`Couldn't add "${trimmed}". Please try again.`); return; }
-    const nextCats = [...cats, trimmed];
+    const nextCats = [...cats, (data as CategoryRow).id];
     setRows((prev) => [...prev, data as CategoryRow]);
     setCats(nextCats);
     setNewName("");
     await onUpdated(nextCats);
   };
 
-  const handleDelete = async (catName: string) => {
+  const handleDelete = async (catId: string) => {
     // Deleting a menu cascades to its child category rows (parent_id is
-    // ON DELETE CASCADE). Items reference categories by name, so we unassign
-    // every affected item ourselves rather than leaving them stranded.
-    const row = rows.find((r) => r.name === catName);
-    const childNames = layered && row ? rows.filter((r) => r.parent_id === row.id).map((r) => r.name) : [];
-    const affected = [catName, ...childNames];
-    const itemsInCat = affected.flatMap((n) => grouped[n] ?? []);
-    if (childNames.length > 0 || itemsInCat.length > 0) {
+    // ON DELETE CASCADE). menu_items.category_id is ON DELETE SET NULL, but we
+    // clear it up front so the confirm text matches what actually happens.
+    const row = rows.find((r) => r.id === catId);
+    if (!row) return;
+    const children = layered ? rows.filter((r) => r.parent_id === catId) : [];
+    const affected = [catId, ...children.map((r) => r.id)];
+    const itemsInCat = affected.flatMap((id) => grouped[id] ?? []);
+    if (children.length > 0 || itemsInCat.length > 0) {
       const parts: string[] = [];
-      if (childNames.length > 0) {
-        parts.push(`Deleting the menu "${catName}" also deletes the ${childNames.length} categor${childNames.length > 1 ? 'ies' : 'y'} inside it (${childNames.join(', ')}).`);
+      if (children.length > 0) {
+        parts.push(`Deleting the menu "${row.name}" also deletes the ${children.length} categor${children.length > 1 ? 'ies' : 'y'} inside it (${children.map((r) => r.name).join(', ')}).`);
       }
       if (itemsInCat.length > 0) {
         parts.push(`${itemsInCat.length} menu item${itemsInCat.length > 1 ? 's' : ''} will be left without a category. They won't be deleted, but customers won't see them until you move them somewhere else.`);
       }
       if (!confirm(`${parts.join(' ')} Continue?`)) return;
     }
-    setDeletingCats(prev => { const next = new Set(prev); next.add(catName); return next; });
+    setDeletingCats(prev => { const next = new Set(prev); next.add(catId); return next; });
     setDeleteError(null);
     if (itemsInCat.length > 0) {
-      await supabase.from('menu_items').update({ category: null }).in('id', itemsInCat.map((i) => i.id));
+      await supabase.from('menu_items').update({ category_id: null }).in('id', itemsInCat.map((i) => i.id));
     }
-    const { error } = await supabase.from('restaurant_categories')
-      .delete().eq('restaurant_id', restaurantId).eq('name', catName);
-    setDeletingCats(prev => { const next = new Set(prev); next.delete(catName); return next; });
-    if (error) { setDeleteError(`Failed to delete "${catName}". Please try again.`); return; }
+    const { error } = await supabase.from('restaurant_categories').delete().eq('id', catId);
+    setDeletingCats(prev => { const next = new Set(prev); next.delete(catId); return next; });
+    if (error) { setDeleteError(`Failed to delete "${row.name}". Please try again.`); return; }
     const newCats = cats.filter((c) => !affected.includes(c));
     setCats(newCats);
-    setRows((prev) => prev.filter((r) => !affected.includes(r.name)));
+    setRows((prev) => prev.filter((r) => !affected.includes(r.id)));
     await onUpdated(newCats);
   };
 
-  const handleRename = async (oldName: string, newName: string) => {
+  // menu_items.category is a denormalised mirror kept in sync by a DB trigger,
+  // so a rename only has to touch the category row itself.
+  const handleRename = async (catId: string, newName: string) => {
     setBusy(true);
-    await supabase.from('menu_items').update({ category: newName }).eq('restaurant_id', restaurantId).eq('category', oldName);
-    const { error } = await supabase.from('restaurant_categories').update({ name: newName }).eq('restaurant_id', restaurantId).eq('name', oldName);
+    const { error } = await supabase.from('restaurant_categories').update({ name: newName }).eq('id', catId);
     if (!error) {
-      const newCats = cats.map(c => c === oldName ? newName : c);
-      setCats(newCats);
-      setRows(prev => prev.map(r => r.name === oldName ? { ...r, name: newName } : r));
-      setShowImageMap(prev => { const n = { ...prev }; n[newName] = n[oldName]; delete n[oldName]; return n; });
-      setImageModeMap(prev => { const n = { ...prev }; n[newName] = n[oldName]; delete n[oldName]; return n; });
-      setBannerItemMap(prev => { const n = { ...prev }; n[newName] = n[oldName]; delete n[oldName]; return n; });
-      await onUpdated(newCats);
+      setRows(prev => prev.map(r => r.id === catId ? { ...r, name: newName } : r));
+      await onUpdated(cats);
     }
     setBusy(false);
   };
@@ -3183,16 +3206,13 @@ function ManageCategoriesModal({
   const handleToggleMasterShowImages = async (val: boolean) => {
     setMasterShowImages(val);
     // Menus are containers — only real categories get a banner image.
-    const imageCats = flat.filter((f) => !f.isMenu).map((f) => f.name);
+    const imageCatIds = flat.filter((f) => !f.isMenu).map((f) => f.id);
     const updatedMap: Record<string, boolean> = {};
-    for (const cat of imageCats) updatedMap[cat] = val;
+    for (const id of imageCatIds) updatedMap[id] = val;
     setShowImageMap(updatedMap);
     setBusy(true);
-    for (const cat of imageCats) {
-      await supabase.from('restaurant_categories')
-        .update({ show_image: val })
-        .eq('restaurant_id', restaurantId)
-        .eq('name', cat);
+    for (const id of imageCatIds) {
+      await supabase.from('restaurant_categories').update({ show_image: val }).eq('id', id);
     }
     setBusy(false);
   };
@@ -3297,20 +3317,20 @@ function ManageCategoriesModal({
               />
               <button type="button" onClick={handleGroupIntoNewMenu} disabled={busy || !menuName.trim()}
                 className="font-sans mt-2 w-full py-2 rounded-xl bg-[var(--accent)] text-white font-medium text-sm disabled:opacity-50 hover:opacity-90 transition-opacity">
-                {selectedNames.length === 0
+                {selectedIds.length === 0
                   ? "Create empty menu"
-                  : `Create menu and move ${selectedNames.length} ticked categor${selectedNames.length !== 1 ? 'ies' : 'y'} into it`}
+                  : `Create menu and move ${selectedIds.length} ticked categor${selectedIds.length !== 1 ? 'ies' : 'y'} into it`}
               </button>
               <p className="text-[11px] text-[var(--muted)] font-sans mt-2">
-                {selectedNames.length === 0
+                {selectedIds.length === 0
                   ? "Create it empty and add categories to it below, or tick categories in the list first to move them straight in."
-                  : `Ticked: ${selectedNames.join(', ')}.`}
+                  : `Ticked: ${selectedIds.map(label).join(', ')}.`}
               </p>
-              {selectedNames.length > 0 && (
+              {selectedIds.length > 0 && (
                 <>
                   <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-[var(--accent)]/25">
                     <p className="text-[11px] font-semibold font-sans text-[var(--foreground)]">
-                      Or move the {selectedNames.length} ticked categor{selectedNames.length !== 1 ? 'ies' : 'y'} somewhere else
+                      Or move the {selectedIds.length} ticked categor{selectedIds.length !== 1 ? 'ies' : 'y'} somewhere else
                     </p>
                     <button type="button" onClick={() => setSelected(new Set())}
                       className="flex-shrink-0 text-[11px] font-sans text-[var(--muted)] hover:text-[var(--foreground)] underline">
@@ -3386,14 +3406,15 @@ function ManageCategoriesModal({
           </div>
 
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={flat.map((f) => f.name)} strategy={verticalListSortingStrategy}>
+            <SortableContext items={flat.map((f) => f.id)} strategy={verticalListSortingStrategy}>
               <div className="space-y-2">
                 {flat.map((entry) => {
-                  const cat = entry.name;
+                  const cat = entry.id;
                   return (
                   <SortableCategoryManageRow
                     key={cat}
-                    name={cat}
+                    id={cat}
+                    name={entry.name}
                     depth={entry.depth}
                     isMenu={entry.isMenu}
                     childCount={entry.childCount}
@@ -3416,8 +3437,7 @@ function ManageCategoriesModal({
                       setBannerItemMap((prev) => ({ ...prev, [cat]: itemId }));
                       await supabase.from('restaurant_categories')
                         .update({ image_mode: mode, banner_item_id: itemId, use_banner: mode === 'item' })
-                        .eq('restaurant_id', restaurantId)
-                        .eq('name', cat);
+                        .eq('id', cat);
                     }}
                   />
                   );
