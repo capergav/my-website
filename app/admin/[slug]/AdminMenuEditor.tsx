@@ -3194,12 +3194,39 @@ function ManageCategoriesModal({
   // menu_items.category is a denormalised mirror kept in sync by a DB trigger,
   // so a rename only has to touch the category row itself.
   const handleRename = async (catId: string, newName: string) => {
-    setBusy(true);
-    const { error } = await supabase.from('restaurant_categories').update({ name: newName }).eq('id', catId);
-    if (!error) {
-      setRows(prev => prev.map(r => r.id === catId ? { ...r, name: newName } : r));
-      await onUpdated(cats);
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    const target = rows.find((r) => r.id === catId);
+    if (!target || target.name === trimmed) return;
+
+    // Names only have to be unique among siblings, so the check is scoped to the
+    // rows sharing this parent. parent_id is the menu — there is no menu_id column.
+    const parentId = target.parent_id ?? null;
+    const clash = rows.some(
+      (r) => r.id !== catId && (r.parent_id ?? null) === parentId && r.name.toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (clash) {
+      const parentName = parentId ? rows.find((r) => r.id === parentId)?.name : null;
+      setDeleteError(`"${trimmed}" already exists${parentName ? ` in ${parentName}` : ""}.`);
+      return;
     }
+
+    setBusy(true);
+    setDeleteError(null);
+    const { error } = await supabase.from('restaurant_categories').update({ name: trimmed }).eq('id', catId);
+    if (error) {
+      // Until migration 002 drops the account-wide unique index, a name used by
+      // any other category in the restaurant still fails here with 23505.
+      setDeleteError(
+        error.code === '23505'
+          ? `"${trimmed}" is already used by another category. Names only need to be unique within a menu — if this keeps happening, migration 002 has not been applied yet.`
+          : `Couldn't rename to "${trimmed}". Please try again.`,
+      );
+      setBusy(false);
+      return;
+    }
+    setRows(prev => prev.map(r => r.id === catId ? { ...r, name: trimmed } : r));
+    await onUpdated(cats);
     setBusy(false);
   };
 
