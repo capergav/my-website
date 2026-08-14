@@ -7,6 +7,11 @@ export type CategoryRow = {
   image_url: string | null;
 };
 
+/** Name of the placeholder item seeded into brand-new empty menus. The tour
+ *  looks for it to decide whether it can still talk about "the sample dish",
+ *  so the seeder and that check must never drift apart. */
+export const SAMPLE_ITEM_NAME = "Sample Dish";
+
 export const CATEGORY_ORDER = [
   "Breakfast",
   "Appetizers",

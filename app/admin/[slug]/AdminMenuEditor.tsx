@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
 import { createSupabaseClient } from "@/app/lib/supabase";
-import { CATEGORY_ORDER } from "@/app/lib/constants";
+import { CATEGORY_ORDER, SAMPLE_ITEM_NAME } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
 import { buildMenuGroups, categoryNameMap } from "@/app/lib/supabase";
 import type { Restaurant, CategoryRow, MenuGroup } from "@/app/lib/supabase";
@@ -306,6 +306,14 @@ export function AdminMenuEditor({
   };
 
   const [grouped, setGrouped]                   = useState<Grouped>(initialGrouped);
+  // Drives the tour's item-card copy: once the seeded placeholder has been
+  // renamed or deleted, a replay must stop calling it "the sample dish".
+  const hasSampleItem = useMemo(
+    () => Object.values(grouped).some((items) =>
+      items.some((i) => i.name.trim().toLowerCase() === SAMPLE_ITEM_NAME.toLowerCase())
+    ),
+    [grouped]
+  );
   const [sortedCategories, setSortedCategories] = useState(initialSortedCategories);
   const [categoryRows, setCategoryRows]         = useState<CategoryRow[]>(initialCategoryRows);
   const [activeCategory, setActiveCategory]     = useState(initialSortedCategories[0] ?? "");
@@ -439,7 +447,7 @@ export function AdminMenuEditor({
           if (seedCat) {
             await supabase.from('menu_items').insert({
               restaurant_id: restaurantId,
-              name: 'Sample Dish',
+              name: SAMPLE_ITEM_NAME,
               description: 'Feel free to edit or delete this item and add your real menu.',
               price: 0,
               category_id: seedCat.id,
@@ -1400,6 +1408,7 @@ export function AdminMenuEditor({
       <OnboardingTour
         tourKey={tourKey}
         hasCompletedTour={hasCompletedTour}
+        hasSampleItem={hasSampleItem}
         userId={user?.id}
         slug={restaurantSlug}
       />

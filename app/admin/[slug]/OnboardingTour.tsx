@@ -7,6 +7,11 @@ import { createSupabaseClient } from "@/app/lib/supabase";
 type StepConfig = {
   title: string;
   body: string;
+  /** Copy used instead of title/body on a REPLAY once the seeded "Sample Dish"
+   *  is no longer on the menu. An owner replaying the tour over their real
+   *  menu must not be told about a placeholder dish that isn't there. */
+  replayTitle?: string;
+  replayBody?: string;
   targetSelector: string | null;
   menuOpen: boolean;
 };
@@ -21,6 +26,8 @@ const STEPS: StepConfig[] = [
   {
     title: "We added a sample item for you",
     body: "We created a sample dish so you can see how items look. Edit or delete it anytime — or use it as a starting point.",
+    replayTitle: "Your item cards",
+    replayBody: "Here's an item card — this is where your dishes live. Use Edit to update the details, or Delete to remove an item from your menu.",
     targetSelector: "[data-tour='first-item-card']",
     menuOpen: false,
   },
@@ -193,14 +200,20 @@ const waitForStable = async (
 export function OnboardingTour({
   tourKey,
   hasCompletedTour,
+  hasSampleItem = false,
   userId,
 }: {
   tourKey: number;
   hasCompletedTour?: boolean;
+  /** Whether the seeded placeholder dish is still on the menu. */
+  hasSampleItem?: boolean;
   userId?: string;
   slug: string;
 }) {
   const [currentStep, setCurrentStep] = useState(0);
+  // The tour only auto-opens when hasCompletedTour === false, so the only way it
+  // can be on screen with this true is a tourKey bump from the replay button.
+  const [isReplay, setIsReplay] = useState(false);
   const [visible, setVisible] = useState(false);
   const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
   const [overlayOpacity, setOverlayOpacity] = useState(0);
@@ -374,6 +387,7 @@ export function OnboardingTour({
   useEffect(() => {
     if (tourKey > prevTourKeyRef.current) {
       prevTourKeyRef.current = tourKey;
+      setIsReplay(true);
       stepGenRef.current++; // any running pipeline is now stale and will bail
       overlayActiveRef.current = false;
       setOverlayOpacity(0);
@@ -475,9 +489,18 @@ export function OnboardingTour({
   const isFirst = currentStep === 0;
   const isLast = currentStep === TOTAL_STEPS - 1;
 
+  const step = STEPS[currentStep];
+  // On a first run the placeholder copy is always right — the account is brand
+  // new, so the seeded dish either exists or is a moment from being inserted,
+  // and waiting on that insert would be a race. Only a replay can fall back.
+  const useReplayCopy = isReplay && !hasSampleItem;
+  const stepTitle = useReplayCopy && step.replayTitle ? step.replayTitle : step.title;
+
   const stepBody = isLast
     ? "Your menu is live. Add your real dishes and set your theme whenever you're ready."
-    : STEPS[currentStep].body;
+    : useReplayCopy && step.replayBody
+      ? step.replayBody
+      : step.body;
 
   const progressPercent = ((currentStep + 1) / TOTAL_STEPS) * 100;
 
@@ -603,7 +626,7 @@ export function OnboardingTour({
             >
               <div className="flex items-start justify-between gap-3 mb-3">
                 <h3 className="text-base font-semibold text-gray-900 leading-snug">
-                  {STEPS[currentStep].title}
+                  {stepTitle}
                 </h3>
                 <span className="text-xs text-gray-400 flex-shrink-0 pt-0.5">
                   {currentStep + 1} of {TOTAL_STEPS}
