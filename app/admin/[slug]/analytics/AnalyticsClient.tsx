@@ -7,6 +7,7 @@ import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
+import { locales } from "@/app/lib/translations";
 
 const GOLD = "#8b6914";
 const GOLD_LIGHT = "#c9a030";
@@ -30,18 +31,11 @@ const VISIT_TYPE_NAMES: Record<string, string> = {
   takeaway: "Takeaway",
 };
 
-const LANGUAGE_NAMES: Record<string, string> = {
-  en: "English",
-  fr: "Français",
-  es: "Español",
-  ar: "العربية",
-  zh: "中文",
-  ko: "한국어",
-  pa: "ਪੰਜਾਬੀ",
-  yue: "廣東話",
-  tl: "Filipino",
-  hi: "हिन्दी",
-};
+// Derived from the canonical language list so a newly added locale shows its
+// real name here instead of falling back to the raw code.
+const LANGUAGE_NAMES: Record<string, string> = Object.fromEntries(
+  locales.map((l) => [l.value, l.label])
+);
 
 type Props = {
   slug: string;

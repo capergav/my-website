@@ -13,6 +13,7 @@ import { ImageUploader } from "./ImageUploader";
 import { OnboardingTour } from "./OnboardingTour";
 import { useSubscription, type SubStatus } from "@/lib/useSubscription";
 import { friendlyErrorMessage } from "@/app/lib/errors";
+import { locales } from "@/app/lib/translations";
 import { AlertTriangle, AlertCircle, Plus, GripVertical, UtensilsCrossed, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { AccountDangerZone } from "./AccountDangerZone";
 import {
@@ -4738,18 +4739,12 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
 // ── Settings Modal ────────────────────────────────────────────────────────────
 
-const SETTINGS_LANGUAGES = [
-  { value: "en", label: "English" },
-  { value: "fr", label: "Français" },
-  { value: "es", label: "Español" },
-  { value: "zh", label: "中文" },
-  { value: "ar", label: "العربية" },
-  { value: "ja", label: "日本語" },
-  { value: "ko", label: "한국어" },
-  { value: "pt", label: "Português" },
-  { value: "de", label: "Deutsch" },
-  { value: "it", label: "Italiano" },
-];
+// Derived from the canonical language list (app/lib/translations.ts) so this
+// dropdown can never offer a "default language" that isn't actually
+// translated — it used to be hand-maintained and had drifted: it offered
+// ja/de/it/pt before they had real translations, and was missing pa/yue/tl/hi
+// which did.
+const SETTINGS_LANGUAGES = locales.map((l) => ({ value: l.value, label: l.label }));
 
 // ── Settings sub-components — defined at top level to prevent focus-loss on re-render ──
 

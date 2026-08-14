@@ -11,11 +11,16 @@ import {
 import type { Locale } from "@/app/lib/translations";
 import {
   getCategoryLabel as getCategoryLabelFn,
+  locales,
   t as tFn,
 } from "@/app/lib/translations";
 
 const STORAGE_KEY = "menusnap-locale";
-const VALID_LOCALES = ["en","fr","zh","ar","es","ko","pa","yue","fil","hi"];
+// Derived from the canonical language list so a newly added locale is valid
+// here automatically. This used to be hand-maintained and drifted — it listed
+// "fil" instead of "tl", so a guest who picked Filipino lost the choice on
+// every reload because the stored value never passed validation.
+const VALID_LOCALES: string[] = locales.map((l) => l.value);
 
 type LanguageContextValue = {
   locale: Locale;

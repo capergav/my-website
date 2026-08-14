@@ -11,7 +11,7 @@ import {
   Soup, Pizza, Beef, Croissant, GlassWater, Flame, Salad,
   ChevronLeft, ChevronRight,
 } from "lucide-react";
-import type { Locale } from "@/app/lib/translations";
+import { locales, type Locale } from "@/app/lib/translations";
 import type { MenuGroup } from "@/app/lib/supabase";
 
 export type MenuItem = {
@@ -247,7 +247,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNames, menuGroups,
     const stored = typeof window !== 'undefined' ? localStorage.getItem('menusnap-locale') : null;
     if (stored) return;
     const browserLang = navigator.language.split('-')[0];
-    const supported: Locale[] = ["en", "fr", "zh", "ar", "es", "ko", "pa", "yue", "tl", "hi"];
+    const supported: Locale[] = locales.map((l) => l.value);
     const match = supported.find(l => l === browserLang);
     if (match) setLocale(match);
   }, [allowAutoTranslate, setLocale]);
