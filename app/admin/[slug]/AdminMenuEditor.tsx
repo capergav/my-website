@@ -3215,10 +3215,16 @@ function ManageCategoriesModal({
 
     setBusy(true);
     setDeleteError(null);
+    // Apply the new name before the round-trip. The row leaves edit mode the
+    // instant Enter is pressed, so waiting for the server here would re-render
+    // the read-only label with the old name until the response landed.
+    const previousName = target.name;
+    setRows(prev => prev.map(r => r.id === catId ? { ...r, name: trimmed } : r));
     const { error } = await supabase.from('restaurant_categories').update({ name: trimmed }).eq('id', catId);
     if (error) {
       // Until migration 002 drops the account-wide unique index, a name used by
       // any other category in the restaurant still fails here with 23505.
+      setRows(prev => prev.map(r => r.id === catId ? { ...r, name: previousName } : r));
       setDeleteError(
         error.code === '23505'
           ? `"${trimmed}" is already used by another category. Names only need to be unique within a menu — if this keeps happening, migration 002 has not been applied yet.`
@@ -3227,7 +3233,6 @@ function ManageCategoriesModal({
       setBusy(false);
       return;
     }
-    setRows(prev => prev.map(r => r.id === catId ? { ...r, name: trimmed } : r));
     await onUpdated(cats);
     setBusy(false);
   };
