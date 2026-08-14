@@ -26,7 +26,7 @@ const STEPS: StepConfig[] = [
   },
   {
     title: "Categories keep your menu organised",
-    body: "Each tab is a category — Starters, Mains, Desserts, Drinks. Click to switch between them, drag to reorder.",
+    body: "Each tab is a category — Starters, Mains, Desserts, Drinks. Click to switch between them, drag to reorder. If you group them into menus, a row of menu names appears above.",
     targetSelector: "[data-tour='tour-categories']",
     menuOpen: false,
   },
@@ -34,6 +34,18 @@ const STEPS: StepConfig[] = [
     title: "Adding a new category",
     body: "Click '+ Add category' to create a new section. Rename or delete categories anytime from the Manage button.",
     targetSelector: "[data-tour='add-category']",
+    menuOpen: false,
+  },
+  {
+    title: "Run more than one menu",
+    body: "You don't have to keep everything in one flat list. Categories can be grouped inside named menus — Lunch, Dinner, Drinks — so customers pick a menu first, then a category. Ideal for distinct meal periods or a seasonal menu.",
+    targetSelector: "[data-tour='manage-categories']",
+    menuOpen: false,
+  },
+  {
+    title: "Manage menus & categories",
+    body: "This button opens it. Switch to Layered, name a new menu, then tick categories to move them in or add fresh ones straight to it. Category names only need to be unique within their own menu — so 'Desserts' can sit under both Lunch and Dinner.",
+    targetSelector: "[data-tour='manage-categories']",
     menuOpen: false,
   },
   {
@@ -556,7 +568,7 @@ export function OnboardingTour({
       )}
 
       {/* Tour card — must sit above the menu-step overlay (z-101) so the
-          "Next" button stays visible and clickable on steps 8/9. */}
+          "Next" button stays visible and clickable on the menuOpen steps. */}
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}

@@ -1217,6 +1217,7 @@ export function AdminMenuEditor({
                       <span className="max-w-[14rem] truncate">{addCategoryLabel}</span>
                     </button>
                     <button
+                      data-tour="manage-categories"
                       type="button"
                       onPointerDown={(e) => e.stopPropagation()}
                       onClick={() => setShowManageModal(true)}
