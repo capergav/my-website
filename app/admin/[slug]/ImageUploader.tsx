@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createSupabaseClient } from "@/app/lib/supabase";
+import { friendlyErrorMessage } from "@/app/lib/errors";
 
 type Props = {
   currentUrl: string;
@@ -94,7 +95,7 @@ export function ImageUploader({
       .upload(path, blob, { upsert: true, contentType: "image/webp" });
 
     if (uploadError) {
-      setError(uploadError.message);
+      setError(friendlyErrorMessage(uploadError));
       setUploading(false);
       return;
     }

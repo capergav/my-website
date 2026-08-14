@@ -12,6 +12,7 @@ import type { Restaurant, CategoryRow, MenuGroup } from "@/app/lib/supabase";
 import { ImageUploader } from "./ImageUploader";
 import { OnboardingTour } from "./OnboardingTour";
 import { useSubscription, type SubStatus } from "@/lib/useSubscription";
+import { friendlyErrorMessage } from "@/app/lib/errors";
 import { AlertTriangle, AlertCircle, Plus, GripVertical, UtensilsCrossed, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { AccountDangerZone } from "./AccountDangerZone";
 import {
@@ -538,7 +539,7 @@ export function AdminMenuEditor({
         .eq("restaurant_id", restaurantId)
         .order("sort_order", { ascending: true }),
     ]);
-    if (itemsResult.error) { showMsg("err", itemsResult.error.message); return; }
+    if (itemsResult.error) { showMsg("err", friendlyErrorMessage(itemsResult.error)); return; }
     const g: Grouped = {};
     (itemsResult.data ?? []).forEach((row) => {
       const item = row as MenuItemRow;
@@ -624,14 +625,14 @@ export function AdminMenuEditor({
         await deleteStorageImage(editingItem.image_url);
       }
       const { error } = await supabase.from("menu_items").update(payload).eq("id", editingItem.id);
-      if (error) showMsg("err", error.message);
+      if (error) showMsg("err", friendlyErrorMessage(error));
       else { showMsg("ok", "Item updated."); setEditingItem(null); await refreshMenu(); }
     } else {
       const catItems = (payload.category_id && grouped[payload.category_id]) ? grouped[payload.category_id] : [];
       const { error } = await supabase.from("menu_items").insert({
         ...payload, restaurant_id: restaurantId, sort_order: catItems.length,
       });
-      if (error) showMsg("err", error.message);
+      if (error) showMsg("err", friendlyErrorMessage(error));
       else { showMsg("ok", "Item added."); setAddingNew(false); await refreshMenu(); }
     }
     setSaving(false);
@@ -642,7 +643,7 @@ export function AdminMenuEditor({
     if (imageUrl) await deleteStorageImage(imageUrl);
     setSaving(true);
     const { error } = await supabase.from("menu_items").delete().eq("id", id);
-    if (error) showMsg("err", error.message);
+    if (error) showMsg("err", friendlyErrorMessage(error));
     else { showMsg("ok", "Deleted."); setEditingItem(null); await refreshMenu(); }
     setSaving(false);
   };
@@ -659,7 +660,7 @@ export function AdminMenuEditor({
       await deleteStorageImage(r.logo_url);
     }
     const { error } = await supabase.from("restaurants").update(updates).eq("id", restaurantId);
-    if (error) { showMsg("err", error.message); }
+    if (error) { showMsg("err", friendlyErrorMessage(error)); }
     else { setRestaurant(p => p ? { ...p, ...updates } : null); showMsg("ok", "Theme saved."); }
     setSaving(false);
   };
@@ -672,7 +673,7 @@ export function AdminMenuEditor({
       { restaurant_id: restaurantId, category_id: categoryId, category: categoryNames[categoryId] ?? "", note: note.trim() || null },
       { onConflict: "category_id" }
     );
-    if (error) showMsg("err", error.message);
+    if (error) showMsg("err", friendlyErrorMessage(error));
     else { setCategoryNotes((p) => ({ ...p, [categoryId]: note.trim() })); showMsg("ok", "Note saved."); }
     setSavingNote(false);
   };
@@ -1330,7 +1331,7 @@ export function AdminMenuEditor({
                               setSaving(true);
                               const { error } = await supabase.from("menu_items")
                                 .update({ available: next }).eq("id", item.id);
-                              if (error) showMsg("err", error.message);
+                              if (error) showMsg("err", friendlyErrorMessage(error));
                               else { showMsg("ok", next ? "Marked available." : "Marked unavailable."); await refreshMenu(); }
                               setSaving(false);
                             }}
@@ -1344,7 +1345,7 @@ export function AdminMenuEditor({
                               setSaving(true);
                               const { error } = await supabase.from("menu_items")
                                 .update({ hidden: next }).eq("id", item.id);
-                              if (error) showMsg("err", error.message);
+                              if (error) showMsg("err", friendlyErrorMessage(error));
                               else { showMsg("ok", next ? "Hidden from menu." : "Shown on menu."); await refreshMenu(); }
                               setSaving(false);
                             }}
@@ -1456,7 +1457,7 @@ export function AdminMenuEditor({
           onToggleNesting={async (value) => {
             const { error } = await supabase.from("restaurants")
               .update({ use_nested_categories: value }).eq("id", restaurantId);
-            if (error) { showMsg("err", error.message); return false; }
+            if (error) { showMsg("err", friendlyErrorMessage(error)); return false; }
             setRestaurant((p) => p ? { ...p, use_nested_categories: value } : p);
             return true;
           }}
@@ -1580,7 +1581,7 @@ function FeedbackModal({ onClose }: { onClose: () => void }) {
       setDone(true);
       setTimeout(onClose, 2200);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(friendlyErrorMessage(err));
     } finally {
       setSubmitting(false);
     }
@@ -4850,7 +4851,7 @@ function SettingsModal({
     ]);
     setSaving(false);
     const error = authError ?? restError;
-    if (error) showMsg("err", error.message);
+    if (error) showMsg("err", friendlyErrorMessage(error));
     else { showMsg("ok", "Settings saved."); setIsDirty(false); }
   };
 
@@ -4877,7 +4878,7 @@ function SettingsModal({
       redirectTo: `${window.location.origin}/reset-password`,
     });
     setPwLoading(false);
-    if (error) showMsg("err", error.message);
+    if (error) showMsg("err", friendlyErrorMessage(error));
     else { setPwSent(true); showMsg("ok", "Password reset email sent — check your inbox."); }
   };
 

@@ -464,7 +464,13 @@ export function MenuTabs({ grouped, sortedCategories, categoryNames, menuGroups,
             shadow so it reads as a level below row 1 rather than a second
             row of equal-weight tabs. */}
         {showCategoryRow && (
-          <div className="relative max-w-4xl mx-auto px-3 sm:px-6" style={{ background: subBand }}>
+          /* Tint goes on this full-width wrapper, not the max-w-4xl content
+             div below — the sticky header row it sits under spans the whole
+             page, so on any desktop viewport wider than 4xl the band used to
+             stop dead at the content edge while row 1 kept going, leaving a
+             hard, wrong-looking seam either side of the tabs. */
+          <div style={{ background: subBand }}>
+          <div className="relative max-w-4xl mx-auto px-3 sm:px-6">
             {/* Left/right fade edges — matched to the band so the tint is even */}
             <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-6 z-10" style={{ backgroundImage: `linear-gradient(to right, ${subBand}, transparent)` }} />
             <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 z-10" style={{ backgroundImage: `linear-gradient(to left, ${subBand}, transparent)` }} />
@@ -586,6 +592,7 @@ export function MenuTabs({ grouped, sortedCategories, categoryNames, menuGroups,
                 );
               })}
             </div>
+          </div>
           </div>
         )}
         </div>
