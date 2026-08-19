@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { WheatOff, Leaf, BarChart3, Star, Flame, Sprout, MilkOff, ShieldCheck, MessageSquare } from "lucide-react";
+import {
+  WheatOff, Leaf, BarChart3, Star, Flame, Sprout, MilkOff, ShieldCheck, MessageSquare,
+  Layers, Image as ImageIcon, Smartphone, Languages as LanguagesIcon, CalendarCheck,
+} from "lucide-react";
 import { AnalyticsDemo } from "@/app/components/AnalyticsDemo";
 import { useIsMobile } from "@/lib/useIsMobile";
 import {
@@ -18,7 +21,6 @@ const CT_PASTA_URL   = "https://images.unsplash.com/photo-1476124369491-e7addf5d
 const FRIES_IMAGE_URL  = "https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=200&q=80";
 const BURGER_IMAGE_URL = "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=200&q=80";
 const EXAMPLE_MENU_URL = "/menu/gavinrgallant-1";
-const LIVE_DEMO_URL    = "https://dinelinks.com/menu/gavinrgallant-1";
 // Make it yours card images
 const PASTA_IMG    = "https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=200&q=80";
 const STEAK_IMG    = "https://images.unsplash.com/photo-1546964124-0cce460f38ef?w=200&q=80";
@@ -149,18 +151,28 @@ function FeatureCard3D({ feature, delay, rm }: { feature: typeof FEATURES[0]; de
 }
 
 // ── Live Translation Demo ──────────────────────────────────────────────────────
-type DemoLang = { categoryName: string; categoryNote: string; items: [string, string, string] };
+type DemoLang = {
+  categoryName: string;
+  categoryNote: string;
+  items: [string, string, string];
+  /** Sibling course tabs, so every tab in the mockup translates — not just the active one. */
+  appetizers: string;
+  desserts: string;
+};
 const DEMO_TRANSLATIONS: Record<string, DemoLang> = {
-  "English":  { categoryName: "Mains", categoryNote: "All entrées served with soup or salad and house bread.", items: ["Seared Duck Confit", "Atlantic Salmon", "Crème Brûlée"] },
-  "Français": { categoryName: "Plats principaux", categoryNote: "Tous les plats sont servis avec soupe ou salade et pain maison.", items: ["Confit de Canard Saisi", "Saumon de l'Atlantique", "Crème Brûlée"] },
-  "Español":  { categoryName: "Platos principales", categoryNote: "Todos los platos se sirven con sopa o ensalada y pan de la casa.", items: ["Pato Confitado Dorado", "Salmón del Atlántico", "Crema Catalana"] },
-  "العربية":  { categoryName: "الأطباق الرئيسية", categoryNote: "تقدم جميع الأطباق الرئيسية مع الحساء أو السلطة وخبز البيت.", items: ["بط كونفيت مقلي", "سلمون أطلنطي", "كريم بروليه"] },
-  "中文":     { categoryName: "主菜", categoryNote: "所有主菜均配汤或沙拉以及自制面包。", items: ["煎鸭腿肉", "大西洋三文鱼", "焦糖布丁"] },
-  "한국어":   { categoryName: "메인 요리", categoryNote: "모든 메인 요리는 수프 또는 샐러드와 홈메이드 빵과 함께 제공됩니다.", items: ["구운 오리 콩피", "대서양 연어", "크렘 브륄레"] },
-  "ਪੰਜਾਬੀ":  { categoryName: "ਮੁੱਖ ਪਕਵਾਨ", categoryNote: "ਸਾਰੇ ਮੁੱਖ ਪਕਵਾਨ ਸੂਪ ਜਾਂ ਸਲਾਦ ਅਤੇ ਘਰੇਲੂ ਰੋਟੀ ਨਾਲ ਪਰੋਸੇ ਜਾਂਦੇ ਹਨ।", items: ["ਸੀਅਰਡ ਡੱਕ ਕੌਂਫਿਟ", "ਅਟਲਾਂਟਿਕ ਸੈਲਮਨ", "ਕ੍ਰੇਮ ਬਰੂਲੀ"] },
-  "廣東話":   { categoryName: "主菜", categoryNote: "所有主菜均配湯或沙律及自家製麵包。", items: ["煎鴨腿", "大西洋三文魚", "焦糖布甸"] },
-  "Filipino": { categoryName: "Pangunahing Putahe", categoryNote: "Lahat ng pangunahing putahe ay may kasamang sopas o salad at tinapay.", items: ["Inihaw na Pato", "Atlantikong Salmon", "Krema Brulée"] },
-  "हिन्दी":   { categoryName: "मुख्य व्यंजन", categoryNote: "सभी मुख्य व्यंजन सूप या सलाद और घर की बनी रोटी के साथ परोसे जाते हैं।", items: ["सीयर्ड डक कॉन्फिट", "अटलांटिक सालमन", "क्रेम ब्रूले"] },
+  "English":  { categoryName: "Mains", categoryNote: "All entrées served with soup or salad and house bread.", items: ["Seared Duck Confit", "Atlantic Salmon", "Crème Brûlée"], appetizers: "Appetizers", desserts: "Desserts" },
+  "Français": { categoryName: "Plats principaux", categoryNote: "Tous les plats sont servis avec soupe ou salade et pain maison.", items: ["Confit de Canard Saisi", "Saumon de l'Atlantique", "Crème Brûlée"], appetizers: "Entrées", desserts: "Desserts" },
+  "Español":  { categoryName: "Platos principales", categoryNote: "Todos los platos se sirven con sopa o ensalada y pan de la casa.", items: ["Pato Confitado Dorado", "Salmón del Atlántico", "Crema Catalana"], appetizers: "Entrantes", desserts: "Postres" },
+  "العربية":  { categoryName: "الأطباق الرئيسية", categoryNote: "تقدم جميع الأطباق الرئيسية مع الحساء أو السلطة وخبز البيت.", items: ["بط كونفيت مقلي", "سلمون أطلنطي", "كريم بروليه"], appetizers: "المقبلات", desserts: "الحلويات" },
+  "简体中文": { categoryName: "主菜", categoryNote: "所有主菜均配汤或沙拉以及自制面包。", items: ["煎鸭腿肉", "大西洋三文鱼", "焦糖布丁"], appetizers: "前菜", desserts: "甜点" },
+  "한국어":   { categoryName: "메인 요리", categoryNote: "모든 메인 요리는 수프 또는 샐러드와 홈메이드 빵과 함께 제공됩니다.", items: ["구운 오리 콩피", "대서양 연어", "크렘 브륄레"], appetizers: "애피타이저", desserts: "디저트" },
+  "ਪੰਜਾਬੀ":  { categoryName: "ਮੁੱਖ ਪਕਵਾਨ", categoryNote: "ਸਾਰੇ ਮੁੱਖ ਪਕਵਾਨ ਸੂਪ ਜਾਂ ਸਲਾਦ ਅਤੇ ਘਰੇਲੂ ਰੋਟੀ ਨਾਲ ਪਰੋਸੇ ਜਾਂਦੇ ਹਨ।", items: ["ਸੀਅਰਡ ਡੱਕ ਕੌਂਫਿਟ", "ਅਟਲਾਂਟਿਕ ਸੈਲਮਨ", "ਕ੍ਰੇਮ ਬਰੂਲੀ"], appetizers: "ਸ਼ੁਰੂਆਤੀ", desserts: "ਮਿਠਾਈਆਂ" },
+  "廣東話":   { categoryName: "主菜", categoryNote: "所有主菜均配湯或沙律及自家製麵包。", items: ["煎鴨腿", "大西洋三文魚", "焦糖布甸"], appetizers: "前菜", desserts: "甜品" },
+  "Filipino": { categoryName: "Pangunahing Putahe", categoryNote: "Lahat ng pangunahing putahe ay may kasamang sopas o salad at tinapay.", items: ["Inihaw na Pato", "Atlantikong Salmon", "Krema Brulée"], appetizers: "Pampagana", desserts: "Panghimagas" },
+  "हिन्दी":   { categoryName: "मुख्य व्यंजन", categoryNote: "सभी मुख्य व्यंजन सूप या सलाद और घर की बनी रोटी के साथ परोसे जाते हैं।", items: ["सीयर्ड डक कॉन्फिट", "अटलांटिक सालमन", "क्रेम ब्रूले"], appetizers: "क्षुधावर्धक", desserts: "मिठाइयाँ" },
+  "Italiano": { categoryName: "Secondi", categoryNote: "Tutti i secondi sono serviti con zuppa o insalata e pane della casa.", items: ["Confit d'Anatra Scottato", "Salmone dell'Atlantico", "Crème Brûlée"], appetizers: "Antipasti", desserts: "Dolci" },
+  "Deutsch":  { categoryName: "Hauptgerichte", categoryNote: "Alle Hauptgerichte werden mit Suppe oder Salat und hausgemachtem Brot serviert.", items: ["Gebratenes Entenconfit", "Atlantischer Lachs", "Crème brûlée"], appetizers: "Vorspeisen", desserts: "Desserts" },
+  "日本語":   { categoryName: "メイン料理", categoryNote: "メイン料理はすべてスープまたはサラダと自家製パンが付きます。", items: ["鴨のコンフィ", "大西洋サーモン", "クレームブリュレ"], appetizers: "前菜", desserts: "デザート" },
 };
 const DEMO_PRICES = ["$24.00", "$22.00", "$14.00"];
 const DEMO_IMAGES = [CT_STEAK_URL, CT_SALMON_URL, CT_DESSERT_URL];
@@ -220,7 +232,7 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
                       <img src={cat.img} alt="" className="w-full h-full object-cover" />
                     </div>
                     <span className={`text-[8px] font-bold tracking-wider ${cat.active ? "text-[#8b6914]" : "text-gray-400"}`}>
-                      {i === 0 ? (categoryName.split(" ")[0].toUpperCase()) : i === 1 ? "STARTERS" : "DESSERTS"}
+                      {(i === 0 ? categoryName.split(" ")[0] : i === 1 ? langData.appetizers : langData.desserts).toUpperCase()}
                     </span>
                   </div>
                 ))}
@@ -326,7 +338,7 @@ function LiveTranslationDemo({ rm }: { rm: boolean }) {
             >
               <p className="text-[#2c2a26] text-sm leading-relaxed">
                 Perfect for restaurants in tourist areas, diverse neighborhoods, and cities with international visitors.{' '}
-                <strong>One menu, 10 languages, zero extra work.</strong>
+                <strong>One menu, {LANGUAGES.length} languages, zero extra work.</strong>
               </p>
             </motion.div>
           </div>
@@ -365,7 +377,7 @@ const FEATURES = [
       </svg>
     ),
     title: "Your brand, your style",
-    desc: "Choose from 10 curated theme presets or build your own with a custom color picker. Upload your logo, hero photo, and category images.",
+    desc: "Choose from 12 curated theme presets or build your own with a custom color picker. Nine font choices, plus your own logo, hero photo, and category images.",
   },
   {
     icon: (
@@ -379,7 +391,7 @@ const FEATURES = [
   {
     icon: <BarChart3 className="w-5 h-5" />,
     title: "Built-in analytics",
-    desc: "See exactly how customers use your menu — top items, peak hours, language preferences, and device breakdown. Make data-driven decisions about your menu.",
+    desc: "See exactly how guests use your menu — views over time, unique visitors, most-viewed dishes, peak hours, and the languages they actually pick.",
   },
   {
     icon: <MessageSquare className="w-5 h-5" />,
@@ -401,8 +413,33 @@ const FEATURES = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
       </svg>
     ),
-    title: "QR code ready",
-    desc: "Generate print-ready QR codes in six formats — table sticker, table tent, wall poster, A-frame sign, counter card, and coaster. Match your brand with custom colors, dot shapes, styles, and your own logo, then download and print. Shareable link included.",
+    title: "QR codes, flexible and stylish",
+    desc: "Six print-ready formats — table sticker, table tent, wall poster, A-frame sign, counter card and coaster. Set your own colours, square or dot modules, and drop your logo in the middle. Download as PNG, or just share the link.",
+  },
+  {
+    icon: <Layers className="w-5 h-5" />,
+    title: "Multiple menus, layered categories",
+    desc: "Run a Lunch menu and a Dinner menu side by side, each with its own Appetizers, Mains and Desserts. Guests pick the menu first, then the course — no scrolling past breakfast at 8pm.",
+  },
+  {
+    icon: <ImageIcon className="w-5 h-5" />,
+    title: "Photos that sell the dish",
+    desc: "Add a photo to any item, category and to your header. Guests tap a dish to open it full-size with the full description and dietary icons.",
+  },
+  {
+    icon: <Smartphone className="w-5 h-5" />,
+    title: "No app to download",
+    desc: "Your menu is a web page. Guests scan and it opens — no install, no account, no waiting on the restaurant's wifi to fetch a 12MB PDF.",
+  },
+  {
+    icon: <LanguagesIcon className="w-5 h-5" />,
+    title: "13 languages, one tap",
+    desc: "English, French, Spanish, Simplified Chinese, Cantonese, Arabic, Korean, Punjabi, Hindi, Filipino, Italian, German and Japanese — including full right-to-left layout for Arabic.",
+  },
+  {
+    icon: <CalendarCheck className="w-5 h-5" />,
+    title: "60 days free, then one flat price",
+    desc: "Two full months on us, no credit card to start. After that it's a single monthly fee — no per-scan charges, no commission on what you sell, no add-on tiers.",
   },
 ];
 
@@ -439,17 +476,21 @@ const STEPS = [
   },
 ];
 
+// Mirrors `locales` in app/lib/translations.ts — keep both lists in sync.
 const LANGUAGES = [
-  { flag: "🇨🇦", name: "English" },
+  { flag: "🇺🇸", name: "English" },
   { flag: "🇫🇷", name: "Français" },
-  { flag: "🇪🇸", name: "Español" },
+  { flag: "🇨🇳", name: "简体中文" },
   { flag: "🇸🇦", name: "العربية", rtl: true },
-  { flag: "🇨🇳", name: "中文" },
+  { flag: "🇪🇸", name: "Español" },
   { flag: "🇰🇷", name: "한국어" },
   { flag: "🇮🇳", name: "ਪੰਜਾਬੀ" },
   { flag: "🇭🇰", name: "廣東話" },
   { flag: "🇵🇭", name: "Filipino" },
   { flag: "🇮🇳", name: "हिन्दी" },
+  { flag: "🇮🇹", name: "Italiano" },
+  { flag: "🇩🇪", name: "Deutsch" },
+  { flag: "🇯🇵", name: "日本語" },
 ];
 
 const BEFORE_ITEMS = [
@@ -458,16 +499,16 @@ const BEFORE_ITEMS = [
   "🗑️ Wasted paper when prices change",
   "🚫 Hard to update specials daily",
   "🌐 No translation for tourists",
-  "⏰ Slow to react to inventory changes",
+  "❓ No idea which dishes get looked at",
 ];
 
 const AFTER_ITEMS = [
-  "📱 One digital menu, always live",
+  "📱 One QR code, always up to date",
   "💰 Update menus without reprinting",
   "🔄 Update prices in seconds",
   "✨ Mark items 86'd instantly",
-  "🌍 10 languages, one menu",
-  "⚡ Real-time inventory sync",
+  "🌍 13 languages, one menu",
+  "📊 See which dishes guests actually view",
 ];
 
 // ── Main component ─────────────────────────────────────────────────────────────
@@ -543,11 +584,11 @@ export default function HomePage() {
             name: 'DineLinks',
             applicationCategory: 'BusinessApplication',
             operatingSystem: 'Web',
-            description: 'Digital QR code menus for restaurants. Customers scan to view menus in 10 languages. No reprinting — update in seconds.',
+            description: 'Digital QR code menus for restaurants. Customers scan to view menus in 13 languages. No reprinting — update in seconds.',
             url: 'https://dinelinks.com',
             featureList: [
               'QR code menu generation',
-              '10 language automatic translation',
+              '13 language menu translation',
               'Real-time menu updates',
               'Mobile-optimized customer view',
               'Restaurant analytics dashboard',
@@ -703,7 +744,7 @@ export default function HomePage() {
             </motion.h1>
 
             <p className="text-lg sm:text-xl text-[#6b6560] max-w-xl mt-5 leading-relaxed">
-              Stop reprinting menus. Customers scan a QR code and see your menu instantly — translated into 10 languages, updated in real time, and beautifully designed.
+              Stop reprinting menus. Customers scan a QR code and see your menu instantly — translated into {LANGUAGES.length} languages, updated in real time, and beautifully designed.
             </p>
             <p className="text-sm text-[#6b6560]/80 mt-3 leading-relaxed max-w-lg">
               Whether you&apos;re swapping the soup of the day or rebranding for the season, your menu updates the moment you save. No more outdated PDFs taped to walls. No more printer runs. Just a clean QR code on every table.
@@ -753,7 +794,7 @@ export default function HomePage() {
             <div className="mt-6 flex flex-wrap gap-3 justify-center lg:justify-start">
               {[
                 { icon: "🏪", text: "For independent restaurants" },
-                { icon: "🌍", text: "10 languages" },
+                { icon: "🌍", text: `${LANGUAGES.length} languages` },
                 { icon: "⚡", text: "Live in 30 min" },
                 { icon: "💳", text: "No card required" },
               ].map((badge) => (
@@ -866,22 +907,49 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  {/* Category tabs */}
+                  {/* Row 1 — menus. Mirrors the layered tab bar on the real
+                      customer menu: top level is the menu, below it the course. */}
                   <div style={{
                     background: "#ffffff",
                     borderBottom: "1px solid #e8e4dd",
-                    padding: "12px 12px 10px",
+                    padding: "10px 12px 0",
+                    display: "flex", gap: 4,
+                  }}>
+                    {[
+                      { label: "LUNCH", active: false },
+                      { label: "DINNER", active: true },
+                    ].map(menu => (
+                      <div key={menu.label} style={{ position: "relative", padding: "0 10px 8px" }}>
+                        <span style={{
+                          fontSize: 11, fontWeight: 700, letterSpacing: "0.06em",
+                          color: menu.active ? "#8b6914" : "#9b958e",
+                        }}>{menu.label}</span>
+                        {menu.active && (
+                          <span style={{
+                            position: "absolute", left: 10, right: 10, bottom: 0,
+                            height: 3, borderRadius: 999, background: "#8b6914",
+                          }} />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Row 2 — courses within the active menu */}
+                  <div style={{
+                    background: "#f4f1ea",
+                    borderBottom: "1px solid #e8e4dd",
+                    padding: "10px 12px",
                     display: "flex", gap: 14,
                   }}>
                     {[
+                      { label: "APPETIZERS", img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=100&q=80", active: false },
                       { label: "MAINS", img: "https://images.unsplash.com/photo-1546964124-0cce460f38ef?w=100&q=80", active: true },
-                      { label: "STARTERS", img: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=100&q=80", active: false },
                       { label: "DESSERTS", img: "https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=100&q=80", active: false },
                     ].map(cat => (
                       <div key={cat.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 5 }}>
                         <div style={{
-                          width: 54, height: 54, borderRadius: 14, overflow: "hidden",
-                          outline: cat.active ? "2.5px solid #8b6914" : "2px solid #e8e4dd",
+                          width: 52, height: 52, borderRadius: 14, overflow: "hidden",
+                          outline: cat.active ? "2.5px solid #8b6914" : "2px solid #e2ddd4",
                           outlineOffset: cat.active ? 2 : 0,
                         }}>
                           <img src={cat.img} alt={cat.label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
@@ -897,7 +965,7 @@ export default function HomePage() {
                   {/* Category note */}
                   <div style={{ background: "#faf8f5", padding: "8px 14px 4px" }}>
                     <p style={{ fontSize: 10, color: "#6b6560", fontStyle: "italic", margin: 0 }}>
-                      All entrées served with soup or salad.
+                      All dinner mains served with soup or salad.
                     </p>
                   </div>
 
@@ -991,9 +1059,9 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { target: 30,       suffix: " min", label: "Average setup time" },
+              { target: 60,       suffix: "-day", label: "Free trial, no card" },
               { target: 0,        suffix: "",     label: "menu reprints" },
-              { target: 10,       suffix: "",     label: "Languages supported" },
+              { target: LANGUAGES.length, suffix: "", label: "Languages supported" },
               { target: "Always", suffix: "",     label: "Up-to-date menu" },
             ].map(({ target, suffix, label }, i) => (
               <motion.div key={label} className="text-center"
@@ -1140,7 +1208,7 @@ export default function HomePage() {
               Know what your customers love
             </h2>
             <p className="text-lg text-[#6b6560] max-w-2xl mx-auto mt-4">
-              Every scan, click, and language switch is logged. See peak hours, most-viewed items, top-performing categories, the languages your customers actually use, plus guest ratings and comments — all in a beautiful dashboard.
+              Every scan, tap, and language switch is logged. See views over time, unique visitors, most-viewed dishes, peak hours, the languages your guests actually pick, plus their ratings and comments — all in one dashboard.
             </p>
             <motion.div className="h-0.5 bg-[#8b6914] mt-4 mx-auto origin-left" style={{ width: 80 }} {...underline()} />
           </motion.div>
@@ -1158,7 +1226,7 @@ export default function HomePage() {
               <div className="px-5 sm:px-6 py-4 border-b border-[#2c2a26]/8 flex items-center gap-2">
                 <MessageSquare className="w-4 h-4 text-[#8b6914]" />
                 <h3 className="text-xs font-semibold uppercase tracking-widest text-[#2c2a26]/60">Guest feedback</h3>
-                <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide bg-[#8b6914]/10 text-[#8b6914] px-2 py-0.5 rounded-full">Live in dashboard</span>
+                <span className="ml-auto text-[10px] font-semibold uppercase tracking-wide bg-[#8b6914]/10 text-[#8b6914] px-2 py-0.5 rounded-full">Demo data</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-[auto_1fr] gap-5 sm:gap-8 p-5 sm:p-6">
                 {/* Average rating */}
@@ -1213,7 +1281,7 @@ export default function HomePage() {
               Manage everything from one place
             </h2>
             <p className="text-lg text-[#6b6560] max-w-xl mt-4">
-              Add dishes, drag to reorder, upload photos, toggle availability, set your theme — all without touching a line of code.
+              Add dishes, drag to reorder, upload photos, toggle availability, group courses under separate menus, set your theme — all without touching a line of code.
             </p>
             <motion.div className="h-0.5 bg-[#8b6914] mt-4 origin-left" style={{ width: 80 }} {...underline()} />
           </motion.div>
@@ -1252,12 +1320,21 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Category tabs */}
+            {/* Menu tabs — top level */}
+            <div className="bg-white border-b border-[#2c2a26]/8 px-4 pt-2.5 flex items-end gap-1 overflow-x-auto">
+              <span className="relative text-xs font-bold uppercase tracking-wide text-[#6b6560] px-3 pb-2 flex-shrink-0">Lunch</span>
+              <span className="relative text-xs font-bold uppercase tracking-wide text-[#8b6914] px-3 pb-2 flex-shrink-0">
+                Dinner
+                <span className="absolute left-3 right-3 bottom-0 h-[3px] rounded-full bg-[#8b6914]" />
+              </span>
+              <span className="text-xs text-[#8b6914]/70 px-3 pb-2 flex-shrink-0 font-medium">+ Add menu</span>
+            </div>
+
+            {/* Category tabs — nested under the active menu */}
             <div className="bg-[#faf8f5]/95 border-b border-[#2c2a26]/8 px-4 py-2.5 flex items-center gap-2 overflow-x-auto">
+              <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl flex-shrink-0">Appetizers</span>
               <span className="bg-[#8b6914] text-white text-xs font-semibold px-3 py-1.5 rounded-xl flex-shrink-0">Mains</span>
-              <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl flex-shrink-0">Starters</span>
               <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl flex-shrink-0">Desserts</span>
-              <span className="bg-white border border-[#2c2a26]/10 text-[#6b6560] text-xs px-4 py-1.5 rounded-xl flex-shrink-0">Cocktails</span>
               <span className="border-2 border-dashed border-[#8b6914]/30 text-[#8b6914] text-xs px-3 py-1.5 rounded-xl flex-shrink-0 flex items-center gap-1 font-semibold">
                 + Add category
               </span>
@@ -1409,22 +1486,30 @@ export default function HomePage() {
                   </div>
                   <p style={{ position: "absolute", bottom: 10, left: 0, right: 0, textAlign: "center", color: "#ffffff", fontSize: 13, fontWeight: 600, margin: 0 }}>The Harbour House</p>
                 </div>
-                {/* Category tabs — text pills */}
-                <div style={{ padding: "10px 12px 8px", display: "flex", gap: 8, background: "#ffffff", borderBottom: "1px solid #e0e8f0", overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}>
-                  {["Mains", "Starters", "Raw Bar", "Desserts"].map((cat, i) => (
-                    <div key={cat} style={{ padding: "4px 10px", borderRadius: 999, flexShrink: 0, background: i === 0 ? "rgba(29,68,112,0.15)" : "transparent", border: i === 0 ? "1px solid #1d4470" : "1px solid rgba(29,68,112,0.2)", color: i === 0 ? "#1d4470" : "#6b7785", fontSize: 9, fontWeight: 600, letterSpacing: "0.04em" }}>{cat}</div>
+                {/* Menu row — top level */}
+                <div style={{ padding: "8px 12px 0", display: "flex", gap: 2, background: "#ffffff", flexShrink: 0 }}>
+                  {["Lunch", "Dinner"].map((m, i) => (
+                    <div key={m} style={{ position: "relative", padding: "0 8px 6px", fontSize: 10, fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase" as const, color: i === 1 ? "#1d4470" : "#8b97a5" }}>
+                      {m}
+                      {i === 1 && <span style={{ position: "absolute", left: 8, right: 8, bottom: 0, height: 2.5, borderRadius: 999, background: "#1d4470" }} />}
+                    </div>
+                  ))}
+                </div>
+                {/* Category pills — nested under the active menu */}
+                <div style={{ padding: "8px 12px", display: "flex", gap: 8, background: "#eef3f8", borderBottom: "1px solid #e0e8f0", overflowX: "auto", scrollbarWidth: "none", flexShrink: 0 }}>
+                  {["Appetizers", "Mains", "Desserts"].map((cat, i) => (
+                    <div key={cat} style={{ padding: "4px 10px", borderRadius: 999, flexShrink: 0, background: i === 1 ? "#1d4470" : "transparent", border: i === 1 ? "1px solid #1d4470" : "1px solid rgba(29,68,112,0.2)", color: i === 1 ? "#ffffff" : "#6b7785", fontSize: 9, fontWeight: 600, letterSpacing: "0.04em" }}>{cat}</div>
                   ))}
                 </div>
                 {/* Items */}
                 <div style={{ padding: "6px 10px 0", flex: 1, overflow: "hidden", maxHeight: 260, position: "relative" }}>
                   {[
-                    { name: "Lobster Bisque", price: "$18.00", desc: "Rich cream bisque with fresh Atlantic lobster", img: undefined },
+                    { name: "Grilled Lobster Tail", price: "$38.00", desc: "Half tail, drawn butter, charred lemon", img: "https://images.unsplash.com/photo-1559737558-2f5a35f4523b?w=200&q=80" },
                     { name: "Seared Halibut", price: "$28.00", desc: "Pan-seared fillet, capers, brown butter", img: undefined },
-                    { name: "Clam Chowder", price: "$12.00", desc: "New England style, fresh clams, sourdough bowl", img: undefined },
-                    { name: "Grilled Lobster Tail", price: "$38.00", desc: "Half tail, drawn butter, lemon", img: "https://images.unsplash.com/photo-1559737558-2f5a35f4523b?w=200&q=80" },
-                    { name: "Fish Tacos ×3", price: "$16.00", desc: "Beer-battered cod, slaw, chipotle aioli", img: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=200&q=80" },
+                    { name: "Seafood Linguine", price: "$26.00", desc: "Mussels, prawns, white wine, chilli", img: undefined },
+                    { name: "Cedar-Plank Salmon", price: "$27.00", desc: "Maple glaze, seasonal greens", img: undefined },
                   ].map((item, idx) => (
-                    <div key={item.name} style={{ display: "flex", gap: 8, padding: "5px 8px", background: "#ffffff", borderRadius: 10, marginBottom: idx < 4 ? 4 : 0, boxShadow: "0 1px 4px rgba(29,68,112,0.08)" }}>
+                    <div key={item.name} style={{ display: "flex", gap: 8, padding: "5px 8px", background: "#ffffff", borderRadius: 10, marginBottom: idx < 3 ? 4 : 0, boxShadow: "0 1px 4px rgba(29,68,112,0.08)" }}>
                       {item.img && <img src={item.img} alt={item.name} style={{ width: 48, height: 48, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4 }}>
@@ -1633,7 +1718,7 @@ export default function HomePage() {
           </div>
 
           <p className="text-[#faf8f5]/60 text-sm text-center mt-8">
-            French bistro · Japanese izakaya · Cocktail bar — your menu, your personality
+            Coastal seafood · Japanese izakaya · Bar &amp; grill — your menu, your personality
           </p>
         </div>
       </section>
@@ -1673,20 +1758,14 @@ export default function HomePage() {
               }}
               style={{ transformPerspective: 800, transformStyle: 'preserve-3d' }}
             >
-              {/* Most popular badge */}
+              {/* One plan badge */}
               <div className="absolute -top-3 right-6 bg-[#c9a030] text-[#2c2a26] text-xs font-bold px-3 py-1 rounded-full shadow-md">
-                ← Most popular
+                Everything included
               </div>
 
-              {/* Customer avatars */}
-              <div className="flex items-center gap-3 mb-5">
-                <div className="flex -space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-[#8b6914] border-2 border-[#2c2a26] flex items-center justify-center text-xs text-white font-semibold flex-shrink-0">M</div>
-                  <div className="w-8 h-8 rounded-full bg-[#c9a030] border-2 border-[#2c2a26] flex items-center justify-center text-xs text-white font-semibold flex-shrink-0">R</div>
-                  <div className="w-8 h-8 rounded-full bg-[#6b6560] border-2 border-[#2c2a26] flex items-center justify-center text-xs text-white font-semibold flex-shrink-0">A</div>
-                </div>
-                <p className="text-xs text-[#faf8f5]/50">Join restaurant owners already using DineLinks</p>
-              </div>
+              <p className="text-xs text-[#faf8f5]/50 mb-5">
+                One plan. No add-on tiers, no per-scan fees, no commission on what you sell.
+              </p>
 
               <span className="inline-flex rounded-full bg-[#8b6914]/20 text-[#c9a030] text-xs font-semibold px-3 py-1">DineLinks</span>
               <p style={{ fontFamily: "Georgia, serif" }} className="text-5xl font-semibold text-[#faf8f5] mt-4">$25</p>
@@ -1694,7 +1773,7 @@ export default function HomePage() {
               <p className="text-sm text-[#faf8f5]/60 mt-2">Everything you need to go digital</p>
               <hr className="my-6 border-[#faf8f5]/10" />
               <ul className="space-y-3 text-sm text-[#faf8f5]/80">
-                {["1 digital menu","Unlimited menu items","10 languages with auto-translation","4 QR code styles — downloadable PNG","10 curated theme presets + color picker","Dietary labels & filters","Item availability toggle","Drag-to-reorder items & categories","Live analytics dashboard","Upload logo & photos"].map((f) => (
+                {["Unlimited menus, categories & items","Layered menus (Lunch, Dinner, and more)","13 languages, translated automatically","6 print-ready QR formats — download as PNG","12 curated theme presets + custom colours","Dietary labels & one-tap guest filters","Item availability toggle","Drag-to-reorder items & categories","Live analytics dashboard","Guest ratings & comments","Upload logo & photos"].map((f) => (
                   <li key={f} className="flex items-center gap-2"><span className="text-[#c9a030]">✓</span> {f}</li>
                 ))}
               </ul>
@@ -1719,9 +1798,9 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">
             {[
-              { display: "30", suffix: " sec", label: "Average customer scan time", isNum: true, target: 30 },
+              { display: "6",  suffix: "",     label: "Print-ready QR formats",       isNum: true,  target: 6  },
               { display: "$0",  suffix: "",     label: "Reprint costs forever",       isNum: false, target: 0  },
-              { display: "10", suffix: "",      label: "Languages supported",          isNum: true, target: 10 },
+              { display: String(LANGUAGES.length), suffix: "", label: "Languages supported", isNum: true, target: LANGUAGES.length },
               { display: "24/7", suffix: "",    label: "Menu editing, anytime",        isNum: false, target: 0 },
             ].map(({ display, suffix, label, isNum, target }, i) => (
               <motion.div
@@ -1811,7 +1890,7 @@ export default function HomePage() {
                   </motion.span>
                 </span>
               </div>
-              <p className="text-sm text-[#faf8f5]/50 max-w-xs">Beautiful QR menus in 10 languages. Update in seconds, no reprinting.</p>
+              <p className="text-sm text-[#faf8f5]/50 max-w-xs">Beautiful QR menus in {LANGUAGES.length} languages. Update in seconds, no reprinting.</p>
             </div>
           </div>
 

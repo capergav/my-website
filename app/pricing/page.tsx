@@ -39,7 +39,7 @@ export default function PricingPage() {
           </div>
           <hr className="my-6 border-white/10"/>
           <ul className="space-y-2.5 text-sm text-white/80">
-            {['Unlimited menu items','10 languages','QR code & shareable link','Dietary labels & filters','Custom categories','Real-time updates','Custom colors & fonts','Logo & hero image upload','Priority email support'].map(f => (
+            {['Unlimited menu items','13 languages','QR code & shareable link','Dietary labels & filters','Custom categories','Real-time updates','Custom colors & fonts','Logo & hero image upload','Priority email support'].map(f => (
               <li key={f} className="flex gap-2"><span className="text-[#c9a030]">✓</span>{f}</li>
             ))}
           </ul>

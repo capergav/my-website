@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     default: 'DineLinks — Digital QR Code Menus for Restaurants',
     template: '%s | DineLinks',
   },
-  description: 'DineLinks creates beautiful QR code menus for restaurants. Customers scan to view your menu in 10 languages. No reprinting menus — update in seconds. Built for cafes, bistros, food trucks, and independent restaurants.',
+  description: 'DineLinks creates beautiful QR code menus for restaurants. Customers scan to view your menu in 13 languages. No reprinting menus — update in seconds. Built for cafes, bistros, food trucks, and independent restaurants.',
   authors: [{ name: 'DineLinks' }],
   creator: 'DineLinks',
   publisher: 'DineLinks',
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     locale: 'en_CA',
     url: 'https://dinelinks.com',
     title: 'DineLinks — Digital QR Code Menus for Restaurants',
-    description: 'Beautiful QR code menus in 10 languages. No reprinting. Update in seconds. Built for independent restaurants.',
+    description: 'Beautiful QR code menus in 13 languages. No reprinting. Update in seconds. Built for independent restaurants.',
     siteName: 'DineLinks',
     images: [{
       url: '/restaurant.jpg',
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'DineLinks — Digital QR Code Menus for Restaurants',
-    description: 'QR code menus in 10 languages. No reprinting. Update in seconds.',
+    description: 'QR code menus in 13 languages. No reprinting. Update in seconds.',
     images: ['/restaurant.jpg'],
   },
   alternates: { canonical: 'https://dinelinks.com' },
