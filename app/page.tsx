@@ -962,11 +962,31 @@ export default function HomePage() {
                     ))}
                   </div>
 
-                  {/* Category note */}
-                  <div style={{ background: "#faf8f5", padding: "8px 14px 4px" }}>
-                    <p style={{ fontSize: 10, color: "#6b6560", fontStyle: "italic", margin: 0 }}>
+                  {/* Category note + dietary filter — mirrors the real menu, where the
+                      filter dropdown sits right-aligned across from the category heading. */}
+                  <div style={{
+                    background: "#faf8f5", padding: "8px 14px 4px",
+                    display: "flex", alignItems: "flex-start", gap: 8,
+                  }}>
+                    <p style={{ fontSize: 10, color: "#6b6560", fontStyle: "italic", margin: 0, flex: 1 }}>
                       All dinner mains served with soup or salad.
                     </p>
+                    <div style={{
+                      flexShrink: 0,
+                      display: "flex", alignItems: "center", gap: 4,
+                      background: "#ffffff",
+                      border: "1px solid #e8e4dd",
+                      borderRadius: 8,
+                      padding: "4px 7px",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                      fontSize: 9, fontWeight: 500, color: "#2c2a26",
+                      whiteSpace: "nowrap",
+                    }}>
+                      All Items
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
                   </div>
 
                   {/* Dietary key */}
@@ -1260,7 +1280,7 @@ export default function HomePage() {
                       <span className="text-[10px] font-semibold uppercase tracking-wide bg-[#8b6914]/10 text-[#8b6914] px-2 py-0.5 rounded-full">Food</span>
                       <span className="text-[10px] text-[#6b6560]">2 days ago</span>
                     </div>
-                    <p className="text-sm text-[#2c2a26]/80 italic">&ldquo;The duck confit was perfect and the QR menu made ordering so easy.&rdquo;</p>
+                    <p className="text-sm text-[#2c2a26]/80 italic">&ldquo;The duck confit was perfect — and seeing the photo on the menu is what sold me on it.&rdquo;</p>
                   </div>
                 </div>
               </div>
@@ -1624,8 +1644,8 @@ export default function HomePage() {
                   }} />
                   {/* Real logo */}
                   <img
-                    src="https://zqhyeyrbqygisephzvoo.supabase.co/storage/v1/object/public/menu-images/55076091-6fd0-454e-b897-79787b73ccc2/logos/1780497022698.webp"
-                    alt="Logo"
+                    src="https://zqhyeyrbqygisephzvoo.supabase.co/storage/v1/object/public/menu-images/55076091-6fd0-454e-b897-79787b73ccc2/logos/1782750397678.webp"
+                    alt="Gallant's Bar and Grill logo"
                     style={{
                       position: "absolute", bottom: 30, left: "50%",
                       transform: "translateX(-50%)",
