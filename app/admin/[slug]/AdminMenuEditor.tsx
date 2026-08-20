@@ -14,6 +14,10 @@ import { OnboardingTour } from "./OnboardingTour";
 import { useSubscription, type SubStatus } from "@/lib/useSubscription";
 import { friendlyErrorMessage } from "@/app/lib/errors";
 import { locales } from "@/app/lib/translations";
+import {
+  getSignLanguages, ensureScriptFonts, fontStackFor,
+  type SignLanguage, type ScriptKey,
+} from "@/app/lib/qrScriptFonts";
 import { AlertTriangle, AlertCircle, Plus, GripVertical, UtensilsCrossed, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { AccountDangerZone } from "./AccountDangerZone";
 import {
@@ -3737,6 +3741,501 @@ function drawDLLogo(ctx: CanvasRenderingContext2D, x: number, y: number, h: numb
   return (44 / 40) * h;
 }
 
+// ── Multilingual signs ────────────────────────────────────────────────────────
+// A class of QR layouts that advertise the menu's languages in their own
+// scripts. The list is derived from app/lib/translations.ts at draw time, so a
+// new locale shows up on every sign automatically.
+
+type SignTemplateKey =
+  | "sign-split" | "sign-stacked" | "sign-columns" | "sign-steps" | "sign-minimal";
+
+const SIGN_TEMPLATES: { id: SignTemplateKey; label: string; desc: string }[] = [
+  { id: "sign-split",    label: "Split",         desc: "Languages flank the code" },
+  { id: "sign-stacked",  label: "Stacked",       desc: "Languages listed below"   },
+  { id: "sign-columns",  label: "Two columns",   desc: "Bulleted list beside it"  },
+  { id: "sign-steps",    label: "Instructional", desc: "Split + numbered steps"   },
+  { id: "sign-minimal",  label: "Minimal",       desc: "Language count only"      },
+];
+
+const SIGN_STEPS: [string, string][] = [
+  ["01", "OPEN YOUR CAMERA"],
+  ["02", "SCAN THE CODE"],
+  ["03", "CHOOSE YOUR LANGUAGE"],
+];
+
+const DEFAULT_SIGN_HEADLINE = "Scan to read our\nMENU IN YOUR LANGUAGE";
+
+const isSignTemplate = (t: string): t is SignTemplateKey => t.startsWith("sign-");
+
+type TemplateKey = "simple" | "tagline" | "table" | SignTemplateKey;
+
+function relLuminance(hex: string): number {
+  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
+  if (!m) return 0;
+  const chan = [m[1], m[2], m[3]].map((h) => {
+    const c = parseInt(h, 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * chan[0] + 0.7152 * chan[1] + 0.0722 * chan[2];
+}
+const isLightColor = (hex: string) => relLuminance(hex) > 0.45;
+
+// letterSpacing is only on newer canvas contexts — set it where supported.
+function setLetterSpacing(ctx: CanvasRenderingContext2D, value: string) {
+  const c = ctx as unknown as { letterSpacing?: string };
+  if ("letterSpacing" in c) c.letterSpacing = value;
+}
+
+type ListItem = { label: string; script: ScriptKey; rtl: boolean; dim?: boolean };
+
+/**
+ * Resolves the colour treatment for a sign. Dark signs keep the QR itself dark
+ * modules on a light chip — inverted codes scan badly on older phones.
+ */
+function signColors(variant: "light" | "dark", fgColor: string, bgColor: string, textColor: string) {
+  if (variant === "light") {
+    return { cardBg: bgColor, ink: textColor, qrFg: fgColor, qrBg: bgColor, panel: false, panelBg: bgColor };
+  }
+  const cardBg  = isLightColor(textColor) ? "#1f1d1a" : textColor;
+  const panelBg = isLightColor(bgColor) ? bgColor : "#ffffff";
+  return {
+    cardBg,
+    ink: isLightColor(bgColor) ? bgColor : "#faf8f5",
+    qrFg: isLightColor(fgColor) ? "#1f1d1a" : fgColor,
+    qrBg: panelBg,
+    panel: true,
+    panelBg,
+  };
+}
+
+async function drawLanguageSign(o: {
+  ctx: CanvasRenderingContext2D;
+  W: number; H: number;
+  template: SignTemplateKey;
+  pad: number; wmH: number;
+  round: boolean; landscape: boolean;
+  ink: string;
+  qrFg: string; qrBg: string;
+  panel: boolean; panelBg: string;
+  url: string;
+  moduleStyle: QRModuleStyle;
+  qrScaleFactor: number;
+  fam: string;
+  headline: string;
+  brandMode: "logo" | "name";
+  brandName: string;
+  logoUrl: string | null;
+  langs: SignLanguage[];
+  drawCenterLogo: (cx: number, cy: number, qrPx: number) => Promise<void>;
+}) {
+  const {
+    ctx, W, H, template, pad, wmH, round, landscape, ink, qrFg, qrBg, panel, panelBg,
+    url, moduleStyle, qrScaleFactor, fam, headline, brandMode, brandName, logoUrl,
+    langs, drawCenterLogo,
+  } = o;
+
+  const minPx = Math.max(6, W * 0.010);
+
+  // ── Per-item text helpers (each language draws in its own script's font) ────
+  const itemFont = (it: ListItem, px: number, weight: number) => {
+    ctx.font = `${weight} ${px}px ${fontStackFor(it.script, fam)}`;
+  };
+  const itemWidth = (it: ListItem, px: number, weight: number) => {
+    itemFont(it, px, weight);
+    return ctx.measureText(it.label).width;
+  };
+  const drawItem = (it: ListItem, x: number, y: number, px: number, weight: number, align: CanvasTextAlign) => {
+    itemFont(it, px, weight);
+    ctx.textAlign = align;
+    ctx.direction = it.rtl ? "rtl" : "ltr";   // Arabic shapes + orders right-to-left
+    ctx.fillStyle = ink;
+    ctx.globalAlpha = it.dim ? 0.6 : 1;
+    ctx.fillText(it.label, x, y);
+    ctx.globalAlpha = 1;
+    ctx.direction = "ltr";
+  };
+
+  // ── QR (with a light chip behind it on dark signs) ─────────────────────────
+  const drawQRAt = async (x: number, y: number, px: number) => {
+    if (panel) {
+      const m = px * 0.06;
+      ctx.fillStyle = panelBg;
+      roundRect(ctx, x - m, y - m, px + m * 2, px + m * 2, px * 0.05);
+      ctx.fill();
+    }
+    ctx.drawImage(renderQRCanvas(url, Math.round(px), qrFg, qrBg, moduleStyle), x, y, px, px);
+    await drawCenterLogo(x + px / 2, y + px / 2, px);
+  };
+
+  // ── Restaurant mark — logo image or the name set in type ────────────────────
+  const drawBrand = async (x: number, y: number, w: number, maxH: number, align: "left" | "center"): Promise<number> => {
+    if (brandMode === "logo" && logoUrl) {
+      try {
+        const img = await loadImage(logoUrl);
+        const nw = img.naturalWidth || img.width;
+        const nh = img.naturalHeight || img.height;
+        const s = Math.min((w * 0.55) / nw, maxH / nh);
+        const dw = nw * s, dh = nh * s;
+        ctx.drawImage(img, align === "left" ? x : x + (w - dw) / 2, y + (maxH - dh) / 2, dw, dh);
+        return maxH;
+      } catch { /* logo unavailable — fall back to the name */ }
+    }
+    const name = (brandName || "").trim();
+    if (!name) return 0;
+    let px = Math.min(maxH * 0.7, W * 0.05);
+    setLetterSpacing(ctx, `${px * 0.08}px`);
+    ctx.font = `700 ${px}px ${fam}`;
+    const measured = ctx.measureText(name).width;
+    if (measured > w) {
+      px *= w / measured;
+      setLetterSpacing(ctx, `${px * 0.08}px`);
+      ctx.font = `700 ${px}px ${fam}`;
+    }
+    ctx.fillStyle = ink;
+    ctx.textBaseline = "middle";
+    ctx.textAlign = align === "left" ? "left" : "center";
+    ctx.direction = "ltr";
+    ctx.fillText(name, align === "left" ? x : x + w / 2, y + maxH / 2);
+    setLetterSpacing(ctx, "0px");
+    return maxH;
+  };
+
+  // ── Headline — line 1 is a small eyebrow, the rest is the big statement ─────
+  type Headline = { eyebrow: string[]; ePx: number; main: string[]; mPx: number; height: number };
+  const layoutHeadline = (w: number, maxH: number): Headline => {
+    const parts = headline.replace(/\r/g, "").split("\n").map(s => s.trim()).filter(Boolean);
+    const eyebrowText = parts.length > 1 ? parts[0] : "";
+    const mainText = (parts.length > 1 ? parts.slice(1).join(" ") : parts[0] ?? "").trim();
+
+    let ePx = 0;
+    let eyebrow: string[] = [];
+    if (eyebrowText) {
+      ePx = Math.min(W * 0.026, maxH * 0.24);
+      setLetterSpacing(ctx, `${ePx * 0.16}px`);
+      ctx.font = `500 ${ePx}px ${fam}`;
+      eyebrow = wrapLines(ctx, eyebrowText.toUpperCase(), w, 2);
+      setLetterSpacing(ctx, "0px");
+    }
+    const eH = eyebrow.length ? eyebrow.length * ePx * 1.25 + ePx * 0.55 : 0;
+
+    let mPx = Math.max(minPx, Math.min(W * 0.082, (maxH - eH) * 0.52));
+    let main: string[] = [];
+    if (mainText) {
+      for (let i = 0; i < 40; i++) {
+        ctx.font = `700 ${mPx}px ${fam}`;
+        main = wrapLines(ctx, mainText, w, 99);
+        if ((main.length <= 3 && main.length * mPx * 1.12 <= maxH - eH) || mPx <= minPx) break;
+        mPx = Math.max(minPx, mPx * 0.94);
+      }
+    }
+    return { eyebrow, ePx, main, mPx, height: eH + main.length * mPx * 1.12 };
+  };
+
+  const drawHeadline = (lay: Headline, x: number, y: number, w: number, align: "left" | "center"): number => {
+    ctx.textBaseline = "top";
+    ctx.textAlign = align === "left" ? "left" : "center";
+    ctx.direction = "ltr";
+    ctx.fillStyle = ink;
+    const ax = align === "left" ? x : x + w / 2;
+    let cy = y;
+    if (lay.eyebrow.length) {
+      ctx.globalAlpha = 0.72;
+      setLetterSpacing(ctx, `${lay.ePx * 0.16}px`);
+      ctx.font = `500 ${lay.ePx}px ${fam}`;
+      for (const l of lay.eyebrow) { ctx.fillText(l, ax, cy); cy += lay.ePx * 1.25; }
+      setLetterSpacing(ctx, "0px");
+      ctx.globalAlpha = 1;
+      cy += lay.ePx * 0.55;
+    }
+    ctx.font = `700 ${lay.mPx}px ${fam}`;
+    for (const l of lay.main) { ctx.fillText(l, ax, cy); cy += lay.mPx * 1.12; }
+    return cy - y;
+  };
+
+  // ── Language list, column form ──────────────────────────────────────────────
+  type ListLayout = { shown: ListItem[]; rows: number; px: number; rowH: number; colW: number; bulletW: number };
+  const layoutList = (items: ListItem[], colW: number, h: number, cols: number, bullets: boolean): ListLayout => {
+    const bulletW = bullets ? colW * 0.1 : 0;
+    const textW = Math.max(minPx, colW - bulletW);
+    const minRowH = W * 0.026;
+    const capacity = Math.max(cols, Math.max(1, Math.floor(h / minRowH)) * cols);
+    // Overflow keeps the closing "and more…" entry — it's what makes a short
+    // list honest on small formats like coasters.
+    const shown = items.length <= capacity
+      ? items
+      : [...items.slice(0, Math.max(1, capacity - 1)), items[items.length - 1]];
+    const rows = Math.ceil(shown.length / cols);
+    const rowH = Math.min(h / rows, W * 0.055);
+    let px = Math.min(rowH * 0.6, W * 0.04);
+    for (let i = 0; i < 6; i++) {
+      let widest = 0;
+      for (const it of shown) widest = Math.max(widest, itemWidth(it, px, 600));
+      if (widest <= textW * 0.97 || px <= minPx) break;
+      px = Math.max(minPx, px * (textW * 0.97) / widest);
+    }
+    return { shown, rows, px, rowH, colW, bulletW };
+  };
+
+  const paintList = (
+    L: ListLayout, colX: (c: number) => number, alignOf: (c: number) => "left" | "right",
+    y: number, h: number, bullets: boolean,
+  ) => {
+    const totalH = L.rows * L.rowH;
+    const startY = y + (h - totalH) / 2 + L.rowH / 2;
+    ctx.textBaseline = "middle";
+    L.shown.forEach((it, i) => {
+      const c = Math.floor(i / L.rows);
+      const r = i % L.rows;
+      const cx = colX(c);
+      const cy = startY + r * L.rowH;
+      const align = alignOf(c);
+      if (bullets) {
+        ctx.fillStyle = ink;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(cx + L.bulletW * 0.35, cy, Math.max(1, L.px * 0.13), 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+      drawItem(it, align === "right" ? cx + L.colW : cx + L.bulletW, cy, L.px, 600, align);
+    });
+  };
+
+  // ── Language list, flowed rows (ENGLISH · FRANÇAIS · 简体中文 …) ─────────────
+  const drawFlowList = (items: ListItem[], x: number, y: number, w: number, h: number) => {
+    const sep = "  ·  ";
+    let px = Math.max(minPx, Math.min(W * 0.036, h * 0.3));
+    let lines: ListItem[][] = [];
+    let sepW = 0;
+    for (let i = 0; i < 24; i++) {
+      ctx.font = `600 ${px}px ${fam}`;
+      sepW = ctx.measureText(sep).width;
+      lines = [];
+      let cur: ListItem[] = [];
+      let curW = 0;
+      let widest = 0;
+      for (const it of items) {
+        const iw = itemWidth(it, px, 600);
+        widest = Math.max(widest, iw);
+        const add = cur.length ? sepW + iw : iw;
+        if (cur.length && curW + add > w) { lines.push(cur); cur = [it]; curW = iw; }
+        else { cur.push(it); curW += add; }
+      }
+      if (cur.length) lines.push(cur);
+      if ((lines.length * px * 1.7 <= h && widest <= w) || px <= minPx) break;
+      px = Math.max(minPx, px * 0.92);
+    }
+    const lineH = px * 1.7;
+    const maxLines = Math.max(1, Math.floor(h / lineH));
+    if (lines.length > maxLines) {
+      lines = lines.slice(0, maxLines);
+      const last = lines[lines.length - 1];
+      last[last.length - 1] = items[items.length - 1];   // keep the "and more…" tail
+    }
+    let cy = y + (h - lines.length * lineH) / 2 + lineH / 2;
+    ctx.textBaseline = "middle";
+    for (const line of lines) {
+      let total = 0;
+      line.forEach((it, i) => { total += itemWidth(it, px, 600) + (i ? sepW : 0); });
+      let cx = x + (w - total) / 2;
+      line.forEach((it, i) => {
+        if (i) {
+          ctx.font = `600 ${px}px ${fam}`;
+          ctx.fillStyle = ink;
+          ctx.textAlign = "left";
+          ctx.direction = "ltr";
+          ctx.globalAlpha = 0.4;
+          ctx.fillText(sep, cx, cy);
+          ctx.globalAlpha = 1;
+          cx += sepW;
+        }
+        const iw = itemWidth(it, px, 600);
+        drawItem(it, cx, cy, px, 600, "left");
+        cx += iw;
+      });
+      cy += lineH;
+    }
+  };
+
+  // ── "MENU IN 13 LANGUAGES" — count is always the real one ──────────────────
+  const drawCountLine = (x: number, y: number, w: number, h: number, align: "left" | "center") => {
+    const text = `MENU IN ${langs.length} LANGUAGES`;
+    let px = Math.min(W * 0.048, h * 0.62);
+    setLetterSpacing(ctx, `${px * 0.12}px`);
+    ctx.font = `700 ${px}px ${fam}`;
+    const measured = ctx.measureText(text).width;
+    if (measured > w) {
+      px *= w / measured;
+      setLetterSpacing(ctx, `${px * 0.12}px`);
+      ctx.font = `700 ${px}px ${fam}`;
+    }
+    ctx.fillStyle = ink;
+    ctx.direction = "ltr";
+    ctx.textBaseline = "middle";
+    ctx.textAlign = align === "left" ? "left" : "center";
+    ctx.fillText(text, align === "left" ? x : x + w / 2, y + h / 2);
+    setLetterSpacing(ctx, "0px");
+  };
+
+  // ── 01 OPEN YOUR CAMERA · 02 SCAN THE CODE · 03 CHOOSE YOUR LANGUAGE ───────
+  const drawSteps = (x: number, y: number, w: number, h: number) => {
+    ctx.strokeStyle = ink;
+    ctx.globalAlpha = 0.22;
+    ctx.lineWidth = Math.max(1, W * 0.002);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + w, y);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.direction = "ltr";
+    ctx.textBaseline = "middle";
+
+    const cellW = w / 3;
+    const need = (p: number) => {
+      ctx.font = `700 ${p * 1.5}px ${fam}`;
+      const nw = Math.max(...SIGN_STEPS.map(s => ctx.measureText(s[0]).width));
+      ctx.font = `600 ${p}px ${fam}`;
+      const lw = Math.max(...SIGN_STEPS.map(s => ctx.measureText(s[1]).width));
+      return nw + p * 0.5 + lw;
+    };
+    let px = Math.min(h * 0.3, W * 0.024);
+    const row = need(px);
+    if (row > cellW * 0.92) px = Math.max(minPx, px * (cellW * 0.92) / row);
+
+    // Too cramped for one row (very tall, narrow formats) — stack the steps.
+    const stack = px < W * 0.012;
+    if (stack) {
+      px = Math.min(h * 0.22, W * 0.022);
+      const rowFit = need(px);
+      if (rowFit > w * 0.9) px = Math.max(minPx, px * (w * 0.9) / rowFit);
+    }
+    SIGN_STEPS.forEach(([num, label], i) => {
+      ctx.font = `700 ${px * 1.5}px ${fam}`;
+      const nw = ctx.measureText(num).width;
+      ctx.font = `600 ${px}px ${fam}`;
+      const lw = ctx.measureText(label).width;
+      const total = nw + px * 0.5 + lw;
+      const cy = stack ? y + h * (i + 0.5) / 3 + h * 0.06 : y + h * 0.58;
+      let cx = stack ? x + (w - total) / 2 : x + cellW * i + (cellW - total) / 2;
+      ctx.textAlign = "left";
+      ctx.fillStyle = ink;
+      ctx.globalAlpha = 0.45;
+      ctx.font = `700 ${px * 1.5}px ${fam}`;
+      ctx.fillText(num, cx, cy);
+      ctx.globalAlpha = 1;
+      cx += nw + px * 0.5;
+      ctx.font = `600 ${px}px ${fam}`;
+      ctx.fillText(label, cx, cy);
+    });
+  };
+
+  // ── Working rect ───────────────────────────────────────────────────────────
+  let rx = pad, ry = pad, rw = W - pad * 2, rh = H - pad * 2 - wmH;
+  if (round) {
+    const s = Math.min(W, H) * 0.7;   // largest comfortable square inside the circle
+    rx = (W - s) / 2; rw = s;
+    ry = (H - s) / 2; rh = s - wmH;
+  }
+
+  const items: ListItem[] = [
+    ...langs.map(l => ({ label: l.label, script: l.script, rtl: l.rtl })),
+    { label: "AND MORE…", script: "latin" as ScriptKey, rtl: false, dim: true },
+  ];
+
+  const paintTwoColumns = (x: number, y: number, w: number, h: number, bullets: boolean) => {
+    const gap = w * 0.07;
+    const colW = (w - gap) / 2;
+    const L = layoutList(items, colW, h, 2, bullets);
+    paintList(L, c => x + c * (colW + gap), () => "left", y, h, bullets);
+  };
+
+  // ── Content column (brand → headline → list [→ steps]) ─────────────────────
+  const drawContentColumn = async (x: number, y: number, w: number, h: number, align: "left" | "center") => {
+    let cy = y;
+    cy += await drawBrand(x, cy, w, Math.min(h * 0.16, W * 0.055), align);
+    cy += h * 0.035;
+    const hl = layoutHeadline(w, h * 0.36);
+    cy += drawHeadline(hl, x, cy, w, align);
+    cy += h * 0.05;
+
+    let bottom = y + h;
+    if (template === "sign-steps") {
+      const sh = Math.min(h * 0.2, W * 0.05);
+      drawSteps(x, bottom - sh, w, sh);
+      bottom -= sh + h * 0.03;
+    }
+    const listH = Math.max(W * 0.05, bottom - cy);
+    if (template === "sign-minimal") drawCountLine(x, cy, w, listH, align);
+    else if (template === "sign-stacked") drawFlowList(items, x, cy, w, listH);
+    else paintTwoColumns(x, cy, w, listH, template === "sign-columns");
+  };
+
+  // ── Landscape (counter card): QR pane on the left, everything else right ───
+  if (landscape) {
+    const paneW = rw * 0.36;
+    const qrPx = Math.max(60, Math.min(paneW * 0.92, rh * 0.92) * qrScaleFactor);
+    await drawQRAt(rx + (paneW - qrPx) / 2, ry + (rh - qrPx) / 2, qrPx);
+    const cx = rx + paneW + rw * 0.05;
+    await drawContentColumn(cx, ry, rx + rw - cx, rh, "left");
+    return;
+  }
+
+  // ── Portrait / square ──────────────────────────────────────────────────────
+  let cy = ry;
+  cy += await drawBrand(rx, cy, rw, Math.min(rh * 0.12, W * 0.095), "center");
+  cy += rh * 0.03;
+  const hl = layoutHeadline(rw, rh * (template === "sign-minimal" ? 0.3 : 0.26));
+  cy += drawHeadline(hl, rx, cy, rw, "center");
+  cy += rh * 0.045;
+
+  let bottom = ry + rh;
+  if (template === "sign-steps") {
+    const sh = Math.min(rh * 0.13, W * 0.1);
+    drawSteps(rx, bottom - sh, rw, sh);
+    bottom -= sh + rh * 0.025;
+  }
+  const bandY = cy;
+  const bandH = Math.max(W * 0.22, bottom - cy);
+
+  if (template === "sign-split" || template === "sign-steps") {
+    const qrPx = Math.max(60, Math.min(bandH * 0.94, rw * 0.44) * qrScaleFactor);
+    const qrX = rx + (rw - qrPx) / 2;
+    await drawQRAt(qrX, bandY + (bandH - qrPx) / 2, qrPx);
+    const gap = rw * 0.045;
+    const colW = Math.max(W * 0.08, (rw - qrPx) / 2 - gap);
+    const listH = Math.min(bandH, qrPx * 1.3);
+    const listY = bandY + (bandH - listH) / 2;
+    // One layout pass over the whole list so both flanks share a type size.
+    const L = layoutList(items, colW, listH, 2, false);
+    paintList(L, c => (c === 0 ? rx : rx + rw - colW), c => (c === 0 ? "right" : "left"), listY, listH, false);
+  } else if (template === "sign-columns") {
+    // Wide enough to sit side by side (stickers, coasters); otherwise stack.
+    const sideBySide = rw >= bandH * 1.05;
+    if (sideBySide) {
+      const qrPx = Math.max(60, Math.min(rw * 0.42, bandH * 0.94) * qrScaleFactor);
+      await drawQRAt(rx, bandY + (bandH - qrPx) / 2, qrPx);
+      const listX = rx + qrPx + rw * 0.05;
+      paintTwoColumns(listX, bandY, rx + rw - listX, bandH, true);
+    } else {
+      const qrPx = Math.max(60, Math.min(rw * 0.55, bandH * 0.46) * qrScaleFactor);
+      await drawQRAt(rx + (rw - qrPx) / 2, bandY, qrPx);
+      const listY = bandY + qrPx + bandH * 0.06;
+      paintTwoColumns(rx, listY, rw, Math.max(W * 0.08, bandY + bandH - listY), true);
+    }
+  } else if (template === "sign-stacked") {
+    const qrPx = Math.max(60, Math.min(rw * 0.55, bandH * 0.55) * qrScaleFactor);
+    await drawQRAt(rx + (rw - qrPx) / 2, bandY, qrPx);
+    const listY = bandY + qrPx + bandH * 0.06;
+    drawFlowList(items, rx, listY, rw, Math.max(W * 0.08, bandY + bandH - listY));
+  } else {
+    const capH = Math.min(bandH * 0.2, W * 0.1);
+    const qrPx = Math.max(60, Math.min(rw * 0.74, bandH - capH * 1.3) * qrScaleFactor);
+    const qrY = bandY + (bandH - capH - qrPx) / 2;
+    await drawQRAt(rx + (rw - qrPx) / 2, qrY, qrPx);
+    drawCountLine(rx, qrY + qrPx + capH * 0.15, rw, capH, "center");
+  }
+}
+
 async function composeQR(opts: {
   slug: string;
   fgColor: string;
@@ -3766,6 +4265,12 @@ async function composeQR(opts: {
   logoSizePercent: number; // 10–40
   logoPadding: number;     // 0–30 as % of logo size
   logoUrl: string | null;
+  // Multilingual sign templates — null keeps the classic QR-card layouts.
+  signTemplate: SignTemplateKey | null;
+  signVariant: "light" | "dark";
+  signBrand: "logo" | "name";
+  signHeadline: string;
+  restaurantName: string;
   canvas: HTMLCanvasElement;
   maxWidth?: number;       // preview cap — uniformly scales the whole card
 }) {
@@ -3773,11 +4278,17 @@ async function composeQR(opts: {
     slug, fgColor, bgColor, textColor, format, size, qrScale, showHeader, showTagline,
     header, tagline, headerFontSize, taglineFontSize, fontKey, textAlign, taglineOffset,
     headerSpacing, cardPadding, showBorder, moduleStyle, roundCrop, includeLogo, logoBg, logoBgShape,
-    logoBgColor, logoSizePercent, logoPadding, logoUrl, canvas, maxWidth,
+    logoBgColor, logoSizePercent, logoPadding, logoUrl, signTemplate, signVariant, signBrand,
+    signHeadline, restaurantName, canvas, maxWidth,
   } = opts;
 
   const url = window.location.origin + "/menu/" + slug;
   const fmt = FORMATS[format];
+
+  // Language names must be drawable before anything is painted — an unloaded
+  // CJK / Arabic / Devanagari / Gurmukhi face draws as tofu boxes, silently.
+  const langs = signTemplate ? getSignLanguages() : [];
+  if (signTemplate) await ensureScriptFonts(langs);
 
   // Ensure web fonts are ready so canvas text matches the picked family.
   if (typeof document !== "undefined" && document.fonts?.ready) {
@@ -3804,7 +4315,11 @@ async function composeQR(opts: {
   canvas.height = H;
 
   const ctx = canvas.getContext("2d")!;
-  ctx.fillStyle = bgColor;
+  // Signs support a light/dark treatment; classic cards use the picked colors.
+  const sc = signTemplate
+    ? signColors(signVariant, fgColor, bgColor, textColor)
+    : { cardBg: bgColor, ink: textColor, qrFg: fgColor, qrBg: bgColor, panel: false, panelBg: bgColor };
+  ctx.fillStyle = sc.cardBg;
   ctx.fillRect(0, 0, W, H);
 
   const fam = resolveFontFamily(fontKey);
@@ -3870,7 +4385,28 @@ async function composeQR(opts: {
   // whitespace, 100% → fills the area as before). Clamped for scannability.
   const qrScaleFactor = Math.min(1, Math.max(0.5, qrScale / 100));
 
-  if (fmt.orientation === "landscape") {
+  if (signTemplate) {
+    await drawLanguageSign({
+      ctx, W, H,
+      template: signTemplate,
+      pad, wmH,
+      round: roundCrop,
+      landscape: fmt.orientation === "landscape",
+      ink: sc.ink,
+      qrFg: sc.qrFg, qrBg: sc.qrBg,
+      panel: sc.panel, panelBg: sc.panelBg,
+      url,
+      moduleStyle,
+      qrScaleFactor,
+      fam,
+      headline: signHeadline,
+      brandMode: signBrand,
+      brandName: restaurantName,
+      logoUrl,
+      langs,
+      drawCenterLogo: drawLogo,
+    });
+  } else if (fmt.orientation === "landscape") {
     // ── Counter card: QR on the left, text column on the right ───────────────
     const qrAreaW = innerW * 0.46;
     const availH = H - pad * 2 - wmH;
@@ -3930,8 +4466,9 @@ async function composeQR(opts: {
   }
 
   // ── Watermark — exact DineLinks "DL" mark + domain ───────────────────────────
+  ctx.direction = "ltr";
   ctx.globalAlpha = 0.6;
-  ctx.fillStyle = textColor;
+  ctx.fillStyle = sc.ink;
   ctx.font = `${W * 0.022}px system-ui, -apple-system, sans-serif`;
   const logoH = W * 0.023;
   const logoW = (44 / 40) * logoH;
@@ -3942,9 +4479,9 @@ async function composeQR(opts: {
     const domainW = ctx.measureText("dinelinks.com").width;
     const totalW = logoW + gap + domainW;
     const startX = (W - totalW) / 2;
-    drawDLLogo(ctx, startX, cy - logoH * 0.82, logoH, textColor);
+    drawDLLogo(ctx, startX, cy - logoH * 0.82, logoH, sc.ink);
     ctx.textAlign = "left";
-    ctx.fillStyle = textColor;
+    ctx.fillStyle = sc.ink;
     ctx.fillText("dinelinks.com", startX + logoW + gap, cy);
   } else {
     const wmY = H - pad * 0.55;
@@ -3952,7 +4489,7 @@ async function composeQR(opts: {
     ctx.fillText("dinelinks.com", W - pad, wmY);
     const domainW = ctx.measureText("dinelinks.com").width;
     const lx = W - pad - domainW - gap - logoW;
-    drawDLLogo(ctx, lx, wmY - logoH * 0.82, logoH, textColor);
+    drawDLLogo(ctx, lx, wmY - logoH * 0.82, logoH, sc.ink);
   }
   ctx.globalAlpha = 1;
 
@@ -3967,7 +4504,7 @@ async function composeQR(opts: {
 
   // ── Outer border / frame ─────────────────────────────────────────────────────
   if (showBorder) {
-    ctx.strokeStyle = textColor;
+    ctx.strokeStyle = sc.ink;
     ctx.lineWidth = Math.max(2, W * 0.006);
     const inset = ctx.lineWidth * 1.5;
     if (roundCrop) {
@@ -4092,6 +4629,101 @@ function TemplatePreview({ format, template, active }: {
   );
 }
 
+// Schematic thumbnail for the multilingual sign templates, drawn on the
+// selected format's shape so the owner sees how it lands on what they'll print.
+function SignTemplatePreview({ format, template, active }: {
+  format: FormatKey;
+  template: SignTemplateKey;
+  active: boolean;
+}) {
+  const fmt = FORMATS[format];
+  const round = !!fmt.round;
+  const landscape = fmt.orientation === "landscape";
+  const VB = 64, MAX = 54;
+  let w = MAX, h = MAX;
+  if (fmt.aspect >= 1) h = MAX / fmt.aspect; else w = MAX * fmt.aspect;
+  const x = (VB - w) / 2, y = (VB - h) / 2;
+  const stroke = active ? "var(--accent)" : "var(--muted)";
+  const ink = active ? "var(--accent)" : "var(--muted)";
+  const p = Math.min(w, h) * 0.11;
+
+  const bar = (bx: number, by: number, bw: number, op = 0.5, bh = 1.6) => (
+    <rect key={`${bx}-${by}-${bw}`} x={bx} y={by} width={Math.max(1, bw)} height={bh} rx={bh / 2} fill={ink} opacity={op} />
+  );
+  const rows = (rx: number, ry: number, rw: number, n: number, step: number, op = 0.45) =>
+    Array.from({ length: n }, (_, i) => bar(rx, ry + i * step, rw, op, 1.3));
+
+  const parts: ReactNode[] = [];
+  const cx = x + w / 2;
+
+  if (landscape) {
+    const qrS = Math.min(h - p * 2, w * 0.3);
+    const qx = x + p, qy = y + (h - qrS) / 2;
+    const tx = qx + qrS + p * 0.8;
+    const tw = x + w - p - tx;
+    parts.push(<rect key="qr" x={qx} y={qy} width={qrS} height={qrS} rx={1.5} fill={ink} opacity={0.85} />);
+    parts.push(bar(tx, y + p, tw * 0.45, 0.65, 1.4));
+    parts.push(bar(tx, y + p + 3.4, tw * 0.85, 0.85, 2.2));
+    if (template === "sign-minimal") parts.push(bar(tx, y + h - p - 4, tw * 0.6, 0.5, 1.6));
+    else if (template === "sign-stacked") parts.push(...rows(tx, y + p + 9, tw * 0.9, 3, 3));
+    else {
+      parts.push(...rows(tx, y + p + 9, tw * 0.4, 3, 3));
+      parts.push(...rows(tx + tw * 0.5, y + p + 9, tw * 0.4, 3, 3));
+      if (template === "sign-steps") parts.push(bar(tx, y + h - p - 1.5, tw, 0.35, 1.2));
+    }
+  } else {
+    parts.push(bar(cx - w * 0.16, y + p, w * 0.32, 0.6, 1.6));
+    parts.push(bar(cx - w * 0.3, y + p + 4, w * 0.6, 0.85, 2.4));
+    const top = y + p + 9;
+    const bottomPad = template === "sign-steps" ? p + 4 : p;
+    const band = (y + h - bottomPad) - top;
+
+    if (template === "sign-split" || template === "sign-steps") {
+      const qrS = Math.min(band * 0.9, w * 0.34);
+      const qy = top + (band - qrS) / 2;
+      parts.push(<rect key="qr" x={cx - qrS / 2} y={qy} width={qrS} height={qrS} rx={1.5} fill={ink} opacity={0.85} />);
+      const colW = (w - qrS) / 2 - p * 1.2;
+      parts.push(...rows(x + p, qy + 1, colW, 3, qrS / 3.4));
+      parts.push(...rows(cx + qrS / 2 + p * 0.5, qy + 1, colW, 3, qrS / 3.4));
+      if (template === "sign-steps") parts.push(bar(x + p, y + h - p - 1, w - p * 2, 0.35, 1.2));
+    } else if (template === "sign-columns") {
+      const side = w >= band * 1.05;
+      if (side) {
+        const qrS = Math.min(band * 0.9, w * 0.36);
+        parts.push(<rect key="qr" x={x + p} y={top + (band - qrS) / 2} width={qrS} height={qrS} rx={1.5} fill={ink} opacity={0.85} />);
+        const lx = x + p + qrS + p * 0.8;
+        const lw = (x + w - p - lx - 2) / 2;
+        parts.push(...rows(lx, top + band * 0.2, lw, 3, band * 0.22));
+        parts.push(...rows(lx + lw + 2, top + band * 0.2, lw, 3, band * 0.22));
+      } else {
+        const qrS = Math.min(band * 0.45, w * 0.4);
+        parts.push(<rect key="qr" x={cx - qrS / 2} y={top} width={qrS} height={qrS} rx={1.5} fill={ink} opacity={0.85} />);
+        const lw = (w - p * 2) / 2 - 1.5;
+        parts.push(...rows(x + p, top + qrS + 3, lw, 3, 3));
+        parts.push(...rows(x + p + lw + 3, top + qrS + 3, lw, 3, 3));
+      }
+    } else if (template === "sign-stacked") {
+      const qrS = Math.min(band * 0.52, w * 0.4);
+      parts.push(<rect key="qr" x={cx - qrS / 2} y={top} width={qrS} height={qrS} rx={1.5} fill={ink} opacity={0.85} />);
+      parts.push(...rows(x + p, top + qrS + 3, w - p * 2, 3, 3));
+    } else {
+      const qrS = Math.min(band * 0.62, w * 0.5);
+      const qy = top + (band - qrS - 4) / 2;
+      parts.push(<rect key="qr" x={cx - qrS / 2} y={qy} width={qrS} height={qrS} rx={1.5} fill={ink} opacity={0.85} />);
+      parts.push(bar(cx - w * 0.22, qy + qrS + 3, w * 0.44, 0.55, 1.8));
+    }
+  }
+
+  return (
+    <svg width="100%" viewBox="0 0 64 64" style={{ maxWidth: 64 }}>
+      {round
+        ? <circle cx={32} cy={32} r={Math.min(w, h) / 2} stroke={stroke} strokeWidth={1.5} fill="none" />
+        : <rect x={x} y={y} width={w} height={h} rx={3} stroke={stroke} strokeWidth={1.5} fill="none" />}
+      {parts}
+    </svg>
+  );
+}
+
 function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Restaurant | null; onClose: () => void }) {
   const logoUrl = (restaurant as Restaurant & { logo_url?: string | null })?.logo_url ?? null;
   const restaurantName = restaurant?.name ?? "Your Restaurant";
@@ -4140,7 +4772,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   const [customBgColor, setCustomBgColor]         = useState(pick("customBgColor", "#ffffff"));
   const [customFrameColor, setCustomFrameColor]   = useState(pick("customFrameColor", "#000000"));
   const [qrModuleStyle, setQrModuleStyle]         = useState<QRModuleStyle>(pick("qrModuleStyle", "square"));
-  const [qrTemplate, setQrTemplate]               = useState<"simple" | "tagline" | "table">(pick("qrTemplate", "simple"));
+  const [qrTemplate, setQrTemplate]               = useState<TemplateKey>(pick("qrTemplate", "simple"));
   const [qrSize, setQrSize]                       = useState<QRSizeKey>(pick("qrSize", "medium"));
   const [qrScale, setQrScale]                     = useState<number>(pick("qrScale", 100)); // 50-100% of available card area
   const [qrIncludeLogo, setQrIncludeLogo]         = useState(pick("qrIncludeLogo", true));
@@ -4158,6 +4790,10 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   const [textAlign, setTextAlign]                 = useState<"left" | "center" | "right">(pick("textAlign", "center"));
   const [taglineOffset, setTaglineOffset]         = useState(pick("taglineOffset", 0));  // -40..40 reference px
   const [headerSpacing, setHeaderSpacing]         = useState(pick("headerSpacing", 0));  // -20..40 reference px — space above & below header
+  // Multilingual signs
+  const [signVariant, setSignVariant]             = useState<"light" | "dark">(pick("signVariant", "light"));
+  const [signBrand, setSignBrand]                 = useState<"logo" | "name">(pick("signBrand", logoUrl ? "logo" : "name"));
+  const [signHeadline, setSignHeadline]           = useState<string>(pick("signHeadline", DEFAULT_SIGN_HEADLINE));
   // Card
   const [cardPadding, setCardPadding]             = useState(pick("cardPadding", 35)); // 0-100
   const [showBorder, setShowBorder]               = useState(pick("showBorder", false));
@@ -4170,10 +4806,17 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
   useBodyScrollLock(true);
 
+  const isSign = isSignTemplate(qrTemplate);
   const showHeader = qrTemplate === "table";
   const showTagline = qrTemplate === "tagline" || qrTemplate === "table";
   const hasText = showHeader || showTagline;
   const fmt = FORMATS[qrFormat];
+
+  // A dark sign forces dark modules onto a light chip, so the contrast warning
+  // has to judge the colors that actually get printed, not the picked pair.
+  const effective = isSign
+    ? signColors(signVariant, customQrColor, customBgColor, customFrameColor)
+    : { qrFg: customQrColor, qrBg: customBgColor };
 
   const commonOpts = useCallback(() => ({
     slug,
@@ -4204,7 +4847,12 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     logoSizePercent: qrLogoSize,
     logoPadding: qrLogoPadding,
     logoUrl,
-  }), [slug, customQrColor, customBgColor, customFrameColor, qrFormat, qrSize, qrScale, qrTemplate, qrHeader, qrTagline, headerFontSize, taglineFontSize, qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder, qrModuleStyle, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrLogoSize, qrLogoPadding, logoUrl]);
+    signTemplate: isSignTemplate(qrTemplate) ? qrTemplate : null,
+    signVariant,
+    signBrand,
+    signHeadline,
+    restaurantName,
+  }), [slug, customQrColor, customBgColor, customFrameColor, qrFormat, qrSize, qrScale, qrTemplate, qrHeader, qrTagline, headerFontSize, taglineFontSize, qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder, qrModuleStyle, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrLogoSize, qrLogoPadding, logoUrl, signVariant, signBrand, signHeadline, restaurantName]);
 
   // Live preview — render to offscreen at capped width, then blit only if still latest.
   useEffect(() => {
@@ -4229,10 +4877,12 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     qrTemplate, qrSize, qrScale, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor,
     qrLogoSize, qrLogoPadding, qrTagline, qrHeader, headerFontSize, taglineFontSize,
     qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder,
+    signVariant, signBrand, signHeadline,
   }), [qrFormat, qrStyle, customQrColor, customBgColor, customFrameColor, qrModuleStyle,
     qrTemplate, qrSize, qrScale, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor,
     qrLogoSize, qrLogoPadding, qrTagline, qrHeader, headerFontSize, taglineFontSize,
-    qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder]);
+    qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder,
+    signVariant, signBrand, signHeadline]);
 
   // Auto-save on every change so reopening the modal restores where they left off.
   useEffect(() => {
@@ -4428,7 +5078,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                   </div>
                 ))}
               </div>
-              {contrastRatio(customQrColor, customBgColor) < 2.5 && (
+              {contrastRatio(effective.qrFg, effective.qrBg) < 2.5 && (
                 <p className="mt-3 text-[11px] leading-snug text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
                   ⚠ Low contrast between QR color and background — this may be hard for phones to scan. Test it before printing.
                 </p>
@@ -4471,7 +5121,93 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                 </div>
               ))}
             </div>
+
+            {/* Multilingual signs */}
+            <div className="mt-6">
+              <p className="text-xs uppercase tracking-widest text-gray-500">Multilingual signs</p>
+              <p className="mt-1.5 mb-3 text-[11px] leading-snug text-[var(--muted)]">
+                “Read our menu in your language” — all {locales.length} languages printed in their own
+                scripts. The list comes straight from your menu’s translations, so it stays current.
+              </p>
+              <div className="grid grid-cols-3 gap-3">
+                {SIGN_TEMPLATES.map(t => (
+                  <div key={t.id} onClick={() => setQrTemplate(t.id)}
+                    className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all ${qrTemplate === t.id ? "border-[var(--accent)]" : "border-[var(--card-border)] hover:border-[var(--accent)]/40"}`}>
+                    <div className="bg-[var(--background)] rounded-lg p-2 mb-2 flex items-center justify-center min-h-[80px] border border-[var(--card-border)]">
+                      <SignTemplatePreview format={qrFormat} template={t.id} active={qrTemplate === t.id} />
+                    </div>
+                    <span className={`block text-xs ${qrTemplate === t.id ? "text-[var(--accent)] font-semibold" : "text-[var(--foreground)]"}`}>{t.label}</span>
+                    <span className="block text-[10px] text-[var(--muted)] leading-tight mt-0.5">{t.desc}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
+
+          {/* Sign options — only for the multilingual templates */}
+          {isSign && (
+            <div>
+              <p className={sectionLabel}>Sign options</p>
+              <div className="space-y-4 rounded-xl border border-[var(--card-border)] p-4">
+                <div>
+                  <span className="text-sm text-[var(--foreground)] block mb-1.5">Variant</span>
+                  <div className="flex gap-2">
+                    {(["light", "dark"] as const).map(v => (
+                      <button key={v} type="button" onClick={() => setSignVariant(v)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${signVariant === v ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/50"}`}>
+                        {v}
+                      </button>
+                    ))}
+                  </div>
+                  {signVariant === "dark" && (
+                    <p className="mt-2 text-[11px] text-[var(--muted)]">
+                      The code sits on a light panel so it still scans on a dark sign.
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <span className="text-sm text-[var(--foreground)] block mb-1.5">Show at the top</span>
+                  <div className="flex gap-2">
+                    {([
+                      { id: "logo" as const, label: "Restaurant logo" },
+                      { id: "name" as const, label: "Restaurant name" },
+                    ]).map(b => (
+                      <button key={b.id} type="button" disabled={b.id === "logo" && !logoUrl}
+                        onClick={() => setSignBrand(b.id)}
+                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${signBrand === b.id ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/50"}`}>
+                        {b.label}
+                      </button>
+                    ))}
+                  </div>
+                  {!logoUrl && (
+                    <p className="mt-2 text-[11px] text-[var(--muted)]">Upload a logo in Theme &amp; Branding to use it here.</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="text-sm text-[var(--foreground)] block mb-1.5">Headline</label>
+                  <textarea rows={2} value={signHeadline} onChange={e => setSignHeadline(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)]" />
+                  <p className="mt-1.5 text-[11px] text-[var(--muted)]">
+                    First line prints small above the second — keep the big line short.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="text-sm text-[var(--foreground)] block mb-1.5">Font</label>
+                  <select value={qrFont} onChange={e => setQrFont(e.target.value as FontKey)}
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)]">
+                    {QR_FONT_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+                  </select>
+                  <p className="mt-1.5 text-[11px] text-[var(--muted)]">
+                    Used for your text and the Latin language names. Chinese, Japanese, Korean, Arabic,
+                    Hindi and Punjabi always use a matching script font.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Text — only when the template includes text */}
           {hasText && (
