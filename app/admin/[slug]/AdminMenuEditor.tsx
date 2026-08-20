@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode } fro
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
+import jsQR from "jsqr";
 import { createSupabaseClient } from "@/app/lib/supabase";
 import { CATEGORY_ORDER, SAMPLE_ITEM_NAME } from "@/app/lib/constants";
 import type { MenuItemRow } from "@/app/lib/constants";
@@ -3544,57 +3545,26 @@ function ManageCategoriesModal({
 
 // ── QR Code Modal ─────────────────────────────────────────────────────────────
 
-const QR_STYLES_MAP = {
-  classic:    { fg: "#000000", bg: "#ffffff" },
-  brand:      { fg: "#2c2a26", bg: "#faf8f5" },
-  restaurant: { fg: "#2c2a26", bg: "#ffffff" },
-  dark:       { fg: "#faf8f5", bg: "#2c2a26" },
-} as const;
-type QRStyleKey = keyof typeof QR_STYLES_MAP;
-
-// WCAG-style relative-contrast ratio between two hex colors (1:1 … 21:1).
-// Used to warn when a QR's fg/bg pairing is too low-contrast to scan reliably.
-function contrastRatio(hex1: string, hex2: string): number {
-  const lum = (hex: string): number => {
-    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
-    if (!m) return 0;
-    const chan = [m[1], m[2], m[3]].map((h) => {
-      const c = parseInt(h, 16) / 255;
-      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-    });
-    return 0.2126 * chan[0] + 0.7152 * chan[1] + 0.0722 * chan[2];
-  };
-  const l1 = lum(hex1);
-  const l2 = lum(hex2);
-  const lighter = Math.max(l1, l2);
-  const darker = Math.min(l1, l2);
-  return (lighter + 0.05) / (darker + 0.05);
-}
-
-// Output size acts as a quality multiplier on each format's base width.
-const SIZE_SCALE = { small: 1, medium: 1.5, large: 2 } as const;
-type QRSizeKey = keyof typeof SIZE_SCALE;
-
-// Physical formats a restaurant might print. baseW = canvas width (px) at size "small";
-// aspect = width / height. Larger/print formats use bigger baseW so they don't pixelate.
+// Physical formats a restaurant might print. printW is the export width, chosen
+// per format so every download lands at 300dpi or better at its real-world size
+// — that used to be an "output quality" control owners had to guess at.
+// aspect = width / height.
 type FormatKey = "sticker" | "tent" | "poster" | "aframe" | "counter" | "coaster";
 const FORMATS: Record<FormatKey, {
   label: string;
   desc: string;
-  baseW: number;
+  printW: number;
   aspect: number;
   orientation: "portrait" | "landscape";
   round?: boolean;
 }> = {
-  sticker: { label: "Table sticker", desc: "Small square for tabletops",     baseW: 1080, aspect: 1,     orientation: "portrait"  },
-  tent:    { label: "Table tent",    desc: "Tall fold-over standup card",     baseW: 1100, aspect: 0.66,  orientation: "portrait"  },
-  poster:  { label: "Wall poster",   desc: "Large portrait for walls",        baseW: 1654, aspect: 0.707, orientation: "portrait"  },
-  aframe:  { label: "A-frame sign",  desc: "Tall sidewalk-frame insert",      baseW: 1200, aspect: 0.5,   orientation: "portrait"  },
-  counter: { label: "Counter card",  desc: "Wide — QR beside the text",       baseW: 1800, aspect: 1.6,   orientation: "landscape" },
-  coaster: { label: "Coaster",       desc: "~90mm drink mat, round option",   baseW: 1063, aspect: 1,     orientation: "portrait", round: true },
+  sticker: { label: "Table sticker", desc: "Tabletop square",   printW: 1800, aspect: 1,     orientation: "portrait"  },
+  tent:    { label: "Table tent",    desc: "Fold-over standup", printW: 1800, aspect: 0.66,  orientation: "portrait"  },
+  poster:  { label: "Wall poster",   desc: "A4 for walls",      printW: 2480, aspect: 0.707, orientation: "portrait"  },
+  aframe:  { label: "A-frame sign",  desc: "Sidewalk insert",   printW: 2400, aspect: 0.5,   orientation: "portrait"  },
+  counter: { label: "Counter card",  desc: "Wide, QR beside",   printW: 2400, aspect: 1.6,   orientation: "landscape" },
+  coaster: { label: "Coaster",       desc: "Round drink mat",   printW: 1600, aspect: 1,     orientation: "portrait", round: true },
 };
-
-type QRModuleStyle = "square" | "dots" | "rounded";
 
 // Canvas-renderable font families. The next/font CSS variables live on <body>;
 // we resolve them at draw time so the canvas matches the rest of the app.
@@ -3645,7 +3615,10 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 // Renders the QR matrix ourselves so we control module shape (square / dots /
 // rounded). Finder "eyes" stay solid squares for reliable scanning even in
 // dotty styles. Returns an offscreen canvas sized sizePx × sizePx.
-function renderQRCanvas(url: string, sizePx: number, fg: string, bg: string, moduleStyle: QRModuleStyle): HTMLCanvasElement {
+// Modules are drawn as slightly-overlapping squares so neighbours merge into
+// clean runs. Decorative shapes (dots, rounded) leave a gap between every
+// module, and a real decoder can't read the result — see verifyScannable.
+function renderQRCanvas(url: string, sizePx: number, fg: string, bg: string): HTMLCanvasElement {
   const qr = QRCode.create(url, { errorCorrectionLevel: "H" });
   const count = qr.modules.size;
   const data = qr.modules.data;
@@ -3661,24 +3634,12 @@ function renderQRCanvas(url: string, sizePx: number, fg: string, bg: string, mod
   ctx.fillRect(0, 0, sizePx, sizePx);
   ctx.fillStyle = fg;
 
-  const isFinder = (r: number, col: number) =>
-    (r < 7 && col < 7) || (r < 7 && col >= count - 7) || (r >= count - 7 && col < 7);
-
   for (let r = 0; r < count; r++) {
     for (let col = 0; col < count; col++) {
       if (!data[r * count + col]) continue;
       const x = (col + margin) * cell;
       const y = (r + margin) * cell;
-      if (moduleStyle === "square" || isFinder(r, col)) {
-        ctx.fillRect(Math.floor(x), Math.floor(y), Math.ceil(cell) + 0.6, Math.ceil(cell) + 0.6);
-      } else if (moduleStyle === "dots") {
-        ctx.beginPath();
-        ctx.arc(x + cell / 2, y + cell / 2, cell * 0.46, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        roundRect(ctx, x + cell * 0.08, y + cell * 0.08, cell * 0.84, cell * 0.84, cell * 0.32);
-        ctx.fill();
-      }
+      ctx.fillRect(Math.floor(x), Math.floor(y), Math.ceil(cell) + 0.6, Math.ceil(cell) + 0.6);
     }
   }
   return c;
@@ -3818,8 +3779,6 @@ async function drawLanguageSign(o: {
   qrFg: string; qrBg: string;
   panel: boolean; panelBg: string;
   url: string;
-  moduleStyle: QRModuleStyle;
-  qrScaleFactor: number;
   fam: string;
   headline: string;
   brandMode: "logo" | "name";
@@ -3830,7 +3789,7 @@ async function drawLanguageSign(o: {
 }) {
   const {
     ctx, W, H, template, pad, wmH, round, landscape, ink, qrFg, qrBg, panel, panelBg,
-    url, moduleStyle, qrScaleFactor, fam, headline, brandMode, brandName, logoUrl,
+    url, fam, headline, brandMode, brandName, logoUrl,
     langs, drawCenterLogo,
   } = o;
 
@@ -3863,7 +3822,7 @@ async function drawLanguageSign(o: {
       roundRect(ctx, x - m, y - m, px + m * 2, px + m * 2, px * 0.05);
       ctx.fill();
     }
-    ctx.drawImage(renderQRCanvas(url, Math.round(px), qrFg, qrBg, moduleStyle), x, y, px, px);
+    ctx.drawImage(renderQRCanvas(url, Math.round(px), qrFg, qrBg), x, y, px, px);
     await drawCenterLogo(x + px / 2, y + px / 2, px);
   };
 
@@ -4173,7 +4132,7 @@ async function drawLanguageSign(o: {
   // ── Landscape (counter card): QR pane on the left, everything else right ───
   if (landscape) {
     const paneW = rw * 0.36;
-    const qrPx = Math.max(60, Math.min(paneW * 0.92, rh * 0.92) * qrScaleFactor);
+    const qrPx = Math.max(60, Math.min(paneW * 0.92, rh * 0.92));
     await drawQRAt(rx + (paneW - qrPx) / 2, ry + (rh - qrPx) / 2, qrPx);
     const cx = rx + paneW + rw * 0.05;
     await drawContentColumn(cx, ry, rx + rw - cx, rh, "left");
@@ -4198,7 +4157,7 @@ async function drawLanguageSign(o: {
   const bandH = Math.max(W * 0.22, bottom - cy);
 
   if (template === "sign-split" || template === "sign-steps") {
-    const qrPx = Math.max(60, Math.min(bandH * 0.94, rw * 0.44) * qrScaleFactor);
+    const qrPx = Math.max(60, Math.min(bandH * 0.94, rw * 0.44));
     const qrX = rx + (rw - qrPx) / 2;
     await drawQRAt(qrX, bandY + (bandH - qrPx) / 2, qrPx);
     const gap = rw * 0.045;
@@ -4212,28 +4171,95 @@ async function drawLanguageSign(o: {
     // Wide enough to sit side by side (stickers, coasters); otherwise stack.
     const sideBySide = rw >= bandH * 1.05;
     if (sideBySide) {
-      const qrPx = Math.max(60, Math.min(rw * 0.42, bandH * 0.94) * qrScaleFactor);
+      const qrPx = Math.max(60, Math.min(rw * 0.42, bandH * 0.94));
       await drawQRAt(rx, bandY + (bandH - qrPx) / 2, qrPx);
       const listX = rx + qrPx + rw * 0.05;
       paintTwoColumns(listX, bandY, rx + rw - listX, bandH, true);
     } else {
-      const qrPx = Math.max(60, Math.min(rw * 0.55, bandH * 0.46) * qrScaleFactor);
+      const qrPx = Math.max(60, Math.min(rw * 0.55, bandH * 0.46));
       await drawQRAt(rx + (rw - qrPx) / 2, bandY, qrPx);
       const listY = bandY + qrPx + bandH * 0.06;
       paintTwoColumns(rx, listY, rw, Math.max(W * 0.08, bandY + bandH - listY), true);
     }
   } else if (template === "sign-stacked") {
-    const qrPx = Math.max(60, Math.min(rw * 0.55, bandH * 0.55) * qrScaleFactor);
+    const qrPx = Math.max(60, Math.min(rw * 0.55, bandH * 0.55));
     await drawQRAt(rx + (rw - qrPx) / 2, bandY, qrPx);
     const listY = bandY + qrPx + bandH * 0.06;
     drawFlowList(items, rx, listY, rw, Math.max(W * 0.08, bandY + bandH - listY));
   } else {
     const capH = Math.min(bandH * 0.2, W * 0.1);
-    const qrPx = Math.max(60, Math.min(rw * 0.74, bandH - capH * 1.3) * qrScaleFactor);
+    const qrPx = Math.max(60, Math.min(rw * 0.74, bandH - capH * 1.3));
     const qrY = bandY + (bandH - capH - qrPx) / 2;
     await drawQRAt(rx + (rw - qrPx) / 2, qrY, qrPx);
     drawCountLine(rx, qrY + qrPx + capH * 0.15, rw, capH, "center");
   }
+}
+
+// Layout constants. These were owner-facing sliders; every one of them could
+// only make a sign worse, so they're tuned once here instead. LOGO_PCT in
+// particular is held at a level the H-level error correction can absorb.
+const HEADER_REF_PX  = 22;    // reference px, relative to a 400px-wide card
+const TAGLINE_REF_PX = 16;
+const CARD_PAD_RATIO = 0.062; // print-safe margin, ~6% of width
+const LOGO_PCT       = 18;    // logo width as % of the QR
+const LOGO_PAD_PCT   = 18;    // knockout ring around the logo, as % of its size
+
+export type ScanCheck = "ok" | "inverted" | "fail";
+
+/**
+ * Actually decodes the code we're about to print, rather than inferring
+ * scannability from a contrast ratio. Renders the QR exactly as it will appear
+ * — real colours, module shape, centred logo knockout — and runs jsQR over it.
+ *
+ * "inverted" means the contrast is fine but the code is light-on-dark. Modern
+ * phone cameras generally cope; older scanners don't. That's a caution, not a
+ * failure.
+ */
+async function verifyScannable(o: {
+  url: string;
+  fg: string; bg: string;
+  logoUrl: string | null;
+  includeLogo: boolean;
+}): Promise<ScanCheck> {
+  // Comfortably above the decoder's minimum, so a "fail" here is about the
+  // colours the owner picked and never about the test resolution.
+  const SIZE = 720;
+
+  const paint = async (fg: string, bg: string) => {
+    const c = renderQRCanvas(o.url, SIZE, fg, bg);
+    const ctx = c.getContext("2d")!;
+    if (o.includeLogo && o.logoUrl) {
+      try {
+        const img = await loadImage(o.logoUrl);
+        const nW = img.naturalWidth || img.width;
+        const nH = img.naturalHeight || img.height;
+        const logoSize = SIZE * (LOGO_PCT / 100);
+        const s = Math.min(logoSize / nW, logoSize / nH);
+        const ring = logoSize * (1 + (LOGO_PAD_PCT / 100) * 2);
+        ctx.fillStyle = bg;
+        ctx.beginPath();
+        ctx.arc(SIZE / 2, SIZE / 2, ring / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.drawImage(img, SIZE / 2 - (nW * s) / 2, SIZE / 2 - (nH * s) / 2, nW * s, nH * s);
+      } catch { /* logo unavailable — check the bare code */ }
+    }
+    return ctx.getImageData(0, 0, SIZE, SIZE).data;
+  };
+
+  // jsQR throws rather than returning null when it can't even find the finder
+  // patterns — which is exactly the unscannable case we're testing for.
+  const decodes = (px: Uint8ClampedArray) => {
+    try { return !!jsQR(px, SIZE, SIZE, { inversionAttempts: "dontInvert" }); }
+    catch { return false; }
+  };
+
+  if (decodes(await paint(o.fg, o.bg))) return "ok";
+  // Don't ask jsQR to invert for us: its binariser reads a large flat dark area
+  // as light, so flipping afterwards floods the quiet zone black and nothing
+  // locates. Re-render the code the right way round instead — if *that* decodes,
+  // the contrast is fine and the only issue is that it's light-on-dark.
+  if (decodes(await paint(o.bg, o.fg))) return "inverted";
+  return "fail";
 }
 
 async function composeQR(opts: {
@@ -4242,28 +4268,14 @@ async function composeQR(opts: {
   bgColor: string;
   textColor: string;
   format: FormatKey;
-  size: QRSizeKey;
-  qrScale: number;         // 50–100 — QR grid size within its available card area
   showHeader: boolean;
   showTagline: boolean;
   header: string;
   tagline: string;
-  headerFontSize: number;  // reference px (relative to a 400px-wide card)
-  taglineFontSize: number; // reference px
   fontKey: FontKey;
-  textAlign: "left" | "center" | "right";
-  taglineOffset: number;   // reference px, vertical nudge of tagline
-  headerSpacing: number;   // reference px, extra space above & below header
-  cardPadding: number;     // 0–100
   showBorder: boolean;
-  moduleStyle: QRModuleStyle;
   roundCrop: boolean;
   includeLogo: boolean;
-  logoBg: boolean;
-  logoBgShape: "circle" | "square" | "rounded" | "none";
-  logoBgColor: string;
-  logoSizePercent: number; // 10–40
-  logoPadding: number;     // 0–30 as % of logo size
   logoUrl: string | null;
   // Multilingual sign templates — null keeps the classic QR-card layouts.
   signTemplate: SignTemplateKey | null;
@@ -4275,10 +4287,9 @@ async function composeQR(opts: {
   maxWidth?: number;       // preview cap — uniformly scales the whole card
 }) {
   const {
-    slug, fgColor, bgColor, textColor, format, size, qrScale, showHeader, showTagline,
-    header, tagline, headerFontSize, taglineFontSize, fontKey, textAlign, taglineOffset,
-    headerSpacing, cardPadding, showBorder, moduleStyle, roundCrop, includeLogo, logoBg, logoBgShape,
-    logoBgColor, logoSizePercent, logoPadding, logoUrl, signTemplate, signVariant, signBrand,
+    slug, fgColor, bgColor, textColor, format, showHeader, showTagline,
+    header, tagline, fontKey, showBorder, roundCrop, includeLogo,
+    logoUrl, signTemplate, signVariant, signBrand,
     signHeadline, restaurantName, canvas, maxWidth,
   } = opts;
 
@@ -4295,21 +4306,14 @@ async function composeQR(opts: {
     try { await document.fonts.ready; } catch { /* ignore */ }
   }
 
-  // Canvas dimensions (uniformly downscaled for preview via maxWidth).
-  let W = Math.round(fmt.baseW * SIZE_SCALE[size]);
+  // Downloads always come out at the format's print width; previews are the same
+  // card scaled uniformly down, so what you see is exactly what you get.
+  let W = fmt.printW;
   let H = Math.round(W / fmt.aspect);
   if (maxWidth && W > maxWidth) {
     const s = maxWidth / W;
     W = Math.round(W * s);
     H = Math.round(H * s);
-  } else if (!maxWidth) {
-    // Download path — guarantee a high-res output floor so prints stay crisp.
-    const minW = size === "small" ? 1200 : size === "medium" ? 2000 : 3000;
-    if (W < minW) {
-      const s = minW / W;
-      W = Math.round(W * s);
-      H = Math.round(H * s);
-    }
   }
   canvas.width = W;
   canvas.height = H;
@@ -4323,15 +4327,15 @@ async function composeQR(opts: {
   ctx.fillRect(0, 0, W, H);
 
   const fam = resolveFontFamily(fontKey);
-  const ts = W / 400;                                   // text scale vs reference card
-  const pad = W * (0.03 + (cardPadding / 100) * 0.09);  // 3%–12% of width
+  const ts = W / 400;                 // text scale vs reference card
+  const pad = W * CARD_PAD_RATIO;
   const innerW = W - pad * 2;
   const wmH = W * 0.045;
-  const headerPx = headerFontSize * ts;
-  const taglinePx = taglineFontSize * ts;
-  const anchorX = textAlign === "left" ? pad : textAlign === "right" ? W - pad : W / 2;
+  const headerPx = HEADER_REF_PX * ts;
+  const taglinePx = TAGLINE_REF_PX * ts;
+  const anchorX = W / 2;
 
-  ctx.textAlign = textAlign;
+  ctx.textAlign = "center";
   ctx.textBaseline = "top";
 
   // ── Logo helper — centered on the QR rect (shared centerX/centerY) ─────────
@@ -4339,27 +4343,19 @@ async function composeQR(opts: {
     if (!includeLogo || !logoUrl) return;
     try {
       const logoImg = await loadImage(logoUrl);
-      const logoSize = qrPx * (Math.min(40, Math.max(10, logoSizePercent)) / 100);
+      const logoSize = qrPx * (LOGO_PCT / 100);
       const naturalW = logoImg.naturalWidth || logoImg.width;
       const naturalH = logoImg.naturalHeight || logoImg.height;
       const scale = Math.min(logoSize / naturalW, logoSize / naturalH);
       const drawW = naturalW * scale;
       const drawH = naturalH * scale;
-      if (logoBg && logoBgShape !== "none") {
-        const p = logoSize * (logoPadding / 100);
-        const bgSize = logoSize + p * 2;
-        ctx.fillStyle = logoBgColor;
-        if (logoBgShape === "circle") {
-          ctx.beginPath();
-          ctx.arc(cx, cy, bgSize / 2, 0, Math.PI * 2);
-          ctx.fill();
-        } else if (logoBgShape === "rounded") {
-          roundRect(ctx, cx - bgSize / 2, cy - bgSize / 2, bgSize, bgSize, bgSize * 0.18);
-          ctx.fill();
-        } else {
-          ctx.fillRect(cx - bgSize / 2, cy - bgSize / 2, bgSize, bgSize);
-        }
-      }
+      // Knock the modules out in the QR's own background colour so the logo
+      // reads as a deliberate hole rather than something sitting on top.
+      const bgSize = logoSize * (1 + (LOGO_PAD_PCT / 100) * 2);
+      ctx.fillStyle = sc.qrBg;
+      ctx.beginPath();
+      ctx.arc(cx, cy, bgSize / 2, 0, Math.PI * 2);
+      ctx.fill();
       ctx.drawImage(logoImg, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
     } catch { /* logo failed to load */ }
   };
@@ -4370,9 +4366,7 @@ async function composeQR(opts: {
     ctx.font = `600 ${headerPx}px ${fam}`;
     headerLines = wrapLines(ctx, header.trim(), innerW, 2);
   }
-  // Extra breathing room above & below the header text (owner-adjustable).
-  const hsp = headerSpacing * ts;
-  const headerBlockH = headerLines.length ? headerLines.length * headerPx * 1.18 + headerPx * 0.4 + hsp * 2 : 0;
+  const headerBlockH = headerLines.length ? headerLines.length * headerPx * 1.18 + headerPx * 0.4 : 0;
 
   let taglineLines: string[] = [];
   if (showTagline && tagline.trim()) {
@@ -4380,10 +4374,6 @@ async function composeQR(opts: {
     taglineLines = wrapLines(ctx, tagline.trim(), innerW, 2);
   }
   const taglineBlockH = taglineLines.length ? taglineLines.length * taglinePx * 1.18 + taglinePx * 0.5 : 0;
-
-  // Owner-adjustable QR grid size within its available area (shrinks → more
-  // whitespace, 100% → fills the area as before). Clamped for scannability.
-  const qrScaleFactor = Math.min(1, Math.max(0.5, qrScale / 100));
 
   if (signTemplate) {
     await drawLanguageSign({
@@ -4396,8 +4386,6 @@ async function composeQR(opts: {
       qrFg: sc.qrFg, qrBg: sc.qrBg,
       panel: sc.panel, panelBg: sc.panelBg,
       url,
-      moduleStyle,
-      qrScaleFactor,
       fam,
       headline: signHeadline,
       brandMode: signBrand,
@@ -4410,27 +4398,26 @@ async function composeQR(opts: {
     // ── Counter card: QR on the left, text column on the right ───────────────
     const qrAreaW = innerW * 0.46;
     const availH = H - pad * 2 - wmH;
-    const qrPx = Math.max(60, Math.min(qrAreaW, availH) * qrScaleFactor);
+    const qrPx = Math.max(60, Math.min(qrAreaW, availH));
     const qrX = pad + (qrAreaW - qrPx) / 2;
     const qrY = pad + (availH - qrPx) / 2;
-    ctx.drawImage(renderQRCanvas(url, Math.round(qrPx), fgColor, bgColor, moduleStyle), qrX, qrY, qrPx, qrPx);
+    ctx.drawImage(renderQRCanvas(url, Math.round(qrPx), fgColor, bgColor), qrX, qrY, qrPx, qrPx);
     await drawLogo(qrX + qrPx / 2, qrY + qrPx / 2, qrPx);
 
     // Right-hand text column
     const colX = pad + qrAreaW + pad * 0.6;
     const colW = W - pad - colX;
-    const colAnchorX = textAlign === "left" ? colX : textAlign === "right" ? W - pad : colX + colW / 2;
-    ctx.textAlign = textAlign;
+    const colAnchorX = colX + colW / 2;
+    ctx.textAlign = "center";
     const groupH = headerBlockH + taglineBlockH;
     let ty = pad + (availH - groupH) / 2;
     if (headerLines.length) {
       ctx.fillStyle = textColor;
       ctx.font = `600 ${headerPx}px ${fam}`;
       for (const line of headerLines) { ctx.fillText(line, colAnchorX, ty); ty += headerPx * 1.18; }
-      ty += headerPx * 0.4 + hsp;
+      ty += headerPx * 0.4;
     }
     if (taglineLines.length) {
-      ty += taglineOffset * ts;
       ctx.fillStyle = textColor;
       ctx.font = `${taglinePx}px ${fam}`;
       for (const line of taglineLines) { ctx.fillText(line, colAnchorX, ty); ty += taglinePx * 1.18; }
@@ -4440,7 +4427,7 @@ async function composeQR(opts: {
     const innerTop = pad + headerBlockH;
     const innerBottom = H - pad - wmH - taglineBlockH;
     const availH = Math.max(60, innerBottom - innerTop);
-    const qrPx = Math.max(60, Math.min(innerW, availH) * qrScaleFactor);
+    const qrPx = Math.max(60, Math.min(innerW, availH));
     const qrX = (W - qrPx) / 2;
     // No header/tagline → center the QR (and therefore its logo) on the TRUE
     // canvas center. Otherwise the reserved bottom watermark band nudges it up.
@@ -4450,17 +4437,17 @@ async function composeQR(opts: {
     if (headerLines.length) {
       ctx.fillStyle = textColor;
       ctx.font = `600 ${headerPx}px ${fam}`;
-      let hy = pad + hsp;
+      let hy = pad;
       for (const line of headerLines) { ctx.fillText(line, anchorX, hy); hy += headerPx * 1.18; }
     }
 
-    ctx.drawImage(renderQRCanvas(url, Math.round(qrPx), fgColor, bgColor, moduleStyle), qrX, qrY, qrPx, qrPx);
+    ctx.drawImage(renderQRCanvas(url, Math.round(qrPx), fgColor, bgColor), qrX, qrY, qrPx, qrPx);
     await drawLogo(qrX + qrPx / 2, qrY + qrPx / 2, qrPx);
 
     if (taglineLines.length) {
       ctx.fillStyle = textColor;
       ctx.font = `${taglinePx}px ${fam}`;
-      let ty = qrY + qrPx + taglinePx * 0.6 + taglineOffset * ts;
+      let ty = qrY + qrPx + taglinePx * 0.6;
       for (const line of taglineLines) { ctx.fillText(line, anchorX, ty); ty += taglinePx * 1.18; }
     }
   }
@@ -4724,31 +4711,87 @@ function SignTemplatePreview({ format, template, active }: {
   );
 }
 
+// ── QR generator ──────────────────────────────────────────────────────────────
+// Preview-first: the card the owner is about to print stays large and live,
+// while a narrow rail asks the three questions they actually have, in the order
+// they have them — where is this going, what should it look like, and which few
+// words are theirs. Everything that could only make the result worse is either
+// gone or tuned once inside composeQR.
+
+type ColourKey = "classic" | "brand" | "dark";
+
+function QRSection({ step, title, hint, children }: {
+  step: number; title: string; hint?: string; children: ReactNode;
+}) {
+  return (
+    <section>
+      <div className="flex items-center gap-2">
+        <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[var(--accent)]/15 text-[10px] font-bold text-[var(--accent)]">
+          {step}
+        </span>
+        <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--foreground)]">{title}</h3>
+      </div>
+      {hint && <p className="ml-7 mt-1 text-[11px] leading-snug text-[var(--muted)]">{hint}</p>}
+      <div className="mt-2.5">{children}</div>
+    </section>
+  );
+}
+
+function Segmented<T extends string>({ options, value, onChange }: {
+  options: { id: T; label: string; disabled?: boolean }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex gap-1.5">
+      {options.map(o => (
+        <button key={o.id} type="button" disabled={o.disabled} onClick={() => onChange(o.id)}
+          className={`flex-1 rounded-lg border py-1.5 text-[11px] font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+            value === o.id
+              ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
+              : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/50"
+          }`}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function DesignCard({ label, desc, selected, onClick, children }: {
+  label: string; desc: string; selected: boolean; onClick: () => void; children: ReactNode;
+}) {
+  return (
+    <button type="button" onClick={onClick}
+      className={`rounded-xl border-2 p-2 text-center transition-all ${
+        selected ? "border-[var(--accent)] bg-[var(--accent)]/5" : "border-[var(--card-border)] hover:border-[var(--accent)]/40"
+      }`}>
+      <div className="mb-1.5 flex min-h-[58px] items-center justify-center rounded-lg border border-[var(--card-border)] bg-[var(--background)] p-1">
+        {children}
+      </div>
+      <span className={`block text-[11px] font-semibold leading-tight ${selected ? "text-[var(--accent)]" : "text-[var(--foreground)]"}`}>
+        {label}
+      </span>
+      <span className="mt-0.5 block text-[9px] leading-tight text-[var(--muted)]">{desc}</span>
+    </button>
+  );
+}
+
 function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Restaurant | null; onClose: () => void }) {
   const logoUrl = (restaurant as Restaurant & { logo_url?: string | null })?.logo_url ?? null;
   const restaurantName = restaurant?.name ?? "Your Restaurant";
 
-  const brandFg   = restaurant?.accent_color ?? "#8b6914";
-  const brandBg   = restaurant?.background_color ?? "#faf8f5";
-  const brandFont = restaurant?.font_color ?? "#2c2a26";
-  const brandCard = restaurant?.main_color ?? "#ffffff";
+  const brandAccent = restaurant?.accent_color ?? "#8b6914";
+  const brandFont   = restaurant?.font_color ?? "#2c2a26";
+  const brandCard   = restaurant?.main_color ?? "#ffffff";
 
-  const stylePresets: Record<QRStyleKey, { fg: string; bg: string; frame: string; label: string }> = {
-    classic:    { fg: "#000000",  bg: "#ffffff",  frame: "#000000",  label: "Classic"    },
-    brand:      { fg: brandFg,    bg: brandBg,    frame: brandFg,    label: "Brand"      },
-    // Uses the restaurant's OWN theme colors so the QR matches their menu:
-    // dark foreground text on the card/main color, framed in the accent color.
-    restaurant: { fg: brandFont,  bg: brandCard,  frame: brandFg,    label: "Restaurant" },
-    dark:       { fg: "#faf8f5",  bg: "#1f1d1a",  frame: "#faf8f5",  label: "Dark"       },
-  };
-
-  const selectStyle = (key: QRStyleKey) => {
-    const p = stylePresets[key];
-    setQrStyle(key);
-    setCustomQrColor(p.fg);
-    setCustomBgColor(p.bg);
-    setCustomFrameColor(p.frame);
-  };
+  // "Your colours" pulls the restaurant's own theme so the print matches the
+  // menu it points at.
+  const COLOURS: Record<ColourKey, { fg: string; bg: string; frame: string; label: string }> = useMemo(() => ({
+    classic: { fg: "#000000", bg: "#ffffff", frame: "#2c2a26",  label: "Classic"      },
+    brand:   { fg: brandFont, bg: brandCard, frame: brandAccent, label: "Your colours" },
+    dark:    { fg: "#faf8f5", bg: "#1f1d1a", frame: "#faf8f5",  label: "Dark"         },
+  }), [brandFont, brandCard, brandAccent]);
 
   // ── Persisted settings — restore the owner's last QR choices ─────────────────
   const STORAGE_KEY = `dinelinks-qr-settings-${slug}`;
@@ -4763,42 +4806,23 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   const pick = <T,>(key: string, fallback: T): T =>
     (saved[key] === undefined || saved[key] === null ? fallback : saved[key] as T);
 
-  const [qrFormat, setQrFormat]                   = useState<FormatKey>(pick("qrFormat", "sticker"));
-  const [qrStyle, setQrStyle]                     = useState<QRStyleKey>(() => {
-    const s = pick<string>("qrStyle", "classic");
-    return (s in QR_STYLES_MAP ? s : "classic") as QRStyleKey; // "gold" is retired → fall back
-  });
-  const [customQrColor, setCustomQrColor]         = useState(pick("customQrColor", "#000000"));
-  const [customBgColor, setCustomBgColor]         = useState(pick("customBgColor", "#ffffff"));
-  const [customFrameColor, setCustomFrameColor]   = useState(pick("customFrameColor", "#000000"));
-  const [qrModuleStyle, setQrModuleStyle]         = useState<QRModuleStyle>(pick("qrModuleStyle", "square"));
-  const [qrTemplate, setQrTemplate]               = useState<TemplateKey>(pick("qrTemplate", "simple"));
-  const [qrSize, setQrSize]                       = useState<QRSizeKey>(pick("qrSize", "medium"));
-  const [qrScale, setQrScale]                     = useState<number>(pick("qrScale", 100)); // 50-100% of available card area
-  const [qrIncludeLogo, setQrIncludeLogo]         = useState(pick("qrIncludeLogo", true));
-  const [qrLogoBg, setQrLogoBg]                   = useState(pick("qrLogoBg", true));
-  const [qrLogoBgShape, setQrLogoBgShape]         = useState<"circle" | "square" | "rounded" | "none">(pick("qrLogoBgShape", "circle"));
-  const [qrLogoBgColor, setQrLogoBgColor]         = useState(pick("qrLogoBgColor", "#ffffff"));
-  const [qrLogoSize, setQrLogoSize]               = useState(pick("qrLogoSize", 18)); // 10-40% of QR width
-  const [qrLogoPadding, setQrLogoPadding]         = useState(pick("qrLogoPadding", 18)); // 0-30% of logo size
-  const [qrTagline, setQrTagline]                 = useState(pick("qrTagline", "Scan to view our menu"));
-  const [qrHeader, setQrHeader]                   = useState(pick("qrHeader", restaurantName));
-  // Text styling
-  const [headerFontSize, setHeaderFontSize]       = useState(pick("headerFontSize", 22)); // 14-36 reference px
-  const [taglineFontSize, setTaglineFontSize]     = useState(pick("taglineFontSize", 16)); // 12-32 reference px
-  const [qrFont, setQrFont]                       = useState<FontKey>(pick("qrFont", "serif"));
-  const [textAlign, setTextAlign]                 = useState<"left" | "center" | "right">(pick("textAlign", "center"));
-  const [taglineOffset, setTaglineOffset]         = useState(pick("taglineOffset", 0));  // -40..40 reference px
-  const [headerSpacing, setHeaderSpacing]         = useState(pick("headerSpacing", 0));  // -20..40 reference px — space above & below header
-  // Multilingual signs
-  const [signVariant, setSignVariant]             = useState<"light" | "dark">(pick("signVariant", "light"));
-  const [signBrand, setSignBrand]                 = useState<"logo" | "name">(pick("signBrand", logoUrl ? "logo" : "name"));
-  const [signHeadline, setSignHeadline]           = useState<string>(pick("signHeadline", DEFAULT_SIGN_HEADLINE));
-  // Card
-  const [cardPadding, setCardPadding]             = useState(pick("cardPadding", 35)); // 0-100
-  const [showBorder, setShowBorder]               = useState(pick("showBorder", false));
-  const [isDownloading, setIsDownloading]         = useState(false);
-  const [settingsSaved, setSettingsSaved]         = useState(false);
+  const [qrFormat, setQrFormat]           = useState<FormatKey>(pick("qrFormat", "sticker"));
+  const [qrTemplate, setQrTemplate]       = useState<TemplateKey>(pick("qrTemplate", "sign-split"));
+  const [customQrColor, setCustomQrColor] = useState(pick("customQrColor", "#000000"));
+  const [customBgColor, setCustomBgColor] = useState(pick("customBgColor", "#ffffff"));
+  const [customFrameColor, setCustomFrameColor] = useState(pick("customFrameColor", "#2c2a26"));
+  const [qrFont, setQrFont]               = useState<FontKey>(pick("qrFont", "serif"));
+  const [showBorder, setShowBorder]       = useState(pick("showBorder", false));
+  const [qrIncludeLogo, setQrIncludeLogo] = useState(pick("qrIncludeLogo", true));
+  const [qrTagline, setQrTagline]         = useState(pick("qrTagline", "Scan to view our menu"));
+  const [qrHeader, setQrHeader]           = useState(pick("qrHeader", restaurantName));
+  const [signVariant, setSignVariant]     = useState<"light" | "dark">(pick("signVariant", "light"));
+  const [signBrand, setSignBrand]         = useState<"logo" | "name">(pick("signBrand", logoUrl ? "logo" : "name"));
+  const [signHeadline, setSignHeadline]   = useState<string>(pick("signHeadline", DEFAULT_SIGN_HEADLINE));
+
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [scan, setScan]                   = useState<ScanCheck>("ok");
 
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const downloadCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -4809,11 +4833,36 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   const isSign = isSignTemplate(qrTemplate);
   const showHeader = qrTemplate === "table";
   const showTagline = qrTemplate === "tagline" || qrTemplate === "table";
-  const hasText = showHeader || showTagline;
-  const fmt = FORMATS[qrFormat];
+  // On a sign the restaurant mark already sits at the top, so the code itself
+  // stays clean — a second copy of the logo in its centre just adds noise.
+  const logoInCode = qrIncludeLogo && !isSign && !!logoUrl;
 
-  // A dark sign forces dark modules onto a light chip, so the contrast warning
-  // has to judge the colors that actually get printed, not the picked pair.
+  // Which colour preset the current triple corresponds to (null once the owner
+  // has hand-picked something in Advanced).
+  const activeColour = (Object.keys(COLOURS) as ColourKey[]).find(k =>
+    COLOURS[k].fg === customQrColor && COLOURS[k].bg === customBgColor && COLOURS[k].frame === customFrameColor
+  ) ?? null;
+
+  const selectColour = (key: ColourKey) => {
+    const p = COLOURS[key];
+    setCustomQrColor(p.fg);
+    setCustomBgColor(p.bg);
+    setCustomFrameColor(p.frame);
+  };
+
+  // Signs express darkness through their own variant (dark card, light chip
+  // under the code) — handing them the inverted Dark palette as well would
+  // produce a light-on-dark code that scans badly.
+  const selectTemplate = (t: TemplateKey) => {
+    if (isSignTemplate(t) && activeColour === "dark") {
+      selectColour("classic");
+      setSignVariant("dark");
+    }
+    setQrTemplate(t);
+  };
+
+  // A dark sign forces dark modules onto a light chip, so scannability has to be
+  // judged on the colours that actually get printed, not the picked pair.
   const effective = isSign
     ? signColors(signVariant, customQrColor, customBgColor, customFrameColor)
     : { qrFg: customQrColor, qrBg: customBgColor };
@@ -4824,35 +4873,23 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     bgColor: customBgColor,
     textColor: customFrameColor,
     format: qrFormat,
-    size: qrSize,
-    qrScale,
     showHeader: qrTemplate === "table",
     showTagline: qrTemplate === "tagline" || qrTemplate === "table",
     header: qrHeader,
     tagline: qrTagline,
-    headerFontSize,
-    taglineFontSize,
     fontKey: qrFont,
-    textAlign,
-    taglineOffset,
-    headerSpacing,
-    cardPadding,
     showBorder,
-    moduleStyle: qrModuleStyle,
     roundCrop: !!FORMATS[qrFormat].round, // circular crop applies automatically for coaster only
-    includeLogo: qrIncludeLogo,
-    logoBg: qrLogoBg,
-    logoBgShape: qrLogoBgShape,
-    logoBgColor: qrLogoBgColor,
-    logoSizePercent: qrLogoSize,
-    logoPadding: qrLogoPadding,
+    includeLogo: qrIncludeLogo && !isSignTemplate(qrTemplate),
     logoUrl,
     signTemplate: isSignTemplate(qrTemplate) ? qrTemplate : null,
     signVariant,
     signBrand,
     signHeadline,
     restaurantName,
-  }), [slug, customQrColor, customBgColor, customFrameColor, qrFormat, qrSize, qrScale, qrTemplate, qrHeader, qrTagline, headerFontSize, taglineFontSize, qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder, qrModuleStyle, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor, qrLogoSize, qrLogoPadding, logoUrl, signVariant, signBrand, signHeadline, restaurantName]);
+  }), [slug, customQrColor, customBgColor, customFrameColor, qrFormat, qrTemplate, qrHeader,
+    qrTagline, qrFont, showBorder, qrIncludeLogo, logoUrl, signVariant,
+    signBrand, signHeadline, restaurantName]);
 
   // Live preview — render to offscreen at capped width, then blit only if still latest.
   useEffect(() => {
@@ -4871,18 +4908,29 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     }).catch(() => {});
   }, [commonOpts]);
 
-  // Snapshot of every user choice we persist (roundCrop is derived from format).
+  // Scannability — decode the code we're about to print rather than guessing
+  // from a contrast ratio. Debounced so dragging a colour picker isn't costly.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let cancelled = false;
+    const t = setTimeout(() => {
+      verifyScannable({
+        url: window.location.origin + "/menu/" + slug,
+        fg: effective.qrFg,
+        bg: effective.qrBg,
+        logoUrl,
+        includeLogo: logoInCode,
+      }).then(r => { if (!cancelled) setScan(r); }).catch(() => {});
+    }, 200);
+    return () => { cancelled = true; clearTimeout(t); };
+  }, [slug, effective.qrFg, effective.qrBg, logoUrl, logoInCode]);
+
   const buildSettings = useCallback(() => ({
-    qrFormat, qrStyle, customQrColor, customBgColor, customFrameColor, qrModuleStyle,
-    qrTemplate, qrSize, qrScale, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor,
-    qrLogoSize, qrLogoPadding, qrTagline, qrHeader, headerFontSize, taglineFontSize,
-    qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder,
+    qrFormat, qrTemplate, customQrColor, customBgColor, customFrameColor,
+    qrFont, showBorder, qrIncludeLogo, qrTagline, qrHeader,
     signVariant, signBrand, signHeadline,
-  }), [qrFormat, qrStyle, customQrColor, customBgColor, customFrameColor, qrModuleStyle,
-    qrTemplate, qrSize, qrScale, qrIncludeLogo, qrLogoBg, qrLogoBgShape, qrLogoBgColor,
-    qrLogoSize, qrLogoPadding, qrTagline, qrHeader, headerFontSize, taglineFontSize,
-    qrFont, textAlign, taglineOffset, headerSpacing, cardPadding, showBorder,
-    signVariant, signBrand, signHeadline]);
+  }), [qrFormat, qrTemplate, customQrColor, customBgColor, customFrameColor,
+    qrFont, showBorder, qrIncludeLogo, qrTagline, qrHeader, signVariant, signBrand, signHeadline]);
 
   // Auto-save on every change so reopening the modal restores where they left off.
   useEffect(() => {
@@ -4952,532 +5000,277 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     }
   };
 
-  const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
-    <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}
-      className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 ${checked ? "bg-[var(--accent)]" : "bg-gray-300"}`}>
-      <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? "translate-x-[22px] translate-y-0.5" : "translate-x-0.5 translate-y-0.5"}`} />
-    </button>
-  );
-
-  const sectionLabel = "text-xs uppercase tracking-widest text-gray-500 mb-2";
+  const fmt = FORMATS[qrFormat];
+  const printPx = `${fmt.printW} × ${Math.round(fmt.printW / fmt.aspect)} px`;
+  const colourOptions = (isSign ? ["classic", "brand"] : ["classic", "brand", "dark"]) as ColourKey[];
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-black/60 sm:p-4"
+    <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 sm:items-center sm:p-4"
       style={{ animation: "fadeIn 0.15s ease-out" }}>
-      <div className="flex flex-col w-full sm:max-w-lg md:max-w-3xl max-h-[92vh] sm:max-h-[90vh] overflow-hidden rounded-t-2xl sm:rounded-2xl bg-[var(--card)] shadow-2xl"
+      <div className="flex max-h-[94vh] w-full flex-col overflow-hidden rounded-t-2xl bg-[var(--card)] shadow-2xl sm:max-h-[92vh] sm:max-w-lg sm:rounded-2xl md:max-w-5xl"
         style={{ animation: "modalIn 0.15s ease-out" }}>
 
         {/* Header */}
-        <div className="flex-shrink-0 bg-[var(--card)] border-b border-[var(--card-border)] px-6 py-4 flex items-center justify-between">
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-[var(--card-border)] bg-[var(--card)] px-5 py-3.5">
           <div>
             <h2 className="text-base font-semibold text-[var(--foreground)]">Get your QR code</h2>
-            <p className="text-xs text-[var(--muted)] mt-0.5">Design it for any print format, then download</p>
+            <p className="mt-0.5 text-xs text-[var(--muted)]">Pick a format and a design — it&rsquo;s print-ready as-is</p>
           </div>
-          <button type="button" onClick={onClose} className="text-[var(--muted)] hover:text-[var(--foreground)] p-1">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button type="button" onClick={onClose} className="p-1 text-[var(--muted)] hover:text-[var(--foreground)]">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-7">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto md:grid md:grid-cols-[minmax(0,1fr)_360px] md:overflow-hidden">
 
-          {/* Live preview */}
-          <div className="flex justify-center">
-            <div className="flex items-center justify-center w-full rounded-xl bg-[var(--background)] border border-[var(--card-border)] p-4 min-h-[200px] md:min-h-[300px]">
+          {/* ── Preview: the hero ─────────────────────────────────────────────── */}
+          <div className="flex flex-col border-b border-[var(--card-border)] bg-[var(--background)] md:border-b-0 md:border-r">
+            <div className="flex flex-1 items-center justify-center p-4 md:p-8">
               <canvas
                 ref={previewCanvasRef}
-                className="rounded-lg shadow-sm max-h-[340px] md:max-h-[460px]"
+                className="max-h-[34vh] rounded-lg shadow-md md:max-h-[56vh]"
                 style={{ display: "block", maxWidth: "100%", height: "auto", width: "auto" }}
               />
             </div>
-          </div>
 
-          {/* Format — affects everything below it */}
-          <div>
-            <p className={sectionLabel}>Format</p>
-            <div className="grid grid-cols-3 gap-2">
-              {(Object.keys(FORMATS) as FormatKey[]).map(key => {
-                const f = FORMATS[key];
-                const active = qrFormat === key;
-                return (
-                  <button key={key} type="button" onClick={() => setQrFormat(key)}
-                    className={`flex flex-col items-center gap-1 rounded-xl border-2 px-2 py-2.5 text-center transition-all ${active ? "border-[var(--accent)] bg-[var(--accent)]/5" : "border-[var(--card-border)] hover:border-[var(--accent)]/40"}`}>
-                    <FormatThumb format={key} active={active} />
-                    <span className={`text-[11px] font-semibold leading-tight ${active ? "text-[var(--accent)]" : "text-[var(--foreground)]"}`}>{f.label}</span>
-                    <span className="text-[9px] text-[var(--muted)] leading-tight">{f.desc}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Style */}
-          <div>
-            <p className={sectionLabel}>Style</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {(Object.keys(stylePresets) as QRStyleKey[]).map((key) => {
-                const p = stylePresets[key];
-                const isSelected = qrStyle === key;
-                return (
-                  <button key={key} type="button" onClick={() => selectStyle(key)}
-                    style={{
-                      background: p.bg,
-                      border: isSelected ? "2.5px solid #2c2a26" : "1.5px solid #e8e4dd",
-                      borderRadius: 10,
-                      padding: "12px 10px",
-                      cursor: "pointer",
-                      textAlign: "center" as const,
-                      transition: "border-color 150ms",
-                      display: "flex",
-                      flexDirection: "column" as const,
-                      alignItems: "center",
-                      gap: 6,
-                    }}>
-                    {/* Mini QR icon */}
-                    <svg width="32" height="32" viewBox="0 0 28 28" fill={p.fg}>
-                      <rect x="1" y="1" width="10" height="10" rx="1.5" fill="none" stroke={p.fg} strokeWidth="1.5"/>
-                      <rect x="3.5" y="3.5" width="5" height="5" rx="0.5"/>
-                      <rect x="17" y="1" width="10" height="10" rx="1.5" fill="none" stroke={p.fg} strokeWidth="1.5"/>
-                      <rect x="19.5" y="3.5" width="5" height="5" rx="0.5"/>
-                      <rect x="1" y="17" width="10" height="10" rx="1.5" fill="none" stroke={p.fg} strokeWidth="1.5"/>
-                      <rect x="3.5" y="19.5" width="5" height="5" rx="0.5"/>
-                      <rect x="14" y="14" width="3" height="3" rx="0.5"/>
-                      <rect x="18" y="14" width="3" height="3" rx="0.5"/>
-                      <rect x="22" y="14" width="3" height="3" rx="0.5"/>
-                      <rect x="14" y="18" width="3" height="3" rx="0.5"/>
-                      <rect x="22" y="18" width="3" height="3" rx="0.5"/>
-                      <rect x="14" y="22" width="3" height="3" rx="0.5"/>
-                      <rect x="18" y="22" width="3" height="3" rx="0.5"/>
-                      <rect x="22" y="22" width="3" height="3" rx="0.5"/>
-                    </svg>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: p.frame }}>{p.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Colors — always visible */}
-          <div>
-            <p className={sectionLabel}>Colors</p>
-            <div className="rounded-xl border border-[var(--card-border)] p-4">
-              <div className="grid grid-cols-3 gap-3">
-                {([
-                  { label: "QR color",     value: customQrColor,    set: setCustomQrColor    },
-                  { label: "Background",   value: customBgColor,    set: setCustomBgColor    },
-                  { label: "Frame & text", value: customFrameColor, set: setCustomFrameColor },
-                ] as { label: string; value: string; set: (v: string) => void }[]).map(({ label, value, set }) => (
-                  <div key={label} className="flex flex-col items-center gap-1.5">
-                    <div className="relative w-9 h-9">
-                      <input type="color" value={value} onChange={e => { set(e.target.value); setQrStyle("classic" as QRStyleKey); }}
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                      <div className="w-9 h-9 rounded-lg border-2 border-gray-200 shadow-sm" style={{ background: value }} />
-                    </div>
-                    <span className="text-[11px] text-[var(--foreground)] text-center leading-tight font-medium">{label}</span>
-                  </div>
-                ))}
-              </div>
-              {contrastRatio(effective.qrFg, effective.qrBg) < 2.5 && (
-                <p className="mt-3 text-[11px] leading-snug text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
-                  ⚠ Low contrast between QR color and background — this may be hard for phones to scan. Test it before printing.
+            {/* Scannability — a real decode of the code being printed */}
+            <div className="px-4 pb-4 md:px-8 md:pb-6">
+              {scan === "fail" ? (
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[11px] leading-snug text-red-700">
+                  <span className="font-semibold">This code didn&rsquo;t scan.</span> The colours are too close together for a
+                  phone to read it. Pick a different colour in Advanced before printing.
+                </p>
+              ) : scan === "inverted" ? (
+                <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] leading-snug text-amber-700">
+                  <span className="font-semibold">Light code on a dark background.</span> Newer phones handle this fine,
+                  but older cameras can struggle. Test it before a big print run.
+                </p>
+              ) : (
+                <p className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--muted)]">
+                  <span className="text-green-600">✓</span>
+                  Scan-tested · {fmt.label} · {printPx}
                 </p>
               )}
             </div>
           </div>
 
-          {/* QR module style */}
-          <div>
-            <p className={sectionLabel}>QR dots</p>
-            <div className="flex gap-2">
-              {([
-                { id: "square" as const, label: "Square" },
-                { id: "dots" as const, label: "Dots" },
-                { id: "rounded" as const, label: "Rounded" },
-              ]).map(m => (
-                <button key={m.id} type="button" onClick={() => setQrModuleStyle(m.id)}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all ${qrModuleStyle === m.id ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/50"}`}>
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* ── Controls ──────────────────────────────────────────────────────── */}
+          <div className="space-y-6 px-5 py-5 md:overflow-y-auto">
 
-          {/* Template */}
-          <div>
-            <p className={sectionLabel}>Template</p>
-            <div className="grid grid-cols-3 gap-3">
-              {([
-                { id: "simple" as const, label: "QR only" },
-                { id: "tagline" as const, label: "With tagline" },
-                { id: "table" as const, label: "Name + tagline" },
-              ]).map(t => (
-                <div key={t.id} onClick={() => setQrTemplate(t.id)}
-                  className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all ${qrTemplate === t.id ? "border-[var(--accent)]" : "border-[var(--card-border)] hover:border-[var(--accent)]/40"}`}>
-                  <div className="bg-[var(--background)] rounded-lg p-2 mb-2 flex items-center justify-center min-h-[80px] border border-[var(--card-border)]">
-                    <TemplatePreview format={qrFormat} template={t.id} active={qrTemplate === t.id} />
-                  </div>
-                  <span className="text-xs text-[var(--muted)]">{t.label}</span>
-                </div>
-              ))}
-            </div>
+            {/* 1 — Format */}
+            <QRSection step={1} title="Where is it going?">
+              <div className="grid grid-cols-3 gap-1.5">
+                {(Object.keys(FORMATS) as FormatKey[]).map(key => {
+                  const f = FORMATS[key];
+                  const active = qrFormat === key;
+                  return (
+                    <button key={key} type="button" onClick={() => setQrFormat(key)}
+                      className={`flex flex-col items-center gap-0.5 rounded-xl border-2 px-1 py-2 text-center transition-all ${
+                        active ? "border-[var(--accent)] bg-[var(--accent)]/5" : "border-[var(--card-border)] hover:border-[var(--accent)]/40"
+                      }`}>
+                      <FormatThumb format={key} active={active} />
+                      <span className={`text-[10px] font-semibold leading-tight ${active ? "text-[var(--accent)]" : "text-[var(--foreground)]"}`}>
+                        {f.label}
+                      </span>
+                      <span className="text-[9px] leading-tight text-[var(--muted)]">{f.desc}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </QRSection>
 
-            {/* Multilingual signs */}
-            <div className="mt-6">
-              <p className="text-xs uppercase tracking-widest text-gray-500">Multilingual signs</p>
-              <p className="mt-1.5 mb-3 text-[11px] leading-snug text-[var(--muted)]">
-                “Read our menu in your language” — all {locales.length} languages printed in their own
-                scripts. The list comes straight from your menu’s translations, so it stays current.
+            {/* 2 — Design */}
+            <QRSection step={2} title="Pick a design" hint="Each one is finished as-is — nothing below is required.">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">
+                Multilingual signs
               </p>
-              <div className="grid grid-cols-3 gap-3">
+              <p className="mb-2.5 text-[11px] leading-snug text-[var(--muted)]">
+                &ldquo;Read our menu in your language&rdquo; — all {locales.length} languages in their own scripts,
+                pulled from your menu&rsquo;s translations so the list stays current.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
                 {SIGN_TEMPLATES.map(t => (
-                  <div key={t.id} onClick={() => setQrTemplate(t.id)}
-                    className={`cursor-pointer rounded-xl border-2 p-3 text-center transition-all ${qrTemplate === t.id ? "border-[var(--accent)]" : "border-[var(--card-border)] hover:border-[var(--accent)]/40"}`}>
-                    <div className="bg-[var(--background)] rounded-lg p-2 mb-2 flex items-center justify-center min-h-[80px] border border-[var(--card-border)]">
-                      <SignTemplatePreview format={qrFormat} template={t.id} active={qrTemplate === t.id} />
-                    </div>
-                    <span className={`block text-xs ${qrTemplate === t.id ? "text-[var(--accent)] font-semibold" : "text-[var(--foreground)]"}`}>{t.label}</span>
-                    <span className="block text-[10px] text-[var(--muted)] leading-tight mt-0.5">{t.desc}</span>
-                  </div>
+                  <DesignCard key={t.id} label={t.label} desc={t.desc}
+                    selected={qrTemplate === t.id} onClick={() => selectTemplate(t.id)}>
+                    <SignTemplatePreview format={qrFormat} template={t.id} active={qrTemplate === t.id} />
+                  </DesignCard>
                 ))}
               </div>
-            </div>
-          </div>
 
-          {/* Sign options — only for the multilingual templates */}
-          {isSign && (
-            <div>
-              <p className={sectionLabel}>Sign options</p>
-              <div className="space-y-4 rounded-xl border border-[var(--card-border)] p-4">
+              <p className="mb-2 mt-4 text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">
+                Plain code
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {([
+                  { id: "simple"  as const, label: "Code only", desc: "Nothing else"  },
+                  { id: "tagline" as const, label: "Tagline",   desc: "One line under" },
+                  { id: "table"   as const, label: "Name + tag", desc: "Both lines"   },
+                ]).map(t => (
+                  <DesignCard key={t.id} label={t.label} desc={t.desc}
+                    selected={qrTemplate === t.id} onClick={() => selectTemplate(t.id)}>
+                    <TemplatePreview format={qrFormat} template={t.id} active={qrTemplate === t.id} />
+                  </DesignCard>
+                ))}
+              </div>
+            </QRSection>
+
+            {/* 3 — Quick tweaks */}
+            <QRSection step={3} title="Make it yours">
+              <div className="space-y-3.5 rounded-xl border border-[var(--card-border)] p-3.5">
                 <div>
-                  <span className="text-sm text-[var(--foreground)] block mb-1.5">Variant</span>
-                  <div className="flex gap-2">
-                    {(["light", "dark"] as const).map(v => (
-                      <button key={v} type="button" onClick={() => setSignVariant(v)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${signVariant === v ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/50"}`}>
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                  {signVariant === "dark" && (
-                    <p className="mt-2 text-[11px] text-[var(--muted)]">
-                      The code sits on a light panel so it still scans on a dark sign.
-                    </p>
+                  <span className="mb-1.5 block text-xs font-medium text-[var(--foreground)]">Colour</span>
+                  <Segmented
+                    options={colourOptions.map(k => ({ id: k, label: COLOURS[k].label }))}
+                    value={(activeColour ?? "classic") as ColourKey}
+                    onChange={selectColour}
+                  />
+                  {!activeColour && (
+                    <p className="mt-1.5 text-[10px] text-[var(--muted)]">Using your custom colours from Advanced.</p>
                   )}
                 </div>
 
-                <div>
-                  <span className="text-sm text-[var(--foreground)] block mb-1.5">Show at the top</span>
-                  <div className="flex gap-2">
-                    {([
-                      { id: "logo" as const, label: "Restaurant logo" },
-                      { id: "name" as const, label: "Restaurant name" },
-                    ]).map(b => (
-                      <button key={b.id} type="button" disabled={b.id === "logo" && !logoUrl}
-                        onClick={() => setSignBrand(b.id)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${signBrand === b.id ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/50"}`}>
-                        {b.label}
-                      </button>
-                    ))}
-                  </div>
-                  {!logoUrl && (
-                    <p className="mt-2 text-[11px] text-[var(--muted)]">Upload a logo in Theme &amp; Branding to use it here.</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="text-sm text-[var(--foreground)] block mb-1.5">Headline</label>
-                  <textarea rows={2} value={signHeadline} onChange={e => setSignHeadline(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm resize-none focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)]" />
-                  <p className="mt-1.5 text-[11px] text-[var(--muted)]">
-                    First line prints small above the second — keep the big line short.
-                  </p>
-                </div>
-
-                <div>
-                  <label className="text-sm text-[var(--foreground)] block mb-1.5">Font</label>
-                  <select value={qrFont} onChange={e => setQrFont(e.target.value as FontKey)}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)]">
-                    {QR_FONT_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
-                  </select>
-                  <p className="mt-1.5 text-[11px] text-[var(--muted)]">
-                    Used for your text and the Latin language names. Chinese, Japanese, Korean, Arabic,
-                    Hindi and Punjabi always use a matching script font.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Text — only when the template includes text */}
-          {hasText && (
-            <div>
-              <p className={sectionLabel}>Text</p>
-              <div className="space-y-4 rounded-xl border border-[var(--card-border)] p-4">
-                {showHeader && (
-                  <div>
-                    <label className="text-sm text-[var(--foreground)] block mb-1.5">Restaurant name (header)</label>
-                    <input type="text" value={qrHeader} onChange={e => setQrHeader(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)]" />
-                  </div>
-                )}
-                {showTagline && (
-                  <div>
-                    <label className="text-sm text-[var(--foreground)] block mb-1.5">Tagline</label>
-                    <input type="text" value={qrTagline} onChange={e => setQrTagline(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)]" />
-                  </div>
-                )}
-
-                {/* Font family */}
-                <div>
-                  <label className="text-sm text-[var(--foreground)] block mb-1.5">Font</label>
-                  <select value={qrFont} onChange={e => setQrFont(e.target.value as FontKey)}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--card-border)] bg-[var(--background)] text-[var(--foreground)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30 focus:border-[var(--accent)]">
-                    {QR_FONT_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
-                  </select>
-                </div>
-
-                {/* Alignment */}
-                <div>
-                  <span className="text-sm text-[var(--foreground)] block mb-1.5">Alignment</span>
-                  <div className="flex gap-2">
-                    {(["left", "center", "right"] as const).map(a => (
-                      <button key={a} type="button" onClick={() => setTextAlign(a)}
-                        className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${textAlign === a ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/50"}`}>
-                        {a}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Header font size */}
-                {showHeader && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-[var(--foreground)]">Header size</span>
-                      <span className="text-xs text-[var(--muted)]">{headerFontSize}px</span>
-                    </div>
-                    <input type="range" min={14} max={36} value={headerFontSize}
-                      onChange={e => setHeaderFontSize(Number(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]" />
-                  </div>
-                )}
-
-                {/* Header vertical spacing */}
-                {showHeader && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-[var(--foreground)]">Header spacing</span>
-                      <span className="text-xs text-[var(--muted)]">{headerSpacing > 0 ? `+${headerSpacing}` : headerSpacing}</span>
-                    </div>
-                    <input type="range" min={-20} max={40} value={headerSpacing}
-                      onChange={e => setHeaderSpacing(Number(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]" />
-                    <div className="flex justify-between text-[10px] text-[var(--muted)] mt-1">
-                      <span>Tight</span>
-                      <span>Roomy</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Tagline font size */}
-                {showTagline && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-[var(--foreground)]">Tagline size</span>
-                      <span className="text-xs text-[var(--muted)]">{taglineFontSize}px</span>
-                    </div>
-                    <input type="range" min={12} max={32} value={taglineFontSize}
-                      onChange={e => setTaglineFontSize(Number(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]" />
-                  </div>
-                )}
-
-                {/* Tagline vertical position */}
-                {showTagline && (
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-[var(--foreground)]">Tagline position</span>
-                      <span className="text-xs text-[var(--muted)]">{taglineOffset > 0 ? `+${taglineOffset}` : taglineOffset}</span>
-                    </div>
-                    <input type="range" min={-40} max={40} value={taglineOffset}
-                      onChange={e => setTaglineOffset(Number(e.target.value))}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]" />
-                    <div className="flex justify-between text-[10px] text-[var(--muted)] mt-1">
-                      <span>Up</span>
-                      <span>Down</span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Logo */}
-          {logoUrl && (
-            <div>
-              <p className={sectionLabel}>Logo</p>
-              <div className="space-y-4 rounded-xl border border-[var(--card-border)] p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-[var(--foreground)]">Include logo in center</span>
-                  <Toggle checked={qrIncludeLogo} onChange={setQrIncludeLogo} />
-                </div>
-                {qrIncludeLogo && (
-                  <div className="space-y-4 pt-3 border-t border-gray-200">
-                    {/* Logo size slider */}
+                {isSign ? (
+                  <>
                     <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-[var(--foreground)]">Logo size</span>
-                        <span className="text-xs text-[var(--muted)]">{qrLogoSize}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={10}
-                        max={40}
-                        value={qrLogoSize}
-                        onChange={e => setQrLogoSize(Number(e.target.value))}
-                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]"
+                      <span className="mb-1.5 block text-xs font-medium text-[var(--foreground)]">Background</span>
+                      <Segmented
+                        options={[{ id: "light" as const, label: "Light" }, { id: "dark" as const, label: "Dark" }]}
+                        value={signVariant}
+                        onChange={setSignVariant}
                       />
-                      <div className="flex justify-between text-[10px] text-[var(--muted)] mt-1">
-                        <span>Small</span>
-                        <span>Large</span>
-                      </div>
-                      {qrLogoSize > 30 && (
-                        <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
-                          ⚠ Large logos can cover too much of the code. Scan it with your phone before printing.
+                      {signVariant === "dark" && (
+                        <p className="mt-1.5 text-[10px] text-[var(--muted)]">
+                          The code sits on a light panel so it still scans on a dark sign.
                         </p>
                       )}
                     </div>
 
-                    {/* Background shape */}
                     <div>
-                      <span className="text-sm text-[var(--foreground)] block mb-2">Background shape</span>
-                      <div className="flex gap-2 flex-wrap">
-                        {(["none", "circle", "rounded", "square"] as const).map(shape => (
-                          <button key={shape} type="button" onClick={() => { setQrLogoBgShape(shape); if (shape !== "none") setQrLogoBg(true); else setQrLogoBg(false); }}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${qrLogoBgShape === shape ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/50"}`}>
-                            {shape}
-                          </button>
-                        ))}
-                      </div>
+                      <span className="mb-1.5 block text-xs font-medium text-[var(--foreground)]">Show at the top</span>
+                      <Segmented
+                        options={[
+                          { id: "logo" as const, label: "Your logo", disabled: !logoUrl },
+                          { id: "name" as const, label: "Your name" },
+                        ]}
+                        value={signBrand}
+                        onChange={setSignBrand}
+                      />
+                      {!logoUrl && (
+                        <p className="mt-1.5 text-[10px] text-[var(--muted)]">Upload a logo in Theme &amp; Branding to use it here.</p>
+                      )}
                     </div>
 
-                    {/* Background color + padding (only when shape is not "none") */}
-                    {qrLogoBgShape !== "none" && (
-                      <>
-                        {/* Logo padding slider */}
-                        <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm text-[var(--foreground)]">Logo padding</span>
-                            <span className="text-xs text-[var(--muted)]">{qrLogoPadding}%</span>
-                          </div>
-                          <input
-                            type="range"
-                            min={0}
-                            max={30}
-                            value={qrLogoPadding}
-                            onChange={e => setQrLogoPadding(Number(e.target.value))}
-                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]"
-                          />
-                          <div className="flex justify-between text-[10px] text-[var(--muted)] mt-1">
-                            <span>Tight</span>
-                            <span>Spacious</span>
-                          </div>
-                        </div>
-
-                        {/* Background color */}
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-[var(--foreground)]">Background color</span>
-                          <div className="relative w-9 h-9">
-                            <input type="color" value={qrLogoBgColor} onChange={e => setQrLogoBgColor(e.target.value)}
-                              className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
-                            <div className="w-9 h-9 rounded-lg border-2 border-gray-200 shadow-sm" style={{ background: qrLogoBgColor }} />
-                          </div>
-                        </div>
-                      </>
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium text-[var(--foreground)]">Headline</label>
+                      <textarea rows={2} value={signHeadline} onChange={e => setSignHeadline(e.target.value)}
+                        className="w-full resize-none rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30" />
+                      <p className="mt-1 text-[10px] text-[var(--muted)]">First line prints small above the second.</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {showHeader && (
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-[var(--foreground)]">Restaurant name</label>
+                        <input type="text" value={qrHeader} onChange={e => setQrHeader(e.target.value)}
+                          className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30" />
+                      </div>
                     )}
-                  </div>
+                    {showTagline && (
+                      <div>
+                        <label className="mb-1.5 block text-xs font-medium text-[var(--foreground)]">Tagline</label>
+                        <input type="text" value={qrTagline} onChange={e => setQrTagline(e.target.value)}
+                          className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30" />
+                      </div>
+                    )}
+                    {logoUrl && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-[var(--foreground)]">Logo in the code</span>
+                        <MiniToggle checked={qrIncludeLogo} onChange={setQrIncludeLogo} />
+                      </div>
+                    )}
+                    {!showHeader && !showTagline && !logoUrl && (
+                      <p className="text-[11px] text-[var(--muted)]">
+                        Nothing to change for this design — it&rsquo;s just the code.
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
-            </div>
-          )}
+            </QRSection>
 
-          {/* QR code size */}
-          <div>
-            <p className={sectionLabel}>QR code size</p>
-            <div className="rounded-xl border border-[var(--card-border)] p-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-[var(--foreground)]">Size within card</span>
-                <span className="text-xs text-[var(--muted)]">{qrScale}%</span>
-              </div>
-              <input type="range" min={50} max={100} value={qrScale}
-                onChange={e => setQrScale(Number(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]" />
-              <div className="flex justify-between text-[10px] text-[var(--muted)] mt-1">
-                <span>Smaller</span>
-                <span>Fills card</span>
-              </div>
-              {qrScale < 65 && (
-                <p className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-2 py-1.5">
-                  ⚠ A small QR can be hard to scan from a distance or at small print sizes. Test it with your phone before printing.
-                </p>
-              )}
-            </div>
-          </div>
+            {/* 4 — Advanced */}
+            <details className="group rounded-xl border border-[var(--card-border)]">
+              <summary className="flex cursor-pointer list-none items-center justify-between px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--muted)]">
+                Advanced
+                <svg className="h-4 w-4 transition-transform group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </summary>
 
-          {/* Card */}
-          <div>
-            <p className={sectionLabel}>Card</p>
-            <div className="space-y-4 rounded-xl border border-[var(--card-border)] p-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-[var(--foreground)]">Padding / whitespace</span>
-                  <span className="text-xs text-[var(--muted)]">{cardPadding}%</span>
+              <div className="space-y-4 border-t border-[var(--card-border)] px-3.5 py-3.5">
+                <div>
+                  <span className="mb-2 block text-xs font-medium text-[var(--foreground)]">Custom colours</span>
+                  <div className="grid grid-cols-3 gap-3">
+                    {([
+                      { label: "Code",       value: customQrColor,    set: setCustomQrColor    },
+                      { label: "Background", value: customBgColor,    set: setCustomBgColor    },
+                      { label: "Text",       value: customFrameColor, set: setCustomFrameColor },
+                    ] as { label: string; value: string; set: (v: string) => void }[]).map(({ label, value, set }) => (
+                      <div key={label} className="flex flex-col items-center gap-1.5">
+                        <div className="relative h-9 w-9">
+                          <input type="color" value={value} onChange={e => set(e.target.value)}
+                            className="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
+                          <div className="h-9 w-9 rounded-lg border-2 border-gray-200 shadow-sm" style={{ background: value }} />
+                        </div>
+                        <span className="text-[10px] font-medium leading-tight text-[var(--foreground)]">{label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <input type="range" min={0} max={100} value={cardPadding}
-                  onChange={e => setCardPadding(Number(e.target.value))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[var(--accent)]" />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-[var(--foreground)]">Outer border</span>
-                <Toggle checked={showBorder} onChange={setShowBorder} />
-              </div>
-              {fmt.round && (
-                <p className="text-[11px] text-[var(--muted)]">Coasters are cropped to a circle automatically.</p>
-              )}
-            </div>
-          </div>
 
-          {/* Output size */}
-          <div>
-            <p className={sectionLabel}>Output quality</p>
-            <div className="flex gap-2">
-              {(["small", "medium", "large"] as QRSizeKey[]).map(s => (
-                <button key={s} type="button" onClick={() => setQrSize(s)}
-                  className={`flex-1 py-1.5 rounded-lg text-xs font-medium border transition-all capitalize ${qrSize === s ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/50"}`}>
-                  {s}
-                </button>
-              ))}
-            </div>
-            <p className="mt-2 text-[11px] text-[var(--muted)]">Larger = higher resolution for big prints. Use Large for posters & A-frames.</p>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-[var(--foreground)]">Font</label>
+                  <select value={qrFont} onChange={e => setQrFont(e.target.value as FontKey)}
+                    className="w-full rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 text-sm text-[var(--foreground)] focus:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/30">
+                    {QR_FONT_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+                  </select>
+                  {isSign && (
+                    <p className="mt-1.5 text-[10px] leading-snug text-[var(--muted)]">
+                      Chinese, Japanese, Korean, Arabic, Hindi and Punjabi always use a matching script font.
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-[var(--foreground)]">Outer border</span>
+                  <MiniToggle checked={showBorder} onChange={setShowBorder} />
+                </div>
+
+                {fmt.round && (
+                  <p className="text-[10px] text-[var(--muted)]">Coasters are cropped to a circle automatically.</p>
+                )}
+              </div>
+            </details>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex-shrink-0 border-t border-[var(--card-border)] px-6 py-4 bg-[var(--card)]">
+        <div className="flex-shrink-0 border-t border-[var(--card-border)] bg-[var(--card)] px-5 py-3.5">
           <div className="flex gap-2">
             <button type="button" onClick={handleSaveSettings}
-              className="flex-shrink-0 px-4 py-2.5 rounded-xl border border-[var(--accent)] bg-transparent text-[var(--accent)] font-medium text-sm hover:bg-[var(--accent)]/10 transition-colors">
+              className="flex-shrink-0 rounded-xl border border-[var(--accent)] bg-transparent px-4 py-2.5 text-sm font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)]/10">
               {settingsSaved ? "Saved ✓" : "Save settings"}
             </button>
             <button type="button" onClick={handleDownloadQR} disabled={isDownloading}
-              className="flex-1 py-2.5 rounded-xl bg-[var(--accent)] text-white font-medium text-sm hover:opacity-90 transition-opacity disabled:opacity-50">
+              className="flex-1 rounded-xl bg-[var(--accent)] py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50">
               {isDownloading ? "Generating…" : "Download PNG"}
             </button>
           </div>
-          <div className="mt-3 sm:hidden rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2">
-            <p className="text-xs text-[var(--foreground)] text-center">
+          <div className="mt-3 rounded-lg border border-[var(--card-border)] bg-[var(--background)] px-3 py-2 sm:hidden">
+            <p className="text-center text-xs text-[var(--foreground)]">
               💡 <span className="font-medium">Tip:</span> tap Download then save to Photos or share via Messages.
             </p>
           </div>
