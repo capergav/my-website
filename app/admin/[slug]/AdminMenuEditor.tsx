@@ -3728,6 +3728,12 @@ const DEFAULT_SIGN_HEADLINE = "Scan to read our\nMENU IN YOUR LANGUAGE";
 
 const isSignTemplate = (t: string): t is SignTemplateKey => t.startsWith("sign-");
 
+// What sits at the top of a sign. "both" needs a taller box than a single
+// element so the stacked logo and name aren't squeezed into one line's worth.
+type BrandMode = "logo" | "name" | "both" | "none";
+const BRAND_BOX_SCALE = 1.7;
+const brandBoxScale = (m: BrandMode) => (m === "both" ? BRAND_BOX_SCALE : 1);
+
 type TemplateKey = "simple" | "tagline" | "table" | SignTemplateKey;
 
 function relLuminance(hex: string): number {
@@ -3749,20 +3755,47 @@ function setLetterSpacing(ctx: CanvasRenderingContext2D, value: string) {
 
 type ListItem = { label: string; script: ScriptKey; rtl: boolean; dim?: boolean };
 
+type BackdropKey = "light" | "warm" | "dark" | "bold";
+
+const WARM_CARD = "#f4ecdd";   // ivory that prints without looking dirty
+const CHIP      = "#ffffff";
+
 /**
- * Resolves the colour treatment for a sign. Dark signs keep the QR itself dark
- * modules on a light chip — inverted codes scan badly on older phones.
+ * Resolves the colour treatment for a card. Whatever the backdrop, the code
+ * itself is always dark modules on a light field — inverted codes scan badly on
+ * older phones — so anything but a light card puts the QR on its own light chip
+ * rather than flipping it.
  */
-function signColors(variant: "light" | "dark", fgColor: string, bgColor: string, textColor: string) {
+export function signColors(
+  variant: BackdropKey, fgColor: string, bgColor: string, textColor: string, accentColor: string,
+) {
+  const safeFg = isLightColor(fgColor) ? "#1f1d1a" : fgColor;
+
   if (variant === "light") {
     return { cardBg: bgColor, ink: textColor, qrFg: fgColor, qrBg: bgColor, panel: false, panelBg: bgColor };
   }
+  if (variant === "warm") {
+    return {
+      cardBg: WARM_CARD,
+      ink: isLightColor(textColor) ? "#2c2a26" : textColor,
+      qrFg: safeFg, qrBg: CHIP, panel: true, panelBg: CHIP,
+    };
+  }
+  if (variant === "bold") {
+    // The restaurant's own accent fills the card, so this reads as their brand
+    // no matter which palette is picked above it.
+    return {
+      cardBg: accentColor,
+      ink: isLightColor(accentColor) ? "#1f1d1a" : "#ffffff",
+      qrFg: safeFg, qrBg: CHIP, panel: true, panelBg: CHIP,
+    };
+  }
   const cardBg  = isLightColor(textColor) ? "#1f1d1a" : textColor;
-  const panelBg = isLightColor(bgColor) ? bgColor : "#ffffff";
+  const panelBg = isLightColor(bgColor) ? bgColor : CHIP;
   return {
     cardBg,
     ink: isLightColor(bgColor) ? bgColor : "#faf8f5",
-    qrFg: isLightColor(fgColor) ? "#1f1d1a" : fgColor,
+    qrFg: safeFg,
     qrBg: panelBg,
     panel: true,
     panelBg,
@@ -3781,7 +3814,7 @@ async function drawLanguageSign(o: {
   url: string;
   fam: string;
   headline: string;
-  brandMode: "logo" | "name";
+  brandMode: BrandMode;
   brandName: string;
   logoUrl: string | null;
   langs: SignLanguage[];
@@ -3826,22 +3859,24 @@ async function drawLanguageSign(o: {
     await drawCenterLogo(x + px / 2, y + px / 2, px);
   };
 
-  // ── Restaurant mark — logo image or the name set in type ────────────────────
-  const drawBrand = async (x: number, y: number, w: number, maxH: number, align: "left" | "center"): Promise<number> => {
-    if (brandMode === "logo" && logoUrl) {
-      try {
-        const img = await loadImage(logoUrl);
-        const nw = img.naturalWidth || img.width;
-        const nh = img.naturalHeight || img.height;
-        const s = Math.min((w * 0.55) / nw, maxH / nh);
-        const dw = nw * s, dh = nh * s;
-        ctx.drawImage(img, align === "left" ? x : x + (w - dw) / 2, y + (maxH - dh) / 2, dw, dh);
-        return maxH;
-      } catch { /* logo unavailable — fall back to the name */ }
-    }
+  // ── Restaurant mark — logo, name, both stacked, or nothing at all ───────────
+  const drawLogoIn = async (x: number, y: number, w: number, h: number, align: "left" | "center") => {
+    if (!logoUrl) return false;
+    try {
+      const img = await loadImage(logoUrl);
+      const nw = img.naturalWidth || img.width;
+      const nh = img.naturalHeight || img.height;
+      const s = Math.min((w * 0.55) / nw, h / nh);
+      const dw = nw * s, dh = nh * s;
+      ctx.drawImage(img, align === "left" ? x : x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+      return true;
+    } catch { return false; }
+  };
+
+  const drawName = (x: number, y: number, w: number, h: number, align: "left" | "center") => {
     const name = (brandName || "").trim();
-    if (!name) return 0;
-    let px = Math.min(maxH * 0.7, W * 0.05);
+    if (!name) return false;
+    let px = Math.min(h * 0.7, W * 0.05);
     setLetterSpacing(ctx, `${px * 0.08}px`);
     ctx.font = `700 ${px}px ${fam}`;
     const measured = ctx.measureText(name).width;
@@ -3854,9 +3889,32 @@ async function drawLanguageSign(o: {
     ctx.textBaseline = "middle";
     ctx.textAlign = align === "left" ? "left" : "center";
     ctx.direction = "ltr";
-    ctx.fillText(name, align === "left" ? x : x + w / 2, y + maxH / 2);
+    ctx.fillText(name, align === "left" ? x : x + w / 2, y + h / 2);
     setLetterSpacing(ctx, "0px");
-    return maxH;
+    return true;
+  };
+
+  /** Returns the height actually consumed — 0 when there's no mark to draw. */
+  const drawBrand = async (x: number, y: number, w: number, maxH: number, align: "left" | "center"): Promise<number> => {
+    if (brandMode === "none") return 0;
+
+    if (brandMode === "both") {
+      // The caller hands "both" a taller box (see BRAND_BOX_SCALE) so the logo
+      // keeps its full size and the name sits under it with room to breathe,
+      // deliberately smaller so the pair reads as one mark.
+      const logoH = maxH * 0.58;
+      const gapH  = maxH * 0.10;
+      if (!(await drawLogoIn(x, y, w, logoH, align))) {
+        // No usable logo — fall back to the name alone in a normal-height box.
+        const soloH = maxH / BRAND_BOX_SCALE;
+        return drawName(x, y, w, soloH, align) ? soloH : 0;
+      }
+      drawName(x, y + logoH + gapH, w, maxH * 0.32, align);
+      return maxH;
+    }
+
+    if (brandMode === "logo" && await drawLogoIn(x, y, w, maxH, align)) return maxH;
+    return drawName(x, y, w, maxH, align) ? maxH : 0;
   };
 
   // ── Headline — line 1 is a small eyebrow, the rest is the big statement ─────
@@ -4111,8 +4169,10 @@ async function drawLanguageSign(o: {
   // ── Content column (brand → headline → list [→ steps]) ─────────────────────
   const drawContentColumn = async (x: number, y: number, w: number, h: number, align: "left" | "center") => {
     let cy = y;
-    cy += await drawBrand(x, cy, w, Math.min(h * 0.16, W * 0.055), align);
-    cy += h * 0.035;
+    const bh = await drawBrand(x, cy, w, Math.min(h * 0.16, W * 0.055) * brandBoxScale(brandMode), align);
+    // With no mark at the top the headline would sit flush against the print
+    // margin, so it keeps a smaller lead-in rather than none at all.
+    cy += bh + (bh ? h * 0.035 : h * 0.02);
     const hl = layoutHeadline(w, h * 0.36);
     cy += drawHeadline(hl, x, cy, w, align);
     cy += h * 0.05;
@@ -4141,8 +4201,10 @@ async function drawLanguageSign(o: {
 
   // ── Portrait / square ──────────────────────────────────────────────────────
   let cy = ry;
-  cy += await drawBrand(rx, cy, rw, Math.min(rh * 0.12, W * 0.095), "center");
-  cy += rh * 0.03;
+  const brandH = await drawBrand(rx, cy, rw, Math.min(rh * 0.12, W * 0.095) * brandBoxScale(brandMode), "center");
+  // Without a mark the headline keeps a smaller lead-in instead of sitting
+  // flush against the print margin; the band below simply grows to absorb it.
+  cy += brandH + (brandH ? rh * 0.03 : rh * 0.02);
   const hl = layoutHeadline(rw, rh * (template === "sign-minimal" ? 0.3 : 0.26));
   cy += drawHeadline(hl, rx, cy, rw, "center");
   cy += rh * 0.045;
@@ -4215,7 +4277,7 @@ export type ScanCheck = "ok" | "inverted" | "fail";
  * phone cameras generally cope; older scanners don't. That's a caution, not a
  * failure.
  */
-async function verifyScannable(o: {
+export async function verifyScannable(o: {
   url: string;
   fg: string; bg: string;
   logoUrl: string | null;
@@ -4262,11 +4324,12 @@ async function verifyScannable(o: {
   return "fail";
 }
 
-async function composeQR(opts: {
+export async function composeQR(opts: {
   slug: string;
   fgColor: string;
   bgColor: string;
   textColor: string;
+  accentColor: string;      // the restaurant's own accent — fills the Bold backdrop
   format: FormatKey;
   showHeader: boolean;
   showTagline: boolean;
@@ -4279,15 +4342,15 @@ async function composeQR(opts: {
   logoUrl: string | null;
   // Multilingual sign templates — null keeps the classic QR-card layouts.
   signTemplate: SignTemplateKey | null;
-  signVariant: "light" | "dark";
-  signBrand: "logo" | "name";
+  signVariant: BackdropKey;
+  signBrand: BrandMode;
   signHeadline: string;
   restaurantName: string;
   canvas: HTMLCanvasElement;
   maxWidth?: number;       // preview cap — uniformly scales the whole card
 }) {
   const {
-    slug, fgColor, bgColor, textColor, format, showHeader, showTagline,
+    slug, fgColor, bgColor, textColor, accentColor, format, showHeader, showTagline,
     header, tagline, fontKey, showBorder, roundCrop, includeLogo,
     logoUrl, signTemplate, signVariant, signBrand,
     signHeadline, restaurantName, canvas, maxWidth,
@@ -4319,10 +4382,9 @@ async function composeQR(opts: {
   canvas.height = H;
 
   const ctx = canvas.getContext("2d")!;
-  // Signs support a light/dark treatment; classic cards use the picked colors.
-  const sc = signTemplate
-    ? signColors(signVariant, fgColor, bgColor, textColor)
-    : { cardBg: bgColor, ink: textColor, qrFg: fgColor, qrBg: bgColor, panel: false, panelBg: bgColor };
+  // Every template shares one backdrop treatment, so a dark or bold card always
+  // gets the same light chip behind its code instead of inverting it.
+  const sc = signColors(signVariant, fgColor, bgColor, textColor, accentColor);
   ctx.fillStyle = sc.cardBg;
   ctx.fillRect(0, 0, W, H);
 
@@ -4358,6 +4420,15 @@ async function composeQR(opts: {
       ctx.fill();
       ctx.drawImage(logoImg, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
     } catch { /* logo failed to load */ }
+  };
+
+  // Dark and bold cards float the code on its own light chip.
+  const drawChip = (x: number, y: number, px: number) => {
+    if (!sc.panel) return;
+    const m = px * 0.06;
+    ctx.fillStyle = sc.panelBg;
+    roundRect(ctx, x - m, y - m, px + m * 2, px + m * 2, px * 0.05);
+    ctx.fill();
   };
 
   // ── Text measurement ───────────────────────────────────────────────────────
@@ -4401,7 +4472,8 @@ async function composeQR(opts: {
     const qrPx = Math.max(60, Math.min(qrAreaW, availH));
     const qrX = pad + (qrAreaW - qrPx) / 2;
     const qrY = pad + (availH - qrPx) / 2;
-    ctx.drawImage(renderQRCanvas(url, Math.round(qrPx), fgColor, bgColor), qrX, qrY, qrPx, qrPx);
+    drawChip(qrX, qrY, qrPx);
+    ctx.drawImage(renderQRCanvas(url, Math.round(qrPx), sc.qrFg, sc.qrBg), qrX, qrY, qrPx, qrPx);
     await drawLogo(qrX + qrPx / 2, qrY + qrPx / 2, qrPx);
 
     // Right-hand text column
@@ -4412,13 +4484,13 @@ async function composeQR(opts: {
     const groupH = headerBlockH + taglineBlockH;
     let ty = pad + (availH - groupH) / 2;
     if (headerLines.length) {
-      ctx.fillStyle = textColor;
+      ctx.fillStyle = sc.ink;
       ctx.font = `600 ${headerPx}px ${fam}`;
       for (const line of headerLines) { ctx.fillText(line, colAnchorX, ty); ty += headerPx * 1.18; }
       ty += headerPx * 0.4;
     }
     if (taglineLines.length) {
-      ctx.fillStyle = textColor;
+      ctx.fillStyle = sc.ink;
       ctx.font = `${taglinePx}px ${fam}`;
       for (const line of taglineLines) { ctx.fillText(line, colAnchorX, ty); ty += taglinePx * 1.18; }
     }
@@ -4435,17 +4507,18 @@ async function composeQR(opts: {
     const qrY = noText ? (H - qrPx) / 2 : innerTop + (availH - qrPx) / 2;
 
     if (headerLines.length) {
-      ctx.fillStyle = textColor;
+      ctx.fillStyle = sc.ink;
       ctx.font = `600 ${headerPx}px ${fam}`;
       let hy = pad;
       for (const line of headerLines) { ctx.fillText(line, anchorX, hy); hy += headerPx * 1.18; }
     }
 
-    ctx.drawImage(renderQRCanvas(url, Math.round(qrPx), fgColor, bgColor), qrX, qrY, qrPx, qrPx);
+    drawChip(qrX, qrY, qrPx);
+    ctx.drawImage(renderQRCanvas(url, Math.round(qrPx), sc.qrFg, sc.qrBg), qrX, qrY, qrPx, qrPx);
     await drawLogo(qrX + qrPx / 2, qrY + qrPx / 2, qrPx);
 
     if (taglineLines.length) {
-      ctx.fillStyle = textColor;
+      ctx.fillStyle = sc.ink;
       ctx.font = `${taglinePx}px ${fam}`;
       let ty = qrY + qrPx + taglinePx * 0.6;
       for (const line of taglineLines) { ctx.fillText(line, anchorX, ty); ty += taglinePx * 1.18; }
@@ -4718,7 +4791,7 @@ function SignTemplatePreview({ format, template, active }: {
 // words are theirs. Everything that could only make the result worse is either
 // gone or tuned once inside composeQR.
 
-type ColourKey = "classic" | "brand" | "dark";
+type ColourKey = "classic" | "brand" | "espresso" | "navy";
 
 function QRSection({ step, title, hint, children }: {
   step: number; title: string; hint?: string; children: ReactNode;
@@ -4738,20 +4811,30 @@ function QRSection({ step, title, hint, children }: {
 }
 
 function Segmented<T extends string>({ options, value, onChange }: {
-  options: { id: T; label: string; disabled?: boolean }[];
+  options: { id: T; label: string; disabled?: boolean; swatch?: { fg: string; bg: string } }[];
   value: T;
   onChange: (v: T) => void;
 }) {
+  // Four options in a row would squeeze the labels to nothing in the narrow
+  // controls rail, so anything past three wraps into a 2×2 instead.
   return (
-    <div className="flex gap-1.5">
+    <div className={options.length > 3 ? "grid grid-cols-2 gap-1.5" : "flex gap-1.5"}>
       {options.map(o => (
         <button key={o.id} type="button" disabled={o.disabled} onClick={() => onChange(o.id)}
-          className={`flex-1 rounded-lg border py-1.5 text-[11px] font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
+          className={`flex-1 rounded-lg border px-1.5 py-1.5 text-[11px] font-medium transition-all disabled:cursor-not-allowed disabled:opacity-40 ${
             value === o.id
               ? "border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]"
               : "border-[var(--card-border)] text-[var(--foreground)] hover:border-[var(--accent)]/50"
           }`}>
-          {o.label}
+          <span className="flex items-center justify-center gap-1.5">
+            {o.swatch && (
+              <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border border-black/15"
+                style={{ background: o.swatch.bg }}>
+                <span className="h-1.5 w-1.5 rounded-[1px]" style={{ background: o.swatch.fg }} />
+              </span>
+            )}
+            <span className="truncate">{o.label}</span>
+          </span>
         </button>
       ))}
     </div>
@@ -4786,11 +4869,13 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   const brandCard   = restaurant?.main_color ?? "#ffffff";
 
   // "Your colours" pulls the restaurant's own theme so the print matches the
-  // menu it points at.
+  // menu it points at. The other three are fixed high-contrast pairs — deep ink
+  // on a light field — which is what keeps every one of them decodable.
   const COLOURS: Record<ColourKey, { fg: string; bg: string; frame: string; label: string }> = useMemo(() => ({
-    classic: { fg: "#000000", bg: "#ffffff", frame: "#2c2a26",  label: "Classic"      },
-    brand:   { fg: brandFont, bg: brandCard, frame: brandAccent, label: "Your colours" },
-    dark:    { fg: "#faf8f5", bg: "#1f1d1a", frame: "#faf8f5",  label: "Dark"         },
+    classic:  { fg: "#000000", bg: "#ffffff", frame: "#2c2a26",   label: "Classic"      },
+    brand:    { fg: brandFont, bg: brandCard, frame: brandAccent, label: "Your colours" },
+    espresso: { fg: "#3a2a1d", bg: "#f7f1e6", frame: "#3a2a1d",   label: "Espresso"     },
+    navy:     { fg: "#122a4a", bg: "#ffffff", frame: "#122a4a",   label: "Navy"         },
   }), [brandFont, brandCard, brandAccent]);
 
   // ── Persisted settings — restore the owner's last QR choices ─────────────────
@@ -4816,8 +4901,9 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   const [qrIncludeLogo, setQrIncludeLogo] = useState(pick("qrIncludeLogo", true));
   const [qrTagline, setQrTagline]         = useState(pick("qrTagline", "Scan to view our menu"));
   const [qrHeader, setQrHeader]           = useState(pick("qrHeader", restaurantName));
-  const [signVariant, setSignVariant]     = useState<"light" | "dark">(pick("signVariant", "light"));
-  const [signBrand, setSignBrand]         = useState<"logo" | "name">(pick("signBrand", logoUrl ? "logo" : "name"));
+  // Stored under the old "signVariant" key so existing saved settings survive.
+  const [backdrop, setBackdrop]           = useState<BackdropKey>(pick("signVariant", "light"));
+  const [signBrand, setSignBrand]         = useState<BrandMode>(pick("signBrand", logoUrl ? "logo" : "name"));
   const [signHeadline, setSignHeadline]   = useState<string>(pick("signHeadline", DEFAULT_SIGN_HEADLINE));
 
   const [isDownloading, setIsDownloading] = useState(false);
@@ -4850,28 +4936,17 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     setCustomFrameColor(p.frame);
   };
 
-  // Signs express darkness through their own variant (dark card, light chip
-  // under the code) — handing them the inverted Dark palette as well would
-  // produce a light-on-dark code that scans badly.
-  const selectTemplate = (t: TemplateKey) => {
-    if (isSignTemplate(t) && activeColour === "dark") {
-      selectColour("classic");
-      setSignVariant("dark");
-    }
-    setQrTemplate(t);
-  };
-
-  // A dark sign forces dark modules onto a light chip, so scannability has to be
-  // judged on the colours that actually get printed, not the picked pair.
-  const effective = isSign
-    ? signColors(signVariant, customQrColor, customBgColor, customFrameColor)
-    : { qrFg: customQrColor, qrBg: customBgColor };
+  // A dark or bold backdrop forces dark modules onto a light chip, so
+  // scannability is judged on the colours that actually get printed rather than
+  // the pair the owner picked.
+  const effective = signColors(backdrop, customQrColor, customBgColor, customFrameColor, brandAccent);
 
   const commonOpts = useCallback(() => ({
     slug,
     fgColor: customQrColor,
     bgColor: customBgColor,
     textColor: customFrameColor,
+    accentColor: brandAccent,
     format: qrFormat,
     showHeader: qrTemplate === "table",
     showTagline: qrTemplate === "tagline" || qrTemplate === "table",
@@ -4883,12 +4958,12 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
     includeLogo: qrIncludeLogo && !isSignTemplate(qrTemplate),
     logoUrl,
     signTemplate: isSignTemplate(qrTemplate) ? qrTemplate : null,
-    signVariant,
+    signVariant: backdrop,
     signBrand,
     signHeadline,
     restaurantName,
-  }), [slug, customQrColor, customBgColor, customFrameColor, qrFormat, qrTemplate, qrHeader,
-    qrTagline, qrFont, showBorder, qrIncludeLogo, logoUrl, signVariant,
+  }), [slug, customQrColor, customBgColor, customFrameColor, brandAccent, qrFormat, qrTemplate,
+    qrHeader, qrTagline, qrFont, showBorder, qrIncludeLogo, logoUrl, backdrop,
     signBrand, signHeadline, restaurantName]);
 
   // Live preview — render to offscreen at capped width, then blit only if still latest.
@@ -4928,9 +5003,9 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
   const buildSettings = useCallback(() => ({
     qrFormat, qrTemplate, customQrColor, customBgColor, customFrameColor,
     qrFont, showBorder, qrIncludeLogo, qrTagline, qrHeader,
-    signVariant, signBrand, signHeadline,
+    signVariant: backdrop, signBrand, signHeadline,
   }), [qrFormat, qrTemplate, customQrColor, customBgColor, customFrameColor,
-    qrFont, showBorder, qrIncludeLogo, qrTagline, qrHeader, signVariant, signBrand, signHeadline]);
+    qrFont, showBorder, qrIncludeLogo, qrTagline, qrHeader, backdrop, signBrand, signHeadline]);
 
   // Auto-save on every change so reopening the modal restores where they left off.
   useEffect(() => {
@@ -5002,7 +5077,20 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
 
   const fmt = FORMATS[qrFormat];
   const printPx = `${fmt.printW} × ${Math.round(fmt.printW / fmt.aspect)} px`;
-  const colourOptions = (isSign ? ["classic", "brand"] : ["classic", "brand", "dark"]) as ColourKey[];
+  const colourOptions = Object.keys(COLOURS) as ColourKey[];
+
+  // Thumbnails for the backdrop buttons — the swatch shows the card colour with
+  // the code's field inside it, which is exactly what changes.
+  const BACKDROPS: { id: BackdropKey; label: string }[] = [
+    { id: "light", label: "Light"  },
+    { id: "warm",  label: "Cream"  },
+    { id: "dark",  label: "Dark"   },
+    { id: "bold",  label: "Bold"   },
+  ];
+  const backdropSwatch = (id: BackdropKey) => {
+    const c = signColors(id, customQrColor, customBgColor, customFrameColor, brandAccent);
+    return { fg: c.panel ? c.panelBg : c.qrFg, bg: c.cardBg };
+  };
 
   return (
     <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/60 sm:items-center sm:p-4"
@@ -5093,7 +5181,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
               <div className="grid grid-cols-2 gap-2">
                 {SIGN_TEMPLATES.map(t => (
                   <DesignCard key={t.id} label={t.label} desc={t.desc}
-                    selected={qrTemplate === t.id} onClick={() => selectTemplate(t.id)}>
+                    selected={qrTemplate === t.id} onClick={() => setQrTemplate(t.id)}>
                     <SignTemplatePreview format={qrFormat} template={t.id} active={qrTemplate === t.id} />
                   </DesignCard>
                 ))}
@@ -5109,7 +5197,7 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                   { id: "table"   as const, label: "Name + tag", desc: "Both lines"   },
                 ]).map(t => (
                   <DesignCard key={t.id} label={t.label} desc={t.desc}
-                    selected={qrTemplate === t.id} onClick={() => selectTemplate(t.id)}>
+                    selected={qrTemplate === t.id} onClick={() => setQrTemplate(t.id)}>
                     <TemplatePreview format={qrFormat} template={t.id} active={qrTemplate === t.id} />
                   </DesignCard>
                 ))}
@@ -5122,7 +5210,9 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                 <div>
                   <span className="mb-1.5 block text-xs font-medium text-[var(--foreground)]">Colour</span>
                   <Segmented
-                    options={colourOptions.map(k => ({ id: k, label: COLOURS[k].label }))}
+                    options={colourOptions.map(k => ({
+                      id: k, label: COLOURS[k].label, swatch: { fg: COLOURS[k].fg, bg: COLOURS[k].bg },
+                    }))}
                     value={(activeColour ?? "classic") as ColourKey}
                     onChange={selectColour}
                   />
@@ -5131,28 +5221,31 @@ function QRModal({ slug, restaurant, onClose }: { slug: string; restaurant: Rest
                   )}
                 </div>
 
+                <div>
+                  <span className="mb-1.5 block text-xs font-medium text-[var(--foreground)]">Background</span>
+                  <Segmented
+                    options={BACKDROPS.map(b => ({ id: b.id, label: b.label, swatch: backdropSwatch(b.id) }))}
+                    value={backdrop}
+                    onChange={setBackdrop}
+                  />
+                  {backdrop !== "light" && (
+                    <p className="mt-1.5 text-[10px] leading-snug text-[var(--muted)]">
+                      {backdrop === "bold" && "Filled with your accent colour from Theme & Branding. "}
+                      The code sits on a light panel so it still scans.
+                    </p>
+                  )}
+                </div>
+
                 {isSign ? (
                   <>
-                    <div>
-                      <span className="mb-1.5 block text-xs font-medium text-[var(--foreground)]">Background</span>
-                      <Segmented
-                        options={[{ id: "light" as const, label: "Light" }, { id: "dark" as const, label: "Dark" }]}
-                        value={signVariant}
-                        onChange={setSignVariant}
-                      />
-                      {signVariant === "dark" && (
-                        <p className="mt-1.5 text-[10px] text-[var(--muted)]">
-                          The code sits on a light panel so it still scans on a dark sign.
-                        </p>
-                      )}
-                    </div>
-
                     <div>
                       <span className="mb-1.5 block text-xs font-medium text-[var(--foreground)]">Show at the top</span>
                       <Segmented
                         options={[
                           { id: "logo" as const, label: "Your logo", disabled: !logoUrl },
                           { id: "name" as const, label: "Your name" },
+                          { id: "both" as const, label: "Both",      disabled: !logoUrl },
+                          { id: "none" as const, label: "Nothing"    },
                         ]}
                         value={signBrand}
                         onChange={setSignBrand}

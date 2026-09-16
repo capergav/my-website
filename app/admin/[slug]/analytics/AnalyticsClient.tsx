@@ -169,37 +169,6 @@ export function AnalyticsClient({
 
   const topLangName = stats.topLang ? (LANGUAGE_NAMES[stats.topLang] ?? stats.topLang.toUpperCase()) : "—";
 
-  // Empty state
-  if (!hasData) {
-    return (
-      <div className="min-h-screen bg-[#faf8f5] flex items-center justify-center px-4">
-        <div className="max-w-md text-center">
-          <div className="text-6xl mb-4">📊</div>
-          <h2 className="text-2xl font-semibold text-[#2c2a26] mb-3" style={{ fontFamily: "Georgia, serif" }}>
-            No data yet
-          </h2>
-          <p className="text-[#2c2a26]/60 mb-6 leading-relaxed">
-            Share your QR code to start collecting insights from your customers.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href={`/admin/${slug}/analytics`}
-              className="px-5 py-2.5 rounded-xl bg-[#8b6914] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
-            >
-              Generate QR code
-            </Link>
-            <Link
-              href={`/admin/${slug}`}
-              className="px-5 py-2.5 rounded-xl border border-[#2c2a26]/20 text-[#2c2a26] text-sm font-medium hover:bg-white transition-colors"
-            >
-              ← Back to menu
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#faf8f5] pb-16">
       {/* Header */}
