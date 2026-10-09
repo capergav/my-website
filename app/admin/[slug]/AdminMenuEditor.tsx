@@ -791,43 +791,15 @@ export function AdminMenuEditor({
   const items   = grouped[activeCategory] ?? [];
   const isEmpty = sortedCategories.length === 0;
 
-  // Show "start trial" blocker ONLY when the trial has fully expired (daysLeftInTrial === 0).
-  // Never show during an active trial, loading, or on navigation (avoids flash when userId
-  // is briefly undefined and subStatus transiently reads 'none').
+  // Single subscription-lockout overlay. It must pick its copy from the actual
+  // subscription state, never assume "start a free trial":
+  //   • trialing + trial_end in the past + no stripe sub → trial USED and expired
+  //   • canceled                                         → subscription ended
+  // Both require the user to pay ($25 CAD/mo) to bring their menu back online.
   // A user who subscribed mid-trial stays status='trialing' with a stripe_subscription_id
   // until Stripe's webhook flips them to 'active' at trial end — never lock them out.
-  const trialFullyExpired = daysLeftInTrial !== null && daysLeftInTrial <= 0 && !hasStripeSubscription;
-  if (user !== null && subStatus !== 'loading' && trialFullyExpired && hasCompletedTour !== false) {
-    return (
-      <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-md flex items-center justify-center p-4">
-        <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center">
-          <div className="flex justify-center mb-4">
-            <svg width="48" height="44" viewBox="0 0 44 40" fill="none">
-              <path d="M4 3 L4 37 Q4 37 15 37 Q30 37 30 20 Q30 3 15 3 Z" fill="none" stroke="#8b6914" strokeWidth="2.6" strokeLinejoin="round"/>
-              <line x1="26" y1="3" x2="26" y2="37" stroke="#2c2a26" strokeWidth="2.6" strokeLinecap="round"/>
-              <line x1="26" y1="37" x2="42" y2="37" stroke="#2c2a26" strokeWidth="2.6" strokeLinecap="round"/>
-            </svg>
-          </div>
-          <h2 className="text-2xl font-serif font-semibold text-[#2c2a26] mb-2">Start your free trial</h2>
-          <p className="text-sm text-[#6b6560] mb-6">
-            Get full access to DineLinks for 60 days free, then $25 CAD/month. Cancel anytime.
-          </p>
-          <button onClick={startCheckout} disabled={checkoutLoading}
-            className="w-full bg-[var(--main-color,#8b6914)] text-white font-semibold py-3.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
-            {checkoutLoading ? 'Loading...' : 'Start 60-day free trial'}
-          </button>
-          <p className="text-xs text-[#6b6560] mt-4">No credit card required</p>
-          <button onClick={() => supabase.auth.signOut().then(() => router.push('/'))}
-            className="text-xs text-[#6b6560] mt-6 hover:underline block mx-auto">
-            Sign out
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Subscribed mid-trial users (trialing + stripe_subscription_id) must never see the
-  // "trial has ended" wall during the pre-webhook window — they're already paying.
+  // 'none' (genuinely no trial yet) is intentionally NOT locked here: it transiently
+  // reads 'none' during navigation, and the signup flow always provisions a trial.
   const showTrialExpiredOverlay = subStatus !== 'loading' && ((isTrialExpired && !hasStripeSubscription) || subStatus === 'canceled');
 
   return (
