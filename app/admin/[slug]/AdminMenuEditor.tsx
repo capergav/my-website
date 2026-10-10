@@ -802,25 +802,19 @@ export function AdminMenuEditor({
   // reads 'none' during navigation, and the signup flow always provisions a trial.
   const showTrialExpiredOverlay = subStatus !== 'loading' && ((isTrialExpired && !hasStripeSubscription) || subStatus === 'canceled');
 
+  // Lock background scroll while the lockout overlay is up.
+  useBodyScrollLock(showTrialExpiredOverlay);
+
   return (
-    <main dir="ltr" className={`min-h-screen bg-[var(--background)] text-[var(--foreground)] ${showTrialExpiredOverlay ? 'pointer-events-none grayscale opacity-60' : ''}`}>
-
-      {/* ── Subscription banners ─────────────────────────────────────────────── */}
-      {subStatus === 'past_due' && (
-        <div className="bg-red-50 border-b border-red-200 px-4 py-2.5 flex items-center justify-between gap-3">
-          <span className="text-sm text-red-900 flex items-center gap-2">
-            <AlertCircle size={16} className="text-red-600 flex-shrink-0" />
-            Payment failed. Update your payment method to keep your menu live.
-          </span>
-          <button onClick={openPortal} className="text-xs bg-red-600 text-white px-4 py-1.5 rounded-lg font-semibold hover:bg-red-700 flex-shrink-0">
-            Update payment
-          </button>
-        </div>
-      )}
-
-      {/* Trial expired / canceled overlay */}
+    <>
+      {/* Trial expired / canceled overlay — rendered OUTSIDE <main> on purpose.
+          <main> gets a grayscale filter while locked out, and a CSS filter on an
+          ancestor both (a) dims everything inside it and (b) makes it the
+          containing block for position:fixed. If this lived inside <main> the
+          card would anchor to the (tall) page instead of the viewport and the
+          button would render greyed-out. Keeping it a sibling fixes both. */}
       {showTrialExpiredOverlay && (
-        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4 pointer-events-auto">
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 text-center">
             <div className="flex justify-center mb-4">
               <svg width="48" height="44" viewBox="0 0 44 40" fill="none">
@@ -841,7 +835,7 @@ export function AdminMenuEditor({
               Your menu is paused and visitors see an &ldquo;unavailable&rdquo; message. Subscribe now to keep your menu live and get full access to DineLinks.
             </p>
             <button onClick={startCheckout} disabled={checkoutLoading}
-              className="w-full bg-[var(--main-color,#8b6914)] text-white font-semibold py-3.5 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50">
+              className="w-full bg-[var(--accent,#8b6914)] text-white font-semibold py-3.5 rounded-xl shadow-lg transition-all hover:brightness-110 active:scale-[0.98] active:brightness-95 disabled:cursor-wait">
               {checkoutLoading ? 'Loading...' : 'Subscribe now — $25/month'}
             </button>
             <p className="text-xs text-[#6b6560] mt-4">Reactivates your menu immediately. Cancel anytime.</p>
@@ -850,6 +844,21 @@ export function AdminMenuEditor({
               Sign out
             </button>
           </div>
+        </div>
+      )}
+
+    <main dir="ltr" className={`min-h-screen bg-[var(--background)] text-[var(--foreground)] ${showTrialExpiredOverlay ? 'pointer-events-none grayscale opacity-60' : ''}`}>
+
+      {/* ── Subscription banners ─────────────────────────────────────────────── */}
+      {subStatus === 'past_due' && (
+        <div className="bg-red-50 border-b border-red-200 px-4 py-2.5 flex items-center justify-between gap-3">
+          <span className="text-sm text-red-900 flex items-center gap-2">
+            <AlertCircle size={16} className="text-red-600 flex-shrink-0" />
+            Payment failed. Update your payment method to keep your menu live.
+          </span>
+          <button onClick={openPortal} className="text-xs bg-red-600 text-white px-4 py-1.5 rounded-lg font-semibold hover:bg-red-700 flex-shrink-0">
+            Update payment
+          </button>
         </div>
       )}
 
@@ -1459,6 +1468,7 @@ export function AdminMenuEditor({
       )}
 
     </main>
+    </>
   );
 }
 
