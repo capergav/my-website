@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 import { createSupabaseServerClient } from '@/app/lib/supabase';
+import { signToken, makeNonce, APPROVE_TTL_MS } from '@/lib/mapTokens';
 
 // Founder-only business alert. Fired once from the signup flow after a new
 // restaurant account is created. Sends a single email to hello@dinelinks.com
@@ -160,6 +161,26 @@ export async function POST() {
     const signupAt = newUser?.createdAt ?? now;
     const trialEnd = newSub?.trial_end ? new Date(newSub.trial_end) : null;
 
+    // ── "Approve for map" one-click link ─────────────────────────────────────
+    // A single-use, signed, expiring token lets the founder approve this
+    // restaurant straight from the inbox without logging in. We mint a nonce,
+    // store it on the restaurant row, and embed the signed token in the URL.
+    let approveUrl = '';
+    if (newRestaurant?.id) {
+      const nonce = makeNonce();
+      await supabaseAdmin
+        .from('restaurants')
+        .update({ map_approval_nonce: nonce })
+        .eq('id', newRestaurant.id as string);
+      const token = signToken({
+        purpose: 'approve',
+        restaurantId: newRestaurant.id as string,
+        ttlMs: APPROVE_TTL_MS,
+        nonce,
+      });
+      approveUrl = `https://dinelinks.com/map/approve?token=${encodeURIComponent(token)}`;
+    }
+
     // ── Build the email HTML ─────────────────────────────────────────────────
     const cardCell = (label: string, value: string, accent = '#2c2a26') => `
       <td style="padding: 6px;" width="50%">
@@ -206,6 +227,13 @@ export async function POST() {
             <tr><td style="padding:5px 0;color:#8a857c;">Signed up</td><td style="padding:5px 0;color:#2c2a26;">${fmtDateTime(signupAt)}</td></tr>
             <tr><td style="padding:5px 0;color:#8a857c;">Trial ends</td><td style="padding:5px 0;color:#2c2a26;">${fmtDate(trialEnd)}</td></tr>
           </table>
+          ${approveUrl ? `
+          <div style="margin-top:16px;">
+            <a href="${approveUrl}" style="display:inline-block;background:#8b6914;color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:10px 20px;border-radius:10px;">
+              📍 Approve for map
+            </a>
+            <div style="font-size:11px;color:#a39d94;margin-top:6px;">One-click, no login needed. Link expires in 30 days.</div>
+          </div>` : ''}
         </div>
 
         <!-- Snapshot -->

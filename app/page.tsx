@@ -649,6 +649,7 @@ export default function HomePage() {
                 {label}
               </button>
             ))}
+            <Link href="/map" className="text-sm transition-colors text-white/70 hover:text-white">Find a menu</Link>
             <Link href="/contact" className="text-sm transition-colors text-white/70 hover:text-white">Contact</Link>
           </div>
 
@@ -685,6 +686,7 @@ export default function HomePage() {
                 {label}
               </button>
             ))}
+            <Link href="/map" onClick={() => setMobileMenuOpen(false)} className="text-sm transition-colors text-white/70 hover:text-white">Find a menu</Link>
             <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="text-sm transition-colors text-white/70 hover:text-white">Contact</Link>
             {!isLoggedIn && <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="text-sm transition-colors text-white/70 hover:text-white">Sign in</Link>}
             <Link href={isLoggedIn ? '/admin' : '/signup'} onClick={() => setMobileMenuOpen(false)} className="w-full text-center rounded-xl px-4 py-3 text-sm font-semibold bg-[#8b6914] text-white">

@@ -52,6 +52,7 @@ function Rule({ met, text }: { met: boolean; text: string }) {
 export default function SignupPage() {
   const router = useRouter();
   const [restaurantName, setRestaurantName] = useState("");
+  const [address, setAddress] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -76,6 +77,16 @@ export default function SignupPage() {
     });
     if (error) { setError(error.message); setLoading(false); }
     else {
+      // Save the restaurant's location (geocoded server-side) before leaving
+      // this page — awaited so a navigation abort can't drop it. Best-effort:
+      // a failure must never block signup.
+      if (address.trim()) {
+        await fetch("/api/map/signup-location", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: address.trim() }),
+        }).catch(() => {});
+      }
       // Founder business alert — fire-and-forget. Must never block or break
       // the signup flow, so failures are swallowed.
       fetch("/api/notify-signup", { method: "POST" }).catch(() => {});
@@ -135,6 +146,18 @@ export default function SignupPage() {
                 placeholder="e.g. Joe's Pizza"
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Restaurant address</label>
+              <input
+                type="text"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                placeholder="e.g. 123 Main St, Toronto, ON, Canada"
+                className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8b6914]"
+              />
+              <p className="mt-1 text-xs text-gray-400">So diners can find you on the map. You can edit this later.</p>
             </div>
 
             <div>
