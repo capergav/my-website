@@ -32,9 +32,10 @@ export async function getMapOwner(): Promise<{ id: string; email: string } | nul
 export function menuLanguages(args: {
   allow_auto_translate?: boolean | null;
   default_language?: string | null;
-}): { value: Locale; label: string; flag: string }[] {
-  if (args.allow_auto_translate) return locales;
+}): { value: Locale; label: string }[] {
+  const pick = (l: { value: Locale; label: string }) => ({ value: l.value, label: l.label });
+  if (args.allow_auto_translate) return locales.map(pick);
   const def = (args.default_language ?? "en") as Locale;
   const match = locales.find((l) => l.value === def) ?? locales[0];
-  return [match];
+  return [pick(match)];
 }
