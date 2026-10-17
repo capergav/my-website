@@ -89,14 +89,17 @@ export function MapView({ pins, locale }: { pins: MapPin[]; locale: Locale }) {
 
       map = L.map(containerRef.current, { scrollWheelZoom: true }).setView([20, 0], 2);
 
-      // CartoDB Positron — a muted, desaturated greyscale basemap (free, no API
-      // key, OSM data). Roads and labels stay legible but recede, so the gold
-      // pins are the most prominent thing on screen.
-      L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+      // Standard OpenStreetMap raster tiles — free forever, no API key or
+      // account (CARTO's basemaps now gate behind a key and render as
+      // "API KEY REQUIRED" watermarks). The `dl-basemap` class applies a
+      // soft, low-saturation CSS filter (see the <style> block below) so the
+      // busy default OSM colours recede and the gold restaurant pins become
+      // the clear focal point.
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
-        subdomains: "abcd",
+        className: "dl-basemap",
         attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
       }).addTo(map);
 
       // Custom marker: a gold teardrop with the Lucide "utensils" icon in white,
@@ -141,5 +144,17 @@ export function MapView({ pins, locale }: { pins: MapPin[]; locale: Locale }) {
     };
   }, [pins, locale]);
 
-  return <div ref={containerRef} className="w-full h-full" style={{ minHeight: "100%" }} />;
+  return (
+    <>
+      <style>{`
+        /* Calm, modern basemap: desaturate and lighten the default OSM tiles
+           so roads/POIs recede and the gold pins stand out. Applied to the
+           tile images via the className option set on the tile layer. */
+        .dl-basemap {
+          filter: saturate(0.45) brightness(1.06) contrast(0.9) grayscale(0.35);
+        }
+      `}</style>
+      <div ref={containerRef} className="w-full h-full" style={{ minHeight: "100%" }} />
+    </>
+  );
 }
