@@ -1,5 +1,4 @@
 import { createSupabaseServerClient } from "@/app/lib/supabase";
-import { locales, type Locale } from "@/app/lib/translations";
 
 // The single founder account allowed to see the (still-hidden) discovery map
 // and the map admin tools. Gating is ALWAYS done server-side off the
@@ -19,23 +18,4 @@ export async function getMapOwner(): Promise<{ id: string; email: string } | nul
   if (!user?.email) return null;
   if (user.email.toLowerCase() !== MAP_OWNER_EMAIL.toLowerCase()) return null;
   return { id: user.id, email: user.email };
-}
-
-/**
- * The languages a restaurant's menu *actually* supports.
- *
- * Every DineLinks menu offers the full UI in all 13 languages, but item names
- * and descriptions are only machine-translated when the owner has turned on
- * auto-translate. So a menu "actually" supports the whole set only in that
- * case; otherwise the real content exists solely in its default language.
- */
-export function menuLanguages(args: {
-  allow_auto_translate?: boolean | null;
-  default_language?: string | null;
-}): { value: Locale; label: string }[] {
-  const pick = (l: { value: Locale; label: string }) => ({ value: l.value, label: l.label });
-  if (args.allow_auto_translate) return locales.map(pick);
-  const def = (args.default_language ?? "en") as Locale;
-  const match = locales.find((l) => l.value === def) ?? locales[0];
-  return [pick(match)];
 }

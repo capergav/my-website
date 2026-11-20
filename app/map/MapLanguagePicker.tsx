@@ -61,7 +61,7 @@ export function MapLanguagePicker({
     ? createPortal(
         <div ref={panelRef} style={style} role="listbox">
           <ul
-            className="py-1 rounded-xl bg-white border border-[#e8e4dd] shadow-2xl overflow-hidden max-h-[60vh] overflow-y-auto"
+            className="py-1 rounded-xl bg-[#1b1813] border border-[#3c362d] shadow-2xl overflow-hidden max-h-[60vh] overflow-y-auto"
             dir={isRtl ? "rtl" : "ltr"}
           >
             {locales.map((opt) => (
@@ -75,8 +75,8 @@ export function MapLanguagePicker({
                   className={`w-full px-4 py-2.5 text-sm font-medium transition-colors touch-manipulation
                     ${isRtl ? "text-right" : "text-left"}
                     ${locale === opt.value
-                      ? "bg-[#8b6914]/10 text-[#8b6914]"
-                      : "text-[#2c2a26] hover:bg-[#faf8f5]"}`}
+                      ? "bg-[#caa23f]/15 text-[#e3c98c]"
+                      : "text-[#ece4d4] hover:bg-[#2a2621]"}`}
                 >
                   {opt.label}
                 </button>
@@ -95,14 +95,14 @@ export function MapLanguagePicker({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1.5 min-h-[36px] px-3 py-1.5 rounded-lg
-          bg-white text-[#2c2a26] font-medium text-xs sm:text-sm
-          border border-[#e8e4dd] shadow-sm hover:shadow-md transition-shadow touch-manipulation"
+          bg-[#211e1a] text-[#ece4d4] font-medium text-xs sm:text-sm
+          border border-[#3c362d] shadow-sm hover:border-[#4a4336] transition-colors touch-manipulation"
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-label={t("map.chooseLanguage", locale)}
         dir="ltr"
       >
-        <Languages className="w-4 h-4 text-[#8b6914]" aria-hidden="true" />
+        <Languages className="w-4 h-4 text-[#d9b25f]" aria-hidden="true" />
         <span>{current.label}</span>
         <svg
           className={`w-4 h-4 transition-transform duration-200 ${open ? "rotate-180" : ""}`}

@@ -2,7 +2,8 @@ export const dynamic = "force-dynamic";
 
 import type { Metadata } from "next";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { getMapOwner, menuLanguages } from "@/lib/mapAccess";
+import { getMapOwner } from "@/lib/mapAccess";
+import { locales } from "@/app/lib/translations";
 import { type MapPin } from "./MapView";
 import { MapClient } from "./MapClient";
 import { MapComingSoon } from "./MapComingSoon";
@@ -30,7 +31,7 @@ export default async function MapPage() {
   const { data: rows } = await supabaseAdmin
     .from("restaurants")
     .select(
-      "slug, name, map_name, map_notes, address, city, province, country, latitude, longitude, allow_auto_translate, default_language"
+      "slug, name, map_name, map_notes, address, city, province, country, latitude, longitude"
     )
     .eq("approved_for_map", true)
     .not("latitude", "is", null)
@@ -45,8 +46,11 @@ export default async function MapPage() {
       lng: r.longitude as number,
       address: formatAddress(r as Record<string, unknown>),
       notes: (r.map_notes as string) ?? null,
-      // Native-script language names only — flags removed across the feature.
-      languages: menuLanguages(r).map((l) => l.label),
+      // Every DineLinks menu is auto-translated into the full supported set, so
+      // every restaurant on the map is readable in all of them. Pull the list
+      // straight from `locales` (the same source the menus use) so it can never
+      // go stale — native-script names only, no flags.
+      languages: locales.map((l) => l.label),
     }));
 
   return <MapClient pins={pins} />;
