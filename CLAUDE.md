@@ -191,6 +191,39 @@ lib/
 
 ---
 
+## Supabase migrations — Data API grants (READ BEFORE CREATING TABLES)
+
+As of **30 October 2026**, Supabase **no longer auto-grants Data API access
+to NEW tables** in the `public` schema. Existing tables are unaffected (all
+current tables already have grants). Any table created from now on will return
+`permission denied` from supabase-js / PostgREST unless grants are added
+explicitly **in the same migration that creates the table**.
+
+**Every migration that creates a table in `public` MUST include its grants:**
+
+```sql
+grant select on public.<table> to anon;
+grant select, insert, update, delete on public.<table> to authenticated;
+grant select, insert, update, delete on public.<table> to service_role;
+```
+
+Adjust roles/verbs to what the table actually needs — do not grant broader
+access than required:
+- `anon` should only get what truly anonymous visitors need (usually
+  `select`, often nothing). Never grant `anon` write access to a table only
+  the service role should write.
+- `authenticated` gets what signed-in owners need.
+- `service_role` gets what server-side code needs.
+
+Grants are **not** a substitute for RLS — still add row-level security
+policies. Grants gate table-level API access; RLS gates row-level access.
+
+This applies to **new projects, preview branches, and local
+`supabase db reset`** too — grants live in the migration, so they travel with
+every environment that replays migrations.
+
+---
+
 ## Subscription flow
 
 1. Signup → `subscriptions` row created: `status='trialing'`, `trial_end = now+60d`
